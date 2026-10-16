@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Raycaster</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="src/style.css" />
+  </head>
+  <body>
+    <canvas id="screen" width="320" height="240"></canvas>
+
+    <div id="world-billboards" class="world-billboards"></div>
+
+    <div id="interaction-prompt" class="interaction-prompt hidden"></div>
+
+    <div id="pause-menu" class="pause-menu hidden">
+      <div class="pause-box">
+        <div id="pause-main-view" class="pause-view">
+          <h1 class="pause-title">PAUSE</h1>
+          <div class="pause-btn-group">
+            <button id="resume-btn" class="pause-btn" type="button">REPRENDRE</button>
+            <button id="settings-btn" class="pause-btn pause-btn-secondary" type="button">PARAMÈTRES</button>
+          </div>
+          <div class="pause-controls">
+            <p>W / S : AVANCER / RECULER</p>
+            <p>A / D : GAUCHE / DROITE</p>
+            <p>SOURIS : ORIENTER LA VUE</p>
+            <p>CLIC / ESPACE : BOULE DE FEU</p>
+            <p>F : INTERAGIR</p>
+            <p>ECHAP : MENU PAUSE</p>
+          </div>
+        </div>
+
+        <div id="pause-settings-view" class="pause-view hidden">
+          <h1 class="pause-title">PARAMÈTRES</h1>
+          <div class="settings-group">
+            <div class="setting-row">
+              <span class="setting-title">CHAMP DE VISION (FOV)</span>
+              <span id="fov-value" class="setting-value">75°</span>
+            </div>
+            <input
+              id="fov-slider"
+              class="pixel-slider"
+              type="range"
+              min="60"
+              max="110"
+              step="1"
+              value="75"
+            />
+            <div class="setting-scale-labels">
+              <span>60° (ZOOM)</span>
+              <span>110° (LARGE)</span>
+            </div>
+          </div>
+          <div class="pause-btn-group">
+            <button id="settings-back-btn" class="pause-btn pause-btn-secondary" type="button">RETOUR</button>
+            <button id="settings-resume-btn" class="pause-btn" type="button">REPRENDRE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

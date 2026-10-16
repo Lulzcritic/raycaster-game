@@ -1,0 +1,196 @@
+import { TILE_TYPE } from '../config/constants';
+import type { TextureManager } from '../graphics/TextureManager';
+import type { EquipmentItem } from '../types';
+import { findSpacedDropPositions } from '../utils/dropSpread';
+import type { GameMap } from '../world/GameMap';
+import { DroppedItemOrb } from './DroppedItemOrb';
+import { Entity } from './Entity';
+import type { Player } from './Player';
+
+/**
+ * Entité 2D de type "Billboard" (toujours orientée face au joueur dans le monde 3D)
+ */
+export class BillboardSprite extends Entity {
+  public readonly textureId: number;
+  private readonly textureManager: TextureManager;
+  private readonly scale: number;
+  private lootItems: EquipmentItem[];
+  private readonly onSpawnEntity?: (entity: Entity) => void;
+  private isOpened = false;
+  private openProgress = 0;
+  private lastRenderedLift = -1;
+  private openedCanvas: HTMLCanvasElement | null = null;
+
+  constructor(
+    x: number,
+    y: number,
+    textureId: number,
+    textureManager: TextureManager,
+    scale = 0.42,
+    lootItems?: EquipmentItem[] | EquipmentItem,
+    onSpawnEntity?: (entity: Entity) => void
+  ) {
+    super(x, y, 0, 0);
+    this.textureId = textureId;
+    this.textureManager = textureManager;
+    this.scale = scale;
+    this.lootItems = Array.isArray(lootItems)
+      ? [...lootItems]
+      : lootItems
+        ? [lootItems]
+        : [];
+    this.onSpawnEntity = onSpawnEntity;
+  }
+
+  public hasLoot(): boolean {
+    return this.lootItems.length > 0;
+  }
+
+  public isChestOpened(): boolean {
+    return this.isOpened;
+  }
+
+  public update(deltaTime: number, _map: GameMap): void {
+    if (this.isOpened && this.openProgress < 1) {
+      this.openProgress = Math.min(1, this.openProgress + deltaTime * 8);
+    }
+  }
+
+  public override getSprite(): HTMLCanvasElement | null {
+    const baseSprite = this.textureManager.getTexture(this.textureId) ?? null;
+    if (!baseSprite) {
+      return null;
+    }
+
+    if (this.textureId === TILE_TYPE.CHEST && this.isOpened) {
+      return this.getOpenedChestSprite(baseSprite);
+    }
+
+    return baseSprite;
+  }
+
+  public override getScale(): number {
+    return this.scale;
+  }
+
+  public override isFloorAnchored(): boolean {
+    return true;
+  }
+
+  public override isInteractable(): boolean {
+    return this.textureId === TILE_TYPE.CHEST && !this.isOpened;
+  }
+
+  public override getInteractionPrompt(_player?: Player): string | null {
+    if (!this.isInteractable()) {
+      return null;
+    }
+    return '[F] OUVRIR LE COFFRE';
+  }
+
+  public override interact(player: Player, map?: GameMap): string | null {
+    if (!this.isInteractable()) {
+      return null;
+    }
+
+    this.isOpened = true;
+
+    if (this.lootItems.length === 0) {
+      return 'COFFRE VIDE...';
+    }
+
+    if (this.onSpawnEntity && map) {
+      const positions = findSpacedDropPositions(
+        this.x,
+        this.y,
+        player.x,
+        player.y,
+        this.lootItems.length,
+        map
+      );
+
+      for (let i = 0; i < this.lootItems.length; i++) {
+        const item = this.lootItems[i];
+        const targetPos = positions[i] ?? { x: this.x, y: this.y };
+        const orb = new DroppedItemOrb(
+          this.x,
+          this.y,
+          targetPos.x,
+          targetPos.y,
+          item,
+          this.onSpawnEntity
+        );
+        this.onSpawnEntity(orb);
+      }
+    }
+
+    const count = this.lootItems.length;
+    this.lootItems = [];
+    return count > 1 ? `${count} OBJETS TOMBENT AU SOL !` : null;
+  }
+
+  /**
+   * Génère la variante ouverte du coffre directement à partir de sa texture pixel-art chargée
+   */
+  private getOpenedChestSprite(closedSprite: HTMLCanvasElement): HTMLCanvasElement {
+    const maxLift = 6;
+    const lift = Math.max(1, Math.round(maxLift * this.openProgress));
+
+    if (this.openedCanvas && this.lastRenderedLift === lift) {
+      return this.openedCanvas;
+    }
+
+    const width = closedSprite.width;
+    const height = closedSprite.height;
+    const splitY = Math.floor(height * 0.55); // Ligne des charnières du coffre (35/64)
+
+    if (!this.openedCanvas) {
+      this.openedCanvas = document.createElement('canvas');
+      this.openedCanvas.width = width;
+      this.openedCanvas.height = height;
+    }
+
+    const ctx = this.openedCanvas.getContext('2d')!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, width, height);
+
+    // 1. Base inférieure du coffre (fixe sur le sol)
+    ctx.drawImage(
+      closedSprite,
+      0,
+      splitY,
+      width,
+      height - splitY,
+      0,
+      splitY,
+      width,
+      height - splitY
+    );
+
+    // 2. Cavité intérieure sombre entre le couvercle soulevé et la base
+    ctx.fillStyle = '#08080a';
+    ctx.fillRect(2, splitY - lift, width - 4, lift + 1);
+    ctx.fillStyle = '#160d09';
+    ctx.fillRect(4, splitY - lift + 1, width - 8, Math.max(1, lift - 1));
+    ctx.fillStyle = '#3a2416';
+    ctx.fillRect(4, splitY - 1, width - 8, 1);
+
+    // 3. Couvercle supérieur soulevé vers le haut
+    const lidTopY = Math.max(0, 14 - lift);
+    const lidSourceH = splitY - 14;
+    ctx.drawImage(
+      closedSprite,
+      0,
+      14,
+      width,
+      lidSourceH,
+      0,
+      lidTopY,
+      width,
+      lidSourceH
+    );
+
+    this.lastRenderedLift = lift;
+    return this.openedCanvas;
+  }
+}

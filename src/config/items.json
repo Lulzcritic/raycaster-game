@@ -1,0 +1,188 @@
+[
+  {
+    "id": "hat_leech_infested_mitre",
+    "name": "Mitre Décrépite Infestée de Sangsues",
+    "slot": "hat",
+    "rarity": "common",
+    "stats": {
+      "magicPower": 2,
+      "defense": 1,
+      "maxHealth": -5
+    },
+    "effect": "Des sangsues pieuses vous sucent le front pendant que vous marmonnez des prières.",
+    "description": "Récupérée au fond d'un sarcophage inondé. L'odeur d'encens rance a depuis longtemps chassé la sainteté."
+  },
+  {
+    "id": "hat_myopic_necromancer",
+    "name": "Chapeau Pointu du Nécromancien Myope",
+    "slot": "hat",
+    "rarity": "rare",
+    "stats": {
+      "magicPower": 6,
+      "maxHealth": 10,
+      "charisma": -3
+    },
+    "effect": "Éclaire vaguement les pensées sombres dans un rayon de 2 mètres.",
+    "description": "Tissé en poils de chauve-souris insomniaque. Penche obstinément devant l'œil gauche pendant les incantations."
+  },
+  {
+    "id": "weapon_arthritic_lich_staff",
+    "name": "Bâton Tordu de la Liche Arthritique",
+    "slot": "weapon",
+    "rarity": "legendary",
+    "stats": {
+      "damage": 14,
+      "magicPower": 9,
+      "castSpeed": 0.15
+    },
+    "effect": "Les boules de feu sentent le vieux soufre et font craquer les articulations des ennemis.",
+    "description": "Taillé dans un fémur de démon grognon. Sert autant à lancer des malédictions interdites qu'à se gratter entre les omoplates."
+  },
+  {
+    "id": "weapon_crooked_phylactery_dagger",
+    "name": "Dague Maudite du Phylactère Brisé",
+    "slot": "weapon",
+    "rarity": "artifact",
+    "stats": {
+      "damage": 22,
+      "magicPower": 15,
+      "stealth": 8
+    },
+    "effect": "Murmure des secrets cosmiques qui rendent confus quiconque s'en approche.",
+    "description": "Forgée dans le verre d'une urne funéraire brisée. La lame palpite d'un éclat jaune interdit."
+  },
+  {
+    "id": "armor_moldy_hermit_rags",
+    "name": "Loques Moisies du Solitaire",
+    "slot": "armor",
+    "rarity": "uncommon",
+    "stats": {
+      "defense": 6,
+      "maxHealth": 15,
+      "stealth": 5
+    },
+    "effect": "Dégage un nuage de spores de moisissure camouflant les pas.",
+    "description": "Des loques rapiécées avec de la ficelle de lin et de la mousse de tombeau."
+  },
+  {
+    "id": "armor_shrunk_black_mass_robe",
+    "name": "Robe de Messe Noire Rétrécie au Lavage",
+    "slot": "armor",
+    "rarity": "epic",
+    "stats": {
+      "defense": 10,
+      "maxHealth": 25,
+      "stealth": -4
+    },
+    "effect": "Absorbe 12% des malédictions ambiantes et 100% de l'humidité des cryptes.",
+    "description": "Imprégnée de ténèbres abyssales et d'une tenace odeur de cave humide. Gratte atrocement aux coudes."
+  },
+  {
+    "id": "boots_squeaky_abyss_poulaines",
+    "name": "Poulaines Maudites qui Couinent",
+    "slot": "boots",
+    "rarity": "uncommon",
+    "stats": {
+      "moveSpeed": 0.25,
+      "defense": 4,
+      "stealth": -15
+    },
+    "effect": "Émet un « pouic » intimidant qui déconcentre les spectres à chaque foulée.",
+    "description": "Forgées dans le cuir d'une gargouille asthmatique. Font un petit « pouic » funèbre à chaque pas dans les cryptes."
+  },
+  {
+    "id": "boots_slippery_graveyard_clogs",
+    "name": "Sabots Glissants du Fossoyeur",
+    "slot": "boots",
+    "rarity": "rare",
+    "stats": {
+      "moveSpeed": 0.35,
+      "defense": 3,
+      "charisma": -2
+    },
+    "effect": "Permet de glisser sur la vase des cryptes à une allure prodigieuse.",
+    "description": "Sabots en bois de cyprès taillés à la hâte. La semelle est polie par des siècles de gadoue sépulcrale."
+  },
+  {
+    "id": "key_crypt_skull",
+    "name": "Clé en Os de la Crypte",
+    "slot": "key",
+    "rarity": "legendary",
+    "stats": {},
+    "effect": "Déverrouille la lourde herse de fer scellant la crypte secrète.",
+    "description": "Taillée dans un fémur antique et ornée d'un crâne au regard vide. Un cliquetis sinistre résonne quand on l'agite."
+  },
+  {
+    "id": "key_spawn_rusty",
+    "name": "Clé Rouillée du Quartier",
+    "slot": "key",
+    "rarity": "uncommon",
+    "stats": {},
+    "effect": "Déverrouille la herse de fer scellant votre zone de départ vers l'anneau central.",
+    "description": "Une clé grossière rongée par la rouille et les moisissures des cryptes. Elle sent le vieux fer froid."
+  },
+  {
+    "id": "weapon_splintered_apprentice_wand",
+    "name": "Baguette Écharde de l'Initié",
+    "slot": "weapon",
+    "rarity": "common",
+    "stats": {
+      "damage": 4,
+      "magicPower": 3,
+      "castSpeed": 0.05
+    },
+    "effect": "Donne de légères décharges d'électricité statique dans les phalanges.",
+    "description": "Une branche de noisetier mal équarrie recouverte de gravures ésotériques maladroites."
+  },
+  {
+    "id": "armor_tattered_gambeson",
+    "name": "Gambison Déchiré de Garde Oublié",
+    "slot": "armor",
+    "rarity": "common",
+    "stats": {
+      "defense": 3,
+      "maxHealth": 10
+    },
+    "effect": "Amortit les coups de griffe superficiels au prix d'un rembourrage en paille miteuse.",
+    "description": "Porté par un milicien mort il y a trois siècles. Tient chaud mais abrite plusieurs familles de mites."
+  },
+  {
+    "id": "boots_cobbled_grave_treaders",
+    "name": "Bottes Cloutées du Pilleur de Tombes",
+    "slot": "boots",
+    "rarity": "common",
+    "stats": {
+      "moveSpeed": 0.15,
+      "defense": 2
+    },
+    "effect": "Les clous en fer crissent sur les dalles humides du donjon.",
+    "description": "Cuir durci à la graisse de porc. Les semelles sont incrustées de débris d'ossements sépulcraux."
+  },
+  {
+    "id": "hat_ragged_scavenger_cowl",
+    "name": "Capuchon Déguenillé du Charognard",
+    "slot": "hat",
+    "rarity": "uncommon",
+    "stats": {
+      "stealth": 6,
+      "defense": 2,
+      "maxHealth": 5
+    },
+    "effect": "Dissimule les traits du visage dans l'obscurité pour échapper aux regards inquisiteurs.",
+    "description": "Tissu de bure sombre rapiécé avec des tendons séchés. Protège de la suie des torches."
+  },
+  {
+    "id": "armor_cursed_bone_carapace",
+    "name": "Carapace Squelettique des Abysses",
+    "slot": "armor",
+    "rarity": "legendary",
+    "stats": {
+      "defense": 16,
+      "maxHealth": 40,
+      "magicPower": 6,
+      "moveSpeed": -0.05
+    },
+    "effect": "Des côtes spectrales se resserrent autour de vous pour dévier les assauts meurtriers.",
+    "description": "Assemblage rituel de vertèbres de titans maudits, scellées ensemble par de la résine nécrotique."
+  }
+]

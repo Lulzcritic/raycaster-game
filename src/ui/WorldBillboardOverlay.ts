@@ -215,7 +215,7 @@ export class WorldBillboardOverlay {
       const floorScreenY = (240 + fullWallHeight) / 2;
       const bottomScreenY = floorScreenY - fullWallHeight * enemy.getElevation();
       const topOfSpriteScreenY = bottomScreenY - fullWallHeight * enemy.getScale();
-      const offsetAbove = hpInfo.rank === 'boss' ? 14 : hpInfo.rank === 'elite' ? 12 : 8;
+      const offsetAbove = hpInfo.rank === 'boss' ? 22 : hpInfo.rank === 'elite' ? 18 : 14;
       const anchorCanvasY = topOfSpriteScreenY - offsetAbove;
 
       const screenPixelX =
@@ -223,7 +223,8 @@ export class WorldBillboardOverlay {
       const screenPixelY =
         canvasRect.top + (anchorCanvasY / 240) * canvasRect.height;
 
-      const scale = Math.max(0.65, Math.min(1.25, 1.35 / Math.sqrt(distance)));
+      // Échelle Deadlock : barres plus imposantes et très lisibles à moyenne portée
+      const scale = Math.max(0.75, Math.min(1.35, 1.55 / Math.sqrt(distance)));
 
       enemyEl.style.display = 'flex';
       enemyEl.style.left = `${screenPixelX}px`;
@@ -339,53 +340,95 @@ export class WorldBillboardOverlay {
 
   private createEnemyElement(
     enemy: Enemy,
-    hpInfo: { percent: number; rank: 'normal' | 'elite' | 'boss'; name: string }
+    hpInfo: {
+      percent: number;
+      health: number;
+      maxHealth: number;
+      rank: 'normal' | 'elite' | 'boss';
+      name: string;
+    }
   ): HTMLElement {
     const el = document.createElement('div');
     el.className = `world-enemy-overhead rank-${hpInfo.rank}`;
 
-    // Nom / titre du monstre
-    const nameEl = document.createElement('div');
-    nameEl.className = 'world-enemy-name';
-    const prefix = hpInfo.rank === 'boss' ? '👑 ' : hpInfo.rank === 'elite' ? '★ ' : '';
-    nameEl.textContent = `${prefix}${enemy.type.name.toUpperCase()}`;
-    el.appendChild(nameEl);
+    // 1. En-tête Deadlock : Titre / Rang & Compteur de PV chiffré
+    const headerEl = document.createElement('div');
+    headerEl.className = 'deadlock-mob-header';
 
-    // Barre de vie
-    const barTrack = document.createElement('div');
-    barTrack.className = 'world-enemy-bar-track';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'deadlock-mob-title';
+    const prefix =
+      hpInfo.rank === 'boss' ? '👑 ' : hpInfo.rank === 'elite' ? '★ ' : '';
+    titleEl.textContent = `${prefix}${enemy.type.name.toUpperCase()}`;
+    headerEl.appendChild(titleEl);
 
-    const barFill = document.createElement('div');
-    barFill.className = 'world-enemy-bar-fill';
-    barFill.style.width = `${Math.round(hpInfo.percent * 100)}%`;
-    barTrack.appendChild(barFill);
+    const hpNumEl = document.createElement('div');
+    hpNumEl.className = 'deadlock-hp-number';
+    hpNumEl.textContent = `${hpInfo.health} / ${hpInfo.maxHealth}`;
+    headerEl.appendChild(hpNumEl);
 
-    el.appendChild(barTrack);
+    el.appendChild(headerEl);
+
+    // 2. Châssis de jauge Deadlock (biseauté / anguleux)
+    const frameEl = document.createElement('div');
+    frameEl.className = 'deadlock-bar-frame';
+
+    const trackEl = document.createElement('div');
+    trackEl.className = 'deadlock-bar-track';
+
+    // Ghost damage bar (se résorbe après l'impact pour sensation punchy façon Deadlock)
+    const ghostEl = document.createElement('div');
+    ghostEl.className = 'deadlock-bar-ghost';
+    ghostEl.style.width = `${Math.round(hpInfo.percent * 100)}%`;
+    trackEl.appendChild(ghostEl);
+
+    // Remplissage de vie principal
+    const fillEl = document.createElement('div');
+    fillEl.className = 'deadlock-bar-fill';
+    fillEl.style.width = `${Math.round(hpInfo.percent * 100)}%`;
+    trackEl.appendChild(fillEl);
+
+    // Encoches / Segments de graduation tactique façon Deadlock
+    const segmentsEl = document.createElement('div');
+    segmentsEl.className = 'deadlock-bar-segments';
+    trackEl.appendChild(segmentsEl);
+
+    frameEl.appendChild(trackEl);
+    el.appendChild(frameEl);
+
     return el;
   }
 
   private updateEnemyElement(
     el: HTMLElement,
-    hpInfo: { percent: number; rank: 'normal' | 'elite' | 'boss' }
+    hpInfo: {
+      percent: number;
+      health: number;
+      maxHealth: number;
+      rank: 'normal' | 'elite' | 'boss';
+    }
   ): void {
-    const fill = el.querySelector<HTMLElement>('.world-enemy-bar-fill');
-    if (!fill) return;
+    const fill = el.querySelector<HTMLElement>('.deadlock-bar-fill');
+    const ghost = el.querySelector<HTMLElement>('.deadlock-bar-ghost');
+    const hpNum = el.querySelector<HTMLElement>('.deadlock-hp-number');
 
     const percent = Math.round(hpInfo.percent * 100);
-    fill.style.width = `${percent}%`;
 
-    if (hpInfo.rank === 'boss') {
-      fill.style.background = hpInfo.percent < 0.3 ? '#ef4444' : 'linear-gradient(90deg, #991b1b, #dc2626)';
-    } else if (hpInfo.rank === 'elite') {
-      fill.style.background = hpInfo.percent < 0.3 ? '#ef4444' : 'linear-gradient(90deg, #7e22ce, #c084fc)';
-    } else {
-      if (hpInfo.percent < 0.25) {
-        fill.style.background = '#ef4444';
-      } else if (hpInfo.percent < 0.5) {
-        fill.style.background = '#f59e0b';
+    if (hpNum) {
+      hpNum.textContent = `${hpInfo.health} / ${hpInfo.maxHealth}`;
+    }
+
+    if (fill) {
+      fill.style.width = `${percent}%`;
+      if (hpInfo.percent <= 0.25) {
+        fill.classList.add('critical');
       } else {
-        fill.style.background = '#22c55e';
+        fill.classList.remove('critical');
       }
+    }
+
+    if (ghost) {
+      ghost.style.width = `${percent}%`;
     }
   }
 

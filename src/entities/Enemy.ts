@@ -78,6 +78,8 @@ export class Enemy extends Entity {
 
   public getHealthBarInfo(): {
     percent: number;
+    health: number;
+    maxHealth: number;
     rank: 'normal' | 'elite' | 'boss';
     name: string;
     isVisible: boolean;
@@ -91,6 +93,8 @@ export class Enemy extends Entity {
 
     return {
       percent: Math.max(0, Math.min(1, this.health / this.maxHealth)),
+      health: Math.ceil(this.health),
+      maxHealth: this.maxHealth,
       rank: this.type.rank,
       name: this.type.name,
       isVisible,

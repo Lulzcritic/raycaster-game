@@ -1,5 +1,5 @@
 :root {
-  --font-medieval: 'MedievalSharp', 'Pixelify Sans', 'Press Start 2P', cursive, sans-serif;
+  --font-medieval: 'Jacquard 12', 'Pixelify Sans', 'Press Start 2P', monospace;
 }
 
 body {
@@ -82,7 +82,7 @@ body {
 
 .pause-title {
   margin: 0;
-  font-size: 34px;
+  font-size: 38px;
   color: #ffcc00;
   text-shadow: 4px 4px 0 #000;
   letter-spacing: 2px;
@@ -90,7 +90,7 @@ body {
 
 .pause-btn {
   font-family: var(--font-medieval);
-  font-size: 18px;
+  font-size: 20px;
   color: #ffffff;
   background: #911111;
   border: 3px solid #ffffff;
@@ -138,7 +138,7 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .setting-title {
@@ -423,7 +423,7 @@ body {
 
 .hud-health-text {
   font-family: var(--font-medieval);
-  font-size: 16px;
+  font-size: 18px;
   color: #ffffff;
   text-shadow: 2px 2px 0 #000000;
   margin-top: 6px;
@@ -451,7 +451,7 @@ body {
 
 .hud-zone-title {
   font-family: var(--font-medieval);
-  font-size: 16px;
+  font-size: 18px;
   color: #38bdf8;
   text-shadow: 2px 2px 0 #000000;
   letter-spacing: 1px;
@@ -459,7 +459,7 @@ body {
 
 .hud-raid-timer {
   font-family: var(--font-medieval);
-  font-size: 15px;
+  font-size: 16px;
   color: #94a3b8;
   text-shadow: 1px 1px 0 #000000;
 }
@@ -492,14 +492,14 @@ body {
 }
 
 .deadlock-mob-title {
-  font-size: 15px;
+  font-size: 17px;
   color: #ffffff;
   text-shadow: 2px 2px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;
   letter-spacing: 0.5px;
 }
 
 .deadlock-hp-number {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: bold;
   color: #fdba74;
   text-shadow: 2px 2px 0 #000000;
@@ -629,13 +629,13 @@ body {
 
 .world-enemy-overhead.rank-elite .deadlock-mob-title {
   color: #e9d5ff;
-  font-size: 16px;
+  font-size: 19px;
   text-shadow: 2px 2px 0 #000000, 0 0 8px rgba(192, 132, 252, 0.8);
 }
 
 .world-enemy-overhead.rank-elite .deadlock-hp-number {
   color: #e9d5ff;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .world-enemy-overhead.rank-elite .deadlock-bar-fill {
@@ -681,13 +681,13 @@ body {
 
 .world-enemy-overhead.rank-boss .deadlock-mob-title {
   color: #fde047;
-  font-size: 18px;
+  font-size: 22px;
   text-shadow: 2px 2px 0 #000000, 0 0 10px rgba(245, 158, 11, 0.9);
 }
 
 .world-enemy-overhead.rank-boss .deadlock-hp-number {
   color: #fde047;
-  font-size: 17px;
+  font-size: 20px;
 }
 
 .world-enemy-overhead.rank-boss .deadlock-bar-fill {

@@ -1,0 +1,220 @@
+import type { Player } from '../entities/Player';
+import { RARITY_COLORS } from '../entities/ItemCardBillboard';
+
+const SLOT_NAMES: Record<string, string> = {
+  weapon: 'ARME',
+  armor: 'ARMURE',
+  hat: 'CHAPEAU',
+  boots: 'BOTTES',
+  key: 'CLÉ',
+};
+
+export class HUDOverlay {
+  private readonly playerHud: HTMLElement | null;
+  private readonly healthFill: HTMLElement | null;
+  private readonly healthText: HTMLElement | null;
+  private readonly zonePanel: HTMLElement | null;
+  private readonly zoneTitle: HTMLElement | null;
+  private readonly raidTimer: HTMLElement | null;
+
+  private readonly extractionScreen: HTMLElement | null;
+  private readonly extractionStats: HTMLElement | null;
+  private readonly extractionLootList: HTMLElement | null;
+  private readonly extractionRestartBtn: HTMLElement | null;
+
+  private readonly deathScreen: HTMLElement | null;
+  private readonly deathRespawnBtn: HTMLElement | null;
+
+  private isExtractedScreenShown = false;
+  private isDeathScreenShown = false;
+  private isPaused = false;
+
+  constructor(onRestart: () => void) {
+    this.playerHud = document.getElementById('player-hud');
+    this.healthFill = document.getElementById('hud-health-fill');
+    this.healthText = document.getElementById('hud-health-text');
+    this.zonePanel = document.getElementById('hud-zone-panel');
+    this.zoneTitle = document.getElementById('hud-zone-title');
+    this.raidTimer = document.getElementById('hud-raid-timer');
+
+    this.extractionScreen = document.getElementById('extraction-screen');
+    this.extractionStats = document.getElementById('extraction-stats');
+    this.extractionLootList = document.getElementById('extraction-loot-list');
+    this.extractionRestartBtn = document.getElementById('extraction-restart-btn');
+
+    this.deathScreen = document.getElementById('death-screen');
+    this.deathRespawnBtn = document.getElementById('death-respawn-btn');
+
+    if (this.extractionRestartBtn) {
+      this.extractionRestartBtn.addEventListener('click', () => {
+        this.reset();
+        onRestart();
+      });
+    }
+
+    if (this.deathRespawnBtn) {
+      this.deathRespawnBtn.addEventListener('click', () => {
+        this.reset();
+        onRestart();
+      });
+    }
+  }
+
+  public reset(): void {
+    this.isExtractedScreenShown = false;
+    this.isDeathScreenShown = false;
+    this.extractionScreen?.classList.add('hidden');
+    this.deathScreen?.classList.add('hidden');
+  }
+
+  public update(player: Player, raidTimerSec: number, isExtracted: boolean): void {
+    const isAlive = player.isAlive();
+
+    // 1. Écran de Mort
+    if (!isAlive && !isExtracted) {
+      if (!this.isDeathScreenShown) {
+        this.isDeathScreenShown = true;
+        this.deathScreen?.classList.remove('hidden');
+        if (this.playerHud) this.playerHud.style.display = 'none';
+      }
+      return;
+    }
+
+    if (this.isDeathScreenShown && isAlive) {
+      this.isDeathScreenShown = false;
+      this.deathScreen?.classList.add('hidden');
+    }
+
+    // 2. Écran d'Extraction réussie
+    if (isExtracted) {
+      if (!this.isExtractedScreenShown) {
+        this.isExtractedScreenShown = true;
+        this.renderExtractionScreen(player, raidTimerSec);
+        this.extractionScreen?.classList.remove('hidden');
+        if (this.playerHud) this.playerHud.style.display = 'none';
+      }
+      return;
+    }
+
+    if (this.isExtractedScreenShown && !isExtracted) {
+      this.isExtractedScreenShown = false;
+      this.extractionScreen?.classList.add('hidden');
+    }
+
+    // 3. HUD Joueur actif pendant le jeu
+    if (this.playerHud) {
+      this.playerHud.style.display = !this.isPaused ? 'flex' : 'none';
+    }
+
+    // Santé
+    const hp = Math.max(0, player.health);
+    const maxHp = player.maxHealth;
+    const ratio = Math.max(0, Math.min(1, hp / maxHp));
+    const percent = Math.round(ratio * 100);
+
+    if (this.healthFill) {
+      this.healthFill.style.width = `${percent}%`;
+      if (ratio <= 0.25) {
+        this.healthFill.style.background = 'linear-gradient(90deg, #991b1b, #ef4444)';
+      } else if (ratio <= 0.5) {
+        this.healthFill.style.background = 'linear-gradient(90deg, #c2410c, #f59e0b)';
+      } else {
+        this.healthFill.style.background = 'linear-gradient(90deg, #b91c1c, #ef4444)';
+      }
+    }
+
+    if (this.healthText) {
+      this.healthText.textContent = `PV ${Math.ceil(hp)} / ${maxHp}`;
+    }
+
+    // Zone & Chronomètre
+    const distFromCenter = Math.hypot(player.x - 32, player.y - 32);
+    let zoneName = 'ZONE 1 - QUARTIER DE DÉPART';
+    let zoneColor = '#38bdf8';
+
+    if (distFromCenter <= 7) {
+      zoneName = 'ZONE 3 - SANCTUAIRE DU BOSS';
+      zoneColor = '#ef4444';
+    } else if (distFromCenter <= 19) {
+      zoneName = 'ZONE 2 - ANNEAU CENTRAL (PARTAGÉE)';
+      zoneColor = '#f59e0b';
+    }
+
+    if (this.zoneTitle) {
+      this.zoneTitle.textContent = zoneName;
+      this.zoneTitle.style.color = zoneColor;
+    }
+
+    if (this.zonePanel) {
+      this.zonePanel.style.borderColor = zoneColor;
+    }
+
+    const timerMin = Math.floor(raidTimerSec / 60);
+    const timerSec = Math.floor(raidTimerSec % 60);
+    const formattedTimer = `${timerMin.toString().padStart(2, '0')}:${timerSec.toString().padStart(2, '0')}`;
+
+    if (this.raidTimer) {
+      this.raidTimer.textContent = `⏱️ RAID ${formattedTimer}`;
+    }
+  }
+
+  public setVisible(visible: boolean): void {
+    this.isPaused = !visible;
+    if (this.playerHud) {
+      this.playerHud.style.display =
+        visible && !this.isExtractedScreenShown && !this.isDeathScreenShown
+          ? 'flex'
+          : 'none';
+    }
+  }
+
+  private renderExtractionScreen(player: Player, raidTimerSec: number): void {
+    const timerMin = Math.floor(raidTimerSec / 60);
+    const timerSec = Math.floor(raidTimerSec % 60);
+    const formattedTimer = `${timerMin.toString().padStart(2, '0')}:${timerSec.toString().padStart(2, '0')}`;
+
+    if (this.extractionStats) {
+      this.extractionStats.innerHTML = `
+        <span>⏱️ TEMPS DE RAID : <strong style="color: #f59e0b;">${formattedTimer}</strong></span>
+        <span>❤️ PV RESTANTS : <strong style="color: #ef4444;">${Math.ceil(player.health)}/${player.maxHealth}</strong></span>
+      `;
+    }
+
+    if (this.extractionLootList) {
+      this.extractionLootList.innerHTML = '';
+      const slots: Array<'weapon' | 'armor' | 'hat' | 'boots' | 'key'> = [
+        'weapon',
+        'armor',
+        'hat',
+        'boots',
+        'key',
+      ];
+
+      let hasItems = false;
+      for (const slot of slots) {
+        const item = player.inventory.getItem(slot);
+        if (item) {
+          hasItems = true;
+          const row = document.createElement('div');
+          row.className = 'extraction-loot-row';
+
+          const rarityColor = RARITY_COLORS[item.rarity] ?? '#ffffff';
+          const slotLabel = SLOT_NAMES[item.slot] ?? item.slot.toUpperCase();
+
+          row.innerHTML = `
+            <span class="extraction-loot-slot">[${slotLabel}]</span>
+            <span class="extraction-loot-name" style="color: ${rarityColor};">${item.name}</span>
+          `;
+          this.extractionLootList.appendChild(row);
+        }
+      }
+
+      if (!hasItems) {
+        const emptyNotice = document.createElement('div');
+        emptyNotice.className = 'extraction-loot-empty';
+        emptyNotice.textContent = '(Aucun équipement emporté)';
+        this.extractionLootList.appendChild(emptyNotice);
+      }
+    }
+  }
+}

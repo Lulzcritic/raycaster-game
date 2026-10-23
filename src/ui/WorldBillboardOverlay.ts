@@ -1,5 +1,7 @@
 import type { Entity } from '../entities/Entity';
 import { DroppedItemOrb } from '../entities/DroppedItemOrb';
+import { Enemy } from '../entities/Enemy';
+import { ExtractionPortal } from '../entities/ExtractionPortal';
 import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
 import type { Player } from '../entities/Player';
 import type { Renderer } from '../graphics/Renderer';
@@ -21,12 +23,18 @@ const STAT_LABELS: Array<{
 ];
 
 /**
- * Gestionnaire d'affichage des fiches d'objets flottant au-dessus des orbes dans le monde 3D
- * Rendu avec une typographie normale haute résolution pour une lisibilité parfaite
+ * Gestionnaire d'affichage haute résolution dans le monde 3D :
+ * - Fiches d'objets flottant au-dessus des orbes
+ * - Barres de vie et noms au-dessus des monstres (Blobs, Élites, Boss)
+ * - Indicateurs d'état et chronos au-dessus des portails d'extraction
+ *
+ * Le rendu est effectué en HTML/DOM haute résolution (typographie nette non-pixelisée).
  */
 export class WorldBillboardOverlay {
   private readonly container: HTMLElement | null;
   private readonly cardMap = new Map<DroppedItemOrb, HTMLElement>();
+  private readonly enemyMap = new Map<Enemy, HTMLElement>();
+  private readonly portalMap = new Map<ExtractionPortal, HTMLElement>();
 
   constructor() {
     this.container = document.getElementById('world-billboards');
@@ -44,17 +52,18 @@ export class WorldBillboardOverlay {
     const canvas = renderer.getCanvas();
     const rayHits = renderer.getRayHits();
     const canvasRect = canvas.getBoundingClientRect();
+    const focalLength = renderer.getFocalLength();
 
-    // 1. Récupération des orbes au sol actifs
+    // =========================================================================
+    // 1. FICHES D'OBJETS AU SOL (ORBES)
+    // =========================================================================
     const activeOrbs = new Set<DroppedItemOrb>();
-
     for (const entity of entities) {
       if (entity instanceof DroppedItemOrb && entity.active) {
         activeOrbs.add(entity);
       }
     }
 
-    // 2. Nettoyage des cartes des orbes qui ont été ramassés ou désactivés
     for (const [orb, cardEl] of this.cardMap.entries()) {
       if (!activeOrbs.has(orb)) {
         cardEl.remove();
@@ -62,7 +71,6 @@ export class WorldBillboardOverlay {
       }
     }
 
-    // 3. Projection 3D et positionnement de chaque fiche au-dessus de son orbe
     for (const orb of activeOrbs) {
       let cardEl = this.cardMap.get(orb);
       if (!cardEl) {
@@ -71,7 +79,6 @@ export class WorldBillboardOverlay {
         this.cardMap.set(orb, cardEl);
       }
 
-      // 1. Masquer la fiche tant que l'orbe n'a pas atterri au sol
       if (!orb.hasLanded()) {
         cardEl.style.display = 'none';
         continue;
@@ -81,7 +88,6 @@ export class WorldBillboardOverlay {
       const dy = orb.y - player.y;
       const distance = Math.hypot(dx, dy);
 
-      // 2. Distance de visibilité : inspection uniquement à proximité (pas de trop loin)
       const MAX_CARD_DISTANCE = 2.2;
       const FADE_START_DISTANCE = 1.6;
 
@@ -103,17 +109,14 @@ export class WorldBillboardOverlay {
       while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
       while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
 
-      // Hors du champ de vision
       if (Math.abs(angleDiff) > player.fov / 2 + 0.12) {
         cardEl.style.display = 'none';
         continue;
       }
 
-      // Colonne d'écran sur le canvas 320x240
       const canvasX = (0.5 + angleDiff / player.fov) * 320;
       const screenCol = Math.floor(canvasX);
 
-      // Occlusion par les murs (Z-Buffer)
       if (screenCol >= 0 && screenCol < 320) {
         const ray = rayHits[screenCol];
         if (ray && ray.hit && distance > ray.distance + 0.08) {
@@ -122,30 +125,188 @@ export class WorldBillboardOverlay {
         }
       }
 
-      // Projection verticale au-dessus de l'orbe
-      const fullWallHeight = renderer.getFocalLength() / distance;
+      const fullWallHeight = focalLength / distance;
       const floorScreenY = (240 + fullWallHeight) / 2;
       const bottomScreenY = floorScreenY - fullWallHeight * orb.getElevation();
       const topOfOrbScreenY = bottomScreenY - fullWallHeight * orb.getScale();
       const floatGap = 10;
       let anchorCanvasY = topOfOrbScreenY - floatGap;
-
-      // Garde la base de la fiche visible dans la fenêtre sans la repousser hors de l'écran en bas
       anchorCanvasY = Math.min(anchorCanvasY, 204);
 
-      // Conversion vers les coordonnées physiques de l'écran utilisateur
       const screenPixelX =
         canvasRect.left + (canvasX / 320) * canvasRect.width;
       const screenPixelY =
         canvasRect.top + (anchorCanvasY / 240) * canvasRect.height;
 
-      // Échelle perspective directe : grandit en s'approchant, rétrécit avec l'éloignement
       const scale = Math.max(0.48, Math.min(1.4, 1.15 / distance));
 
       cardEl.style.display = 'flex';
       cardEl.style.left = `${screenPixelX}px`;
       cardEl.style.top = `${screenPixelY}px`;
       cardEl.style.transform = `translate(-50%, -100%) scale(${scale})`;
+    }
+
+    // =========================================================================
+    // 2. BARRES DE VIE ET NOMS AU-DESSUS DES ENNEMIS (MOBS)
+    // =========================================================================
+    const activeEnemies = new Set<Enemy>();
+    for (const entity of entities) {
+      if (entity instanceof Enemy && entity.active && entity.isAlive()) {
+        activeEnemies.add(entity);
+      }
+    }
+
+    for (const [enemy, enemyEl] of this.enemyMap.entries()) {
+      if (!activeEnemies.has(enemy)) {
+        enemyEl.remove();
+        this.enemyMap.delete(enemy);
+      }
+    }
+
+    for (const enemy of activeEnemies) {
+      const hpInfo = enemy.getHealthBarInfo();
+      let enemyEl = this.enemyMap.get(enemy);
+
+      if (!hpInfo.isVisible) {
+        if (enemyEl) enemyEl.style.display = 'none';
+        continue;
+      }
+
+      if (!enemyEl) {
+        enemyEl = this.createEnemyElement(enemy, hpInfo);
+        this.container.appendChild(enemyEl);
+        this.enemyMap.set(enemy, enemyEl);
+      }
+
+      const dx = enemy.x - player.x;
+      const dy = enemy.y - player.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < 0.2 || distance > 8.5) {
+        enemyEl.style.display = 'none';
+        continue;
+      }
+
+      let angleDiff = Math.atan2(dy, dx) - player.angle;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+      if (Math.abs(angleDiff) > player.fov / 2 + 0.1) {
+        enemyEl.style.display = 'none';
+        continue;
+      }
+
+      const canvasX = (0.5 + angleDiff / player.fov) * 320;
+      const screenCol = Math.floor(canvasX);
+
+      // Z-buffer occlusion
+      if (screenCol >= 0 && screenCol < 320) {
+        const ray = rayHits[screenCol];
+        if (ray && ray.hit && distance > ray.distance + 0.12) {
+          enemyEl.style.display = 'none';
+          continue;
+        }
+      }
+
+      // Mise à jour du pourcentage et de la couleur de la barre de vie
+      this.updateEnemyElement(enemyEl, hpInfo);
+
+      const fullWallHeight = focalLength / distance;
+      const floorScreenY = (240 + fullWallHeight) / 2;
+      const bottomScreenY = floorScreenY - fullWallHeight * enemy.getElevation();
+      const topOfSpriteScreenY = bottomScreenY - fullWallHeight * enemy.getScale();
+      const offsetAbove = hpInfo.rank === 'boss' ? 14 : hpInfo.rank === 'elite' ? 12 : 8;
+      const anchorCanvasY = topOfSpriteScreenY - offsetAbove;
+
+      const screenPixelX =
+        canvasRect.left + (canvasX / 320) * canvasRect.width;
+      const screenPixelY =
+        canvasRect.top + (anchorCanvasY / 240) * canvasRect.height;
+
+      const scale = Math.max(0.65, Math.min(1.25, 1.35 / Math.sqrt(distance)));
+
+      enemyEl.style.display = 'flex';
+      enemyEl.style.left = `${screenPixelX}px`;
+      enemyEl.style.top = `${screenPixelY}px`;
+      enemyEl.style.transform = `translate(-50%, -100%) scale(${scale})`;
+    }
+
+    // =========================================================================
+    // 3. INDICATEURS D'ÉTAT AU-DESSUS DES PORTAILS D'EXTRACTION
+    // =========================================================================
+    const activePortals = new Set<ExtractionPortal>();
+    for (const entity of entities) {
+      if (entity instanceof ExtractionPortal && entity.active) {
+        activePortals.add(entity);
+      }
+    }
+
+    for (const [portal, portalEl] of this.portalMap.entries()) {
+      if (!activePortals.has(portal)) {
+        portalEl.remove();
+        this.portalMap.delete(portal);
+      }
+    }
+
+    for (const portal of activePortals) {
+      const extInfo = portal.getExtractionInfo();
+      let portalEl = this.portalMap.get(portal);
+
+      if (!portalEl) {
+        portalEl = this.createPortalElement();
+        this.container.appendChild(portalEl);
+        this.portalMap.set(portal, portalEl);
+      }
+
+      const dx = portal.x - player.x;
+      const dy = portal.y - player.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < 0.3 || distance > 12.0) {
+        portalEl.style.display = 'none';
+        continue;
+      }
+
+      let angleDiff = Math.atan2(dy, dx) - player.angle;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+      if (Math.abs(angleDiff) > player.fov / 2 + 0.1) {
+        portalEl.style.display = 'none';
+        continue;
+      }
+
+      const canvasX = (0.5 + angleDiff / player.fov) * 320;
+      const screenCol = Math.floor(canvasX);
+
+      // Z-buffer occlusion
+      if (screenCol >= 0 && screenCol < 320) {
+        const ray = rayHits[screenCol];
+        if (ray && ray.hit && distance > ray.distance + 0.14) {
+          portalEl.style.display = 'none';
+          continue;
+        }
+      }
+
+      // Mise à jour de l'affichage du portail
+      this.updatePortalElement(portalEl, extInfo);
+
+      const fullWallHeight = focalLength / distance;
+      const floorScreenY = (240 + fullWallHeight) / 2;
+      const topOfSpriteScreenY = floorScreenY - fullWallHeight * portal.getScale();
+      const anchorCanvasY = topOfSpriteScreenY - 12;
+
+      const screenPixelX =
+        canvasRect.left + (canvasX / 320) * canvasRect.width;
+      const screenPixelY =
+        canvasRect.top + (anchorCanvasY / 240) * canvasRect.height;
+
+      const scale = Math.max(0.7, Math.min(1.2, 1.4 / Math.sqrt(distance)));
+
+      portalEl.style.display = 'flex';
+      portalEl.style.left = `${screenPixelX}px`;
+      portalEl.style.top = `${screenPixelY}px`;
+      portalEl.style.transform = `translate(-50%, -100%) scale(${scale})`;
     }
   }
 
@@ -160,6 +321,91 @@ export class WorldBillboardOverlay {
       cardEl.remove();
     }
     this.cardMap.clear();
+
+    for (const enemyEl of this.enemyMap.values()) {
+      enemyEl.remove();
+    }
+    this.enemyMap.clear();
+
+    for (const portalEl of this.portalMap.values()) {
+      portalEl.remove();
+    }
+    this.portalMap.clear();
+  }
+
+  // =========================================================================
+  // CRÉATION DES ÉLÉMENTS DOM
+  // =========================================================================
+
+  private createEnemyElement(
+    enemy: Enemy,
+    hpInfo: { percent: number; rank: 'normal' | 'elite' | 'boss'; name: string }
+  ): HTMLElement {
+    const el = document.createElement('div');
+    el.className = `world-enemy-overhead rank-${hpInfo.rank}`;
+
+    // Nom / titre du monstre
+    const nameEl = document.createElement('div');
+    nameEl.className = 'world-enemy-name';
+    const prefix = hpInfo.rank === 'boss' ? '👑 ' : hpInfo.rank === 'elite' ? '★ ' : '';
+    nameEl.textContent = `${prefix}${enemy.type.name.toUpperCase()}`;
+    el.appendChild(nameEl);
+
+    // Barre de vie
+    const barTrack = document.createElement('div');
+    barTrack.className = 'world-enemy-bar-track';
+
+    const barFill = document.createElement('div');
+    barFill.className = 'world-enemy-bar-fill';
+    barFill.style.width = `${Math.round(hpInfo.percent * 100)}%`;
+    barTrack.appendChild(barFill);
+
+    el.appendChild(barTrack);
+    return el;
+  }
+
+  private updateEnemyElement(
+    el: HTMLElement,
+    hpInfo: { percent: number; rank: 'normal' | 'elite' | 'boss' }
+  ): void {
+    const fill = el.querySelector<HTMLElement>('.world-enemy-bar-fill');
+    if (!fill) return;
+
+    const percent = Math.round(hpInfo.percent * 100);
+    fill.style.width = `${percent}%`;
+
+    if (hpInfo.rank === 'boss') {
+      fill.style.background = hpInfo.percent < 0.3 ? '#ef4444' : 'linear-gradient(90deg, #991b1b, #dc2626)';
+    } else if (hpInfo.rank === 'elite') {
+      fill.style.background = hpInfo.percent < 0.3 ? '#ef4444' : 'linear-gradient(90deg, #7e22ce, #c084fc)';
+    } else {
+      if (hpInfo.percent < 0.25) {
+        fill.style.background = '#ef4444';
+      } else if (hpInfo.percent < 0.5) {
+        fill.style.background = '#f59e0b';
+      } else {
+        fill.style.background = '#22c55e';
+      }
+    }
+  }
+
+  private createPortalElement(): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'world-portal-badge';
+    return el;
+  }
+
+  private updatePortalElement(
+    el: HTMLElement,
+    info: { name: string; isActive: boolean; remainingSec: number }
+  ): void {
+    if (info.isActive) {
+      el.className = 'world-portal-badge active';
+      el.textContent = `🌀 ${info.name.toUpperCase()} [OUVERT]`;
+    } else {
+      el.className = 'world-portal-badge inactive';
+      el.textContent = `⏳ ${info.name.toUpperCase()} (${info.remainingSec}s)`;
+    }
   }
 
   private createCardElement(item: EquipmentItem): HTMLElement {
@@ -247,7 +493,6 @@ export class WorldBillboardOverlay {
     if (!ctx) return;
     ctx.imageSmoothingEnabled = false;
 
-    // Silhouette / icône par catégorie d'équipement
     const SLOT_PALETTES: Record<string, { bg: string; fill: string; outline: string }> = {
       hat: { bg: '#1c152b', fill: '#8062b8', outline: '#3d2e59' },
       weapon: { bg: '#241b16', fill: '#c27d44', outline: '#472f1e' },
@@ -294,17 +539,13 @@ export class WorldBillboardOverlay {
       ctx.fillStyle = '#c49a35';
       ctx.fillRect(4, 3, 4, 1);
     } else if (item.slot === 'key') {
-      // Anneau de la clé (tête dorée avec trou central)
       ctx.fillRect(3, 4, 6, 6);
       ctx.fillStyle = palette.bg;
       ctx.fillRect(5, 5, 2, 4);
-      // Tige
       ctx.fillStyle = '#ffcc00';
       ctx.fillRect(8, 6, 6, 2);
-      // Dents
       ctx.fillRect(12, 8, 2, 3);
       ctx.fillRect(10, 8, 1, 2);
-      // Reflet brillant
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(4, 4, 2, 1);
     }

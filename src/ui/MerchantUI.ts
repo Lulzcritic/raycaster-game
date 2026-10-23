@@ -78,6 +78,8 @@ export class MerchantUI {
     this.cardsContainer.innerHTML = '';
 
     const merchant = this.currentMerchant;
+    const anyCardRevealed = merchant.cards.some((c) => c.revealed);
+    const revealedCard = merchant.cards.find((c) => c.revealed);
 
     if (merchant.isClaimed) {
       if (this.footerMessage) {
@@ -85,50 +87,65 @@ export class MerchantUI {
           '« Notre pacte est déjà scellé pour cette expédition. Bonne chance, voyageur. »';
       }
     } else {
-      const allRevealed = merchant.cards.every((c) => c.revealed);
-      const allRefused = merchant.cards.every((c) => c.refused);
-
       if (this.footerMessage) {
-        if (allRefused) {
+        if (!anyCardRevealed) {
           this.footerMessage.textContent =
-            '« Vous avez décliné toutes les cartes. Vous pouvez encore choisir ou quitter. »';
-        } else if (allRevealed) {
+            '✦ Choisissez UNE seule carte mystère à retourner (les autres seront scellées) ✦';
+        } else if (revealedCard?.taken) {
           this.footerMessage.textContent =
-            '« Toutes les cartes sont dévoilées. Choisissez votre offrande. »';
+            '« Votre choix est fait. Que cet équipement vous guide vers la sortie. »';
+        } else if (revealedCard?.refused) {
+          this.footerMessage.textContent =
+            '« Vous avez refusé cette offrande. Vous pouvez encore la prendre ou quitter avec [Échap]. »';
         } else {
           this.footerMessage.textContent =
-            '✦ Cliquez sur une carte mystère pour dévoiler son contenu ✦';
+            '✦ Prenez l\'objet révélé ou refusez-le. Les autres cartes restent scellées. ✦';
         }
       }
     }
 
     merchant.cards.forEach((card, index) => {
-      const cardEl = this.createCardElement(card, index);
+      const cardEl = this.createCardElement(card, index, anyCardRevealed);
       this.cardsContainer?.appendChild(cardEl);
     });
   }
 
-  private createCardElement(card: MysteryCard, index: number): HTMLElement {
+  private createCardElement(
+    card: MysteryCard,
+    index: number,
+    anyCardRevealed: boolean
+  ): HTMLElement {
     const cardEl = document.createElement('div');
     const merchant = this.currentMerchant;
     const isMerchantClaimed = merchant ? merchant.isClaimed : false;
 
     // 1. CARTE NON RÉVÉLÉE (MYSTÈRE FACE CACHÉE)
     if (!card.revealed) {
-      cardEl.className = 'merchant-card merchant-card-mystery';
+      const isLocked = anyCardRevealed || isMerchantClaimed;
+      cardEl.className = `merchant-card merchant-card-mystery ${isLocked ? 'locked' : ''}`;
+
+      const runeText = isLocked ? '🔒' : '🔮';
+      const runeStyle = isLocked ? 'animation: none; filter: none; opacity: 0.35;' : '';
+      const tagText = isLocked ? 'DESTIN SCELLÉ' : 'CARTE DU DESTIN';
+      const promptText = isLocked ? '🔒 Non sélectionnée' : '✦ Cliquer pour révéler ✦';
+      const promptClass = isLocked ? 'card-mystery-prompt locked' : 'card-mystery-prompt';
+
       cardEl.innerHTML = `
         <div class="card-mystery-inner">
-          <div class="card-mystery-rune">🔮</div>
-          <div class="card-mystery-tag">CARTE DU DESTIN</div>
+          <div class="card-mystery-rune" style="${runeStyle}">${runeText}</div>
+          <div class="card-mystery-tag">${tagText}</div>
           <div class="card-mystery-num">${index === 0 ? 'I' : index === 1 ? 'II' : 'III'}</div>
-          <div class="card-mystery-prompt">✦ Cliquer pour révéler ✦</div>
+          <div class="${promptClass}">${promptText}</div>
         </div>
       `;
 
-      if (!isMerchantClaimed) {
+      if (!isLocked) {
         cardEl.addEventListener('click', () => {
-          card.revealed = true;
-          this.render();
+          // Double sécurité : on ne peut révéler qu'une seule carte
+          if (merchant && !merchant.cards.some((c) => c.revealed) && !merchant.isClaimed) {
+            card.revealed = true;
+            this.render();
+          }
         });
       }
       return cardEl;

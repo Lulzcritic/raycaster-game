@@ -1151,6 +1151,27 @@ body {
   box-shadow: 0 0 24px rgba(255, 215, 0, 0.6), inset 0 0 18px rgba(168, 85, 247, 0.4), 6px 6px 0 #000;
 }
 
+.merchant-card-mystery.locked {
+  cursor: not-allowed;
+  opacity: 0.38;
+  filter: grayscale(0.85) brightness(0.75);
+  border-color: #3b2a59;
+  box-shadow: 2px 2px 0 #000;
+  pointer-events: none;
+}
+
+.merchant-card-mystery.locked:hover {
+  transform: none;
+  border-color: #3b2a59;
+  box-shadow: 2px 2px 0 #000;
+}
+
+.card-mystery-prompt.locked {
+  color: #94a3b8;
+  background: rgba(30, 25, 40, 0.85);
+  border-color: #475569;
+}
+
 .card-mystery-inner {
   display: flex;
   flex-direction: column;

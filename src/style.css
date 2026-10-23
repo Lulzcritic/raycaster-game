@@ -207,89 +207,71 @@ body {
   padding: 14px 28px;
   cursor: pointer;
   clip-path: var(--pixel-notch-btn);
-  filter: drop-shadow(0 5px 0 #000000) drop-shadow(4px 0 0 #000000);
-  border: none;
+  filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
+  border: 4px solid transparent;
   box-sizing: border-box;
   text-transform: uppercase;
   letter-spacing: 2px;
   user-select: none;
   transition: transform 0.08s steps(2), filter 0.08s steps(2);
-  background: linear-gradient(180deg, #991b1b 0%, #751414 55%, #4a0d0d 100%);
+  /* Fond couleur unie au centre, bordure pixelisée et texturée par tramage 2x2 */
+  background:
+    linear-gradient(#801414, #801414) padding-box,
+    repeating-conic-gradient(#facc15 0% 25%, #78350f 0% 50%) 0 0 / 4px 4px border-box;
   box-shadow:
-    /* Relief biseauté forgé au marteau */
-    inset 0 3px 0 0 #fca5a5,
-    inset 3px 0 0 0 #ef4444,
-    inset 0 -4px 0 0 #280505,
-    inset -3px 0 0 0 #3b0707,
-    inset 0 0 0 2px #facc15,
-    inset 0 0 0 4px #450a0a;
+    inset 0 0 0 2px #260505;
   text-shadow: 2px 2px 0 #000000;
 }
 
 .pause-btn:hover {
-  background: linear-gradient(180deg, #b91c1c 0%, #8f1717 55%, #5e1010 100%);
+  background:
+    linear-gradient(#9e1818, #9e1818) padding-box,
+    repeating-conic-gradient(#fef08a 0% 25%, #92400e 0% 50%) 0 0 / 4px 4px border-box;
   color: #fef08a;
   box-shadow:
-    inset 0 3px 0 0 #fef08a,
-    inset 3px 0 0 0 #fde047,
-    inset 0 -4px 0 0 #3b0707,
-    inset -3px 0 0 0 #4c0d0d,
-    inset 0 0 0 2px #fef08a,
-    inset 0 0 0 4px #78350f;
+    inset 0 0 0 2px #3d0808;
   transform: translateY(-2px);
-  filter: drop-shadow(0 7px 0 #000000) drop-shadow(6px 0 0 #000000);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
 }
 
 .pause-btn:active {
-  background: linear-gradient(180deg, #500b0b 0%, #751414 100%);
+  background:
+    linear-gradient(#540c0c, #540c0c) padding-box,
+    repeating-conic-gradient(#b45309 0% 25%, #451a03 0% 50%) 0 0 / 4px 4px border-box;
   transform: translateY(3px);
   box-shadow:
-    inset 0 4px 0 0 #1f0303,
-    inset 3px 0 0 0 #1f0303,
-    inset 0 -2px 0 0 #b91c1c,
-    inset -2px 0 0 0 #991b1b,
-    inset 0 0 0 2px #d97706,
-    inset 0 0 0 4px #280505;
-  filter: drop-shadow(0 2px 0 #000000) drop-shadow(2px 0 0 #000000);
+    inset 0 0 0 2px #180303;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
 .pause-btn-secondary {
-  background: linear-gradient(180deg, #2c2738 0%, #1e1a27 55%, #13101a 100%);
   color: #e2e8f0;
+  background:
+    linear-gradient(#201b2a, #201b2a) padding-box,
+    repeating-conic-gradient(#94a3b8 0% 25%, #334155 0% 50%) 0 0 / 4px 4px border-box;
   box-shadow:
-    inset 0 3px 0 0 #cbd5e1,
-    inset 3px 0 0 0 #94a3b8,
-    inset 0 -4px 0 0 #0a0810,
-    inset -3px 0 0 0 #0f0d18,
-    inset 0 0 0 2px #475569,
-    inset 0 0 0 4px #1a1624;
+    inset 0 0 0 2px #0c0a12;
 }
 
 .pause-btn-secondary:hover {
-  background: linear-gradient(180deg, #3d354d 0%, #2b2538 55%, #1a1624 100%);
+  background:
+    linear-gradient(#30283f, #30283f) padding-box,
+    repeating-conic-gradient(#cbd5e1 0% 25%, #475569 0% 50%) 0 0 / 4px 4px border-box;
   color: #ffffff;
   box-shadow:
-    inset 0 3px 0 0 #ffffff,
-    inset 3px 0 0 0 #e2e8f0,
-    inset 0 -4px 0 0 #13101a,
-    inset -3px 0 0 0 #1c1827,
-    inset 0 0 0 2px #94a3b8,
-    inset 0 0 0 4px #1e1a27;
+    inset 0 0 0 2px #14101b;
   transform: translateY(-2px);
-  filter: drop-shadow(0 7px 0 #000000) drop-shadow(6px 0 0 #000000);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
 }
 
 .pause-btn-secondary:active {
-  background: linear-gradient(180deg, #13101a 0%, #221d2d 100%);
+  background:
+    linear-gradient(#14101b, #14101b) padding-box,
+    repeating-conic-gradient(#475569 0% 25%, #1e293b 0% 50%) 0 0 / 4px 4px border-box;
   transform: translateY(3px);
   box-shadow:
-    inset 0 4px 0 0 #08060d,
-    inset 3px 0 0 0 #08060d,
-    inset 0 -2px 0 0 #64748b,
-    inset -2px 0 0 0 #475569,
-    inset 0 0 0 2px #334155,
-    inset 0 0 0 4px #0c0a12;
-  filter: drop-shadow(0 2px 0 #000000) drop-shadow(2px 0 0 #000000);
+    inset 0 0 0 2px #06050a;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
 .settings-group {
@@ -350,30 +332,26 @@ body {
   appearance: none;
   width: 20px;
   height: 26px;
-  background: linear-gradient(180deg, #fef08a 0%, #eab308 50%, #854d0e 100%);
+  background: #ca8a04;
   clip-path: var(--pixel-notch-small);
   filter: drop-shadow(2px 2px 0 #000000);
   box-shadow:
-    inset 0 2px 0 0 #ffffff,
-    inset 2px 0 0 0 #fef08a,
-    inset 0 -2px 0 0 #713f12,
-    inset -2px 0 0 0 #713f12;
-  border: none;
+    inset 2px 2px 0 0 #fef08a,
+    inset -2px -2px 0 0 #451a03;
+  border: 2px solid #713f12;
   cursor: pointer;
 }
 
 .pixel-slider::-moz-range-thumb {
   width: 20px;
   height: 26px;
-  background: linear-gradient(180deg, #fef08a 0%, #eab308 50%, #854d0e 100%);
+  background: #ca8a04;
   clip-path: var(--pixel-notch-small);
   filter: drop-shadow(2px 2px 0 #000000);
   box-shadow:
-    inset 0 2px 0 0 #ffffff,
-    inset 2px 0 0 0 #fef08a,
-    inset 0 -2px 0 0 #713f12,
-    inset -2px 0 0 0 #713f12;
-  border: none;
+    inset 2px 2px 0 0 #fef08a,
+    inset -2px -2px 0 0 #451a03;
+  border: 2px solid #713f12;
   cursor: pointer;
   border-radius: 0;
 }
@@ -1077,36 +1055,42 @@ body {
 }
 
 .extraction-restart-btn {
-  background: linear-gradient(180deg, #0284c7 0%, #0369a1 55%, #075985 100%);
   color: #ffffff;
   clip-path: var(--pixel-notch-btn);
-  filter: drop-shadow(0 5px 0 #000000) drop-shadow(4px 0 0 #000000);
-  border: none;
+  filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
+  border: 4px solid transparent;
+  background:
+    linear-gradient(#0369a1, #0369a1) padding-box,
+    repeating-conic-gradient(#38bdf8 0% 25%, #0c4a6e 0% 50%) 0 0 / 4px 4px border-box;
   box-shadow:
-    inset 0 3px 0 0 #7dd3fc,
-    inset 3px 0 0 0 #38bdf8,
-    inset 0 -4px 0 0 #0c4a6e,
-    inset -3px 0 0 0 #082f49,
-    inset 0 0 0 2px #facc15,
-    inset 0 0 0 4px #031826;
+    inset 0 0 0 2px #041f30;
   font-size: 16px;
   padding: 14px 28px;
   cursor: pointer;
   user-select: none;
   transition: transform 0.08s steps(2), filter 0.08s steps(2);
+  text-shadow: 2px 2px 0 #000000;
 }
 
 .extraction-restart-btn:hover {
-  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 55%, #0369a1 100%);
+  background:
+    linear-gradient(#0284c7, #0284c7) padding-box,
+    repeating-conic-gradient(#7dd3fc 0% 25%, #0369a1 0% 50%) 0 0 / 4px 4px border-box;
   color: #fef08a;
+  box-shadow:
+    inset 0 0 0 2px #082f49;
   transform: translateY(-2px);
-  filter: drop-shadow(0 7px 0 #000000) drop-shadow(6px 0 0 #000000);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
 }
 
 .extraction-restart-btn:active {
-  background: linear-gradient(180deg, #075985 0%, #0369a1 100%);
+  background:
+    linear-gradient(#075985, #075985) padding-box,
+    repeating-conic-gradient(#0284c7 0% 25%, #082f49 0% 50%) 0 0 / 4px 4px border-box;
   transform: translateY(3px);
-  filter: drop-shadow(0 2px 0 #000000) drop-shadow(2px 0 0 #000000);
+  box-shadow:
+    inset 0 0 0 2px #02121c;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
 /* =========================================================================
@@ -1151,36 +1135,42 @@ body {
 }
 
 .death-respawn-btn {
-  background: linear-gradient(180deg, #991b1b 0%, #751414 55%, #4a0d0d 100%);
   color: #ffffff;
   clip-path: var(--pixel-notch-btn);
-  filter: drop-shadow(0 5px 0 #000000) drop-shadow(4px 0 0 #000000);
-  border: none;
+  filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
+  border: 4px solid transparent;
+  background:
+    linear-gradient(#801414, #801414) padding-box,
+    repeating-conic-gradient(#ef4444 0% 25%, #450a0a 0% 50%) 0 0 / 4px 4px border-box;
   box-shadow:
-    inset 0 3px 0 0 #fca5a5,
-    inset 3px 0 0 0 #ef4444,
-    inset 0 -4px 0 0 #280505,
-    inset -3px 0 0 0 #3b0707,
-    inset 0 0 0 2px #facc15,
-    inset 0 0 0 4px #450a0a;
+    inset 0 0 0 2px #260505;
   font-size: 16px;
   padding: 14px 28px;
   cursor: pointer;
   user-select: none;
   transition: transform 0.08s steps(2), filter 0.08s steps(2);
+  text-shadow: 2px 2px 0 #000000;
 }
 
 .death-respawn-btn:hover {
-  background: linear-gradient(180deg, #b91c1c 0%, #8f1717 55%, #5e1010 100%);
+  background:
+    linear-gradient(#9e1818, #9e1818) padding-box,
+    repeating-conic-gradient(#f87171 0% 25%, #7f1d1d 0% 50%) 0 0 / 4px 4px border-box;
   color: #fef08a;
+  box-shadow:
+    inset 0 0 0 2px #3d0808;
   transform: translateY(-2px);
-  filter: drop-shadow(0 7px 0 #000000) drop-shadow(6px 0 0 #000000);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
 }
 
 .death-respawn-btn:active {
-  background: linear-gradient(180deg, #500b0b 0%, #751414 100%);
+  background:
+    linear-gradient(#540c0c, #540c0c) padding-box,
+    repeating-conic-gradient(#991b1b 0% 25%, #280505 0% 50%) 0 0 / 4px 4px border-box;
   transform: translateY(3px);
-  filter: drop-shadow(0 2px 0 #000000) drop-shadow(2px 0 0 #000000);
+  box-shadow:
+    inset 0 0 0 2px #180303;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
 /* =========================================================================
@@ -1413,10 +1403,12 @@ body {
 }
 
 .merchant-close-btn {
-  background: #2a1b3d;
+  background:
+    linear-gradient(#2a1b3d, #2a1b3d) padding-box,
+    repeating-conic-gradient(#c084fc 0% 25%, #581c87 0% 50%) 0 0 / 4px 4px border-box;
   color: #ffd700;
   clip-path: var(--pixel-notch-small);
-  border: none;
+  border: 3px solid transparent;
   font-family: inherit;
   font-size: 16px;
   font-weight: bold;
@@ -1426,26 +1418,26 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.08s steps(2);
-  filter: drop-shadow(2px 2px 0 #000000);
-  box-shadow:
-    inset 0 2px 0 0 #d8b4fe,
-    inset 2px 0 0 0 #c084fc,
-    inset 0 -2px 0 0 #120820,
-    inset -2px 0 0 0 #120820,
-    inset 0 0 0 2px #7e22ce;
+  transition: transform 0.08s steps(2), filter 0.08s steps(2);
+  filter: drop-shadow(2px 2px 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
+  box-shadow: inset 0 0 0 1px #120820;
 }
 
 .merchant-close-btn:hover {
-  background: #9333ea;
+  background:
+    linear-gradient(#4c2f6d, #4c2f6d) padding-box,
+    repeating-conic-gradient(#d8b4fe 0% 25%, #7e22ce 0% 50%) 0 0 / 4px 4px border-box;
   color: #ffffff;
   transform: translateY(-1px);
-  box-shadow:
-    inset 0 2px 0 0 #fde047,
-    inset 2px 0 0 0 #facc15,
-    inset 0 -2px 0 0 #3b0707,
-    inset -2px 0 0 0 #3b0707,
-    inset 0 0 0 2px #ffd700;
+  filter: drop-shadow(3px 3px 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
+}
+
+.merchant-close-btn:active {
+  background:
+    linear-gradient(#1b1126, #1b1126) padding-box,
+    repeating-conic-gradient(#581c87 0% 25%, #120820 0% 50%) 0 0 / 4px 4px border-box;
+  transform: translateY(2px);
+  filter: drop-shadow(1px 1px 0 #000000);
 }
 
 .merchant-cards-container {
@@ -1679,56 +1671,63 @@ body {
   font-weight: bold;
   padding: 8px 4px;
   clip-path: var(--pixel-notch-small);
-  filter: drop-shadow(2px 2px 0 #000000);
-  border: none;
+  filter: drop-shadow(2px 2px 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
+  border: 3px solid transparent;
   cursor: pointer;
-  transition: all 0.08s steps(2);
+  transition: transform 0.08s steps(2), filter 0.08s steps(2);
+  user-select: none;
 }
 
 .merchant-btn-take {
-  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+  background:
+    linear-gradient(#15803d, #15803d) padding-box,
+    repeating-conic-gradient(#4ade80 0% 25%, #14532d 0% 50%) 0 0 / 4px 4px border-box;
   color: #fef08a;
-  box-shadow:
-    inset 0 2px 0 0 #86efac,
-    inset 2px 0 0 0 #4ade80,
-    inset 0 -2px 0 0 #14532d,
-    inset -2px 0 0 0 #14532d,
-    inset 0 0 0 1px #052e16;
+  box-shadow: inset 0 0 0 1px #052e16;
 }
 
 .merchant-btn-take:hover {
-  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  background:
+    linear-gradient(#16a34a, #16a34a) padding-box,
+    repeating-conic-gradient(#86efac 0% 25%, #166534 0% 50%) 0 0 / 4px 4px border-box;
   color: #ffffff;
   transform: translateY(-1px);
-  filter: drop-shadow(3px 3px 0 #000000);
+  filter: drop-shadow(3px 3px 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
+}
+
+.merchant-btn-take:active {
+  background:
+    linear-gradient(#14532d, #14532d) padding-box,
+    repeating-conic-gradient(#166534 0% 25%, #052e16 0% 50%) 0 0 / 4px 4px border-box;
+  transform: translateY(2px);
+  filter: drop-shadow(1px 1px 0 #000000);
 }
 
 .merchant-btn-refuse {
-  background: linear-gradient(180deg, #4c1d2e 0%, #2f121d 100%);
+  background:
+    linear-gradient(#4c1d2e, #4c1d2e) padding-box,
+    repeating-conic-gradient(#fb7185 0% 25%, #4c0519 0% 50%) 0 0 / 4px 4px border-box;
   color: #cbd5e1;
-  box-shadow:
-    inset 0 2px 0 0 #9f1239,
-    inset 2px 0 0 0 #881337,
-    inset 0 -2px 0 0 #18080e,
-    inset -2px 0 0 0 #18080e,
-    inset 0 0 0 1px #0f0408;
+  box-shadow: inset 0 0 0 1px #18080e;
 }
 
 .merchant-btn-refuse:hover {
-  background: linear-gradient(180deg, #881337 0%, #4c1d2e 100%);
+  background:
+    linear-gradient(#66243c, #66243c) padding-box,
+    repeating-conic-gradient(#fda4af 0% 25%, #881337 0% 50%) 0 0 / 4px 4px border-box;
   color: #ffffff;
   transform: translateY(-1px);
-  filter: drop-shadow(3px 3px 0 #000000);
+  filter: drop-shadow(3px 3px 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
+.merchant-btn-refuse:active,
 .merchant-btn-refuse.active {
-  background: #27141b;
+  background:
+    linear-gradient(#27141b, #27141b) padding-box,
+    repeating-conic-gradient(#4c0519 0% 25%, #120509 0% 50%) 0 0 / 4px 4px border-box;
   color: #94a3b8;
-  box-shadow:
-    inset 0 2px 0 0 #3b1220,
-    inset 2px 0 0 0 #3b1220,
-    inset 0 -2px 0 0 #120509,
-    inset -2px 0 0 0 #120509;
+  transform: translateY(2px);
+  filter: drop-shadow(1px 1px 0 #000000);
 }
 
 .merchant-badge-taken {
@@ -1769,16 +1768,35 @@ body {
    ========================================================================== */
 
 .pause-btn-tertiary {
-  background: #1e192a;
-  border: 3px solid #7c6899;
   color: #c4b5fd;
+  border: 4px solid transparent;
+  background:
+    linear-gradient(#231636, #231636) padding-box,
+    repeating-conic-gradient(#a78bfa 0% 25%, #4c1d95 0% 50%) 0 0 / 4px 4px border-box;
+  box-shadow:
+    inset 0 0 0 2px #0d0814;
   margin-top: 4px;
 }
 
 .pause-btn-tertiary:hover {
-  background: #2e2640;
-  border-color: #a78bfa;
+  background:
+    linear-gradient(#352152, #352152) padding-box,
+    repeating-conic-gradient(#c4b5fd 0% 25%, #5b21b6 0% 50%) 0 0 / 4px 4px border-box;
   color: #ffffff;
+  box-shadow:
+    inset 0 0 0 2px #150d21;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
+}
+
+.pause-btn-tertiary:active {
+  background:
+    linear-gradient(#150d21, #150d21) padding-box,
+    repeating-conic-gradient(#6d28d9 0% 25%, #2e1065 0% 50%) 0 0 / 4px 4px border-box;
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 0 0 2px #07040b;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
 .main-menu {
@@ -1911,8 +1929,8 @@ body {
   text-transform: uppercase;
   letter-spacing: 2px;
   clip-path: var(--pixel-notch-btn);
-  filter: drop-shadow(0 5px 0 #000000) drop-shadow(4px 0 0 #000000);
-  border: none;
+  filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
+  border: 4px solid transparent;
   box-sizing: border-box;
   transition: transform 0.08s steps(2), filter 0.08s steps(2);
   user-select: none;
@@ -1922,84 +1940,66 @@ body {
   font-size: 24px;
   padding: 16px 36px;
   color: #ffffff;
-  background: linear-gradient(180deg, #991b1b 0%, #751414 55%, #4a0d0d 100%);
+  background:
+    linear-gradient(#801414, #801414) padding-box,
+    repeating-conic-gradient(#facc15 0% 25%, #78350f 0% 50%) 0 0 / 4px 4px border-box;
   box-shadow:
-    inset 0 3px 0 0 #fca5a5,
-    inset 3px 0 0 0 #ef4444,
-    inset 0 -4px 0 0 #280505,
-    inset -3px 0 0 0 #3b0707,
-    inset 0 0 0 2px #facc15,
-    inset 0 0 0 4px #450a0a;
+    inset 0 0 0 2px #260505;
   text-shadow: 2px 2px 0 #000000;
 }
 
 .main-menu-btn-primary:hover {
-  background: linear-gradient(180deg, #b91c1c 0%, #8f1717 55%, #5e1010 100%);
+  background:
+    linear-gradient(#9e1818, #9e1818) padding-box,
+    repeating-conic-gradient(#fef08a 0% 25%, #92400e 0% 50%) 0 0 / 4px 4px border-box;
   color: #fef08a;
   box-shadow:
-    inset 0 3px 0 0 #fef08a,
-    inset 3px 0 0 0 #fde047,
-    inset 0 -4px 0 0 #3b0707,
-    inset -3px 0 0 0 #4c0d0d,
-    inset 0 0 0 2px #fef08a,
-    inset 0 0 0 4px #78350f;
+    inset 0 0 0 2px #3d0808;
   transform: translateY(-2px);
-  filter: drop-shadow(0 7px 0 #000000) drop-shadow(6px 0 0 #000000);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
 }
 
 .main-menu-btn-primary:active {
-  background: linear-gradient(180deg, #500b0b 0%, #751414 100%);
+  background:
+    linear-gradient(#540c0c, #540c0c) padding-box,
+    repeating-conic-gradient(#b45309 0% 25%, #451a03 0% 50%) 0 0 / 4px 4px border-box;
   transform: translateY(3px);
   box-shadow:
-    inset 0 4px 0 0 #1f0303,
-    inset 3px 0 0 0 #1f0303,
-    inset 0 -2px 0 0 #b91c1c,
-    inset -2px 0 0 0 #991b1b,
-    inset 0 0 0 2px #d97706,
-    inset 0 0 0 4px #280505;
-  filter: drop-shadow(0 2px 0 #000000) drop-shadow(2px 0 0 #000000);
+    inset 0 0 0 2px #180303;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
 .main-menu-btn-secondary {
   font-size: 18px;
   padding: 14px 28px;
   color: #e2e8f0;
-  background: linear-gradient(180deg, #2c2738 0%, #1e1a27 55%, #13101a 100%);
+  background:
+    linear-gradient(#201b2a, #201b2a) padding-box,
+    repeating-conic-gradient(#94a3b8 0% 25%, #334155 0% 50%) 0 0 / 4px 4px border-box;
   box-shadow:
-    inset 0 3px 0 0 #cbd5e1,
-    inset 3px 0 0 0 #94a3b8,
-    inset 0 -4px 0 0 #0a0810,
-    inset -3px 0 0 0 #0f0d18,
-    inset 0 0 0 2px #475569,
-    inset 0 0 0 4px #1a1624;
+    inset 0 0 0 2px #0c0a12;
   text-shadow: 2px 2px 0 #000000;
 }
 
 .main-menu-btn-secondary:hover {
-  background: linear-gradient(180deg, #3d354d 0%, #2b2538 55%, #1a1624 100%);
+  background:
+    linear-gradient(#30283f, #30283f) padding-box,
+    repeating-conic-gradient(#cbd5e1 0% 25%, #475569 0% 50%) 0 0 / 4px 4px border-box;
   color: #ffffff;
   box-shadow:
-    inset 0 3px 0 0 #ffffff,
-    inset 3px 0 0 0 #e2e8f0,
-    inset 0 -4px 0 0 #13101a,
-    inset -3px 0 0 0 #1c1827,
-    inset 0 0 0 2px #94a3b8,
-    inset 0 0 0 4px #1e1a27;
+    inset 0 0 0 2px #14101b;
   transform: translateY(-2px);
-  filter: drop-shadow(0 7px 0 #000000) drop-shadow(6px 0 0 #000000);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
 }
 
 .main-menu-btn-secondary:active {
-  background: linear-gradient(180deg, #13101a 0%, #221d2d 100%);
+  background:
+    linear-gradient(#14101b, #14101b) padding-box,
+    repeating-conic-gradient(#475569 0% 25%, #1e293b 0% 50%) 0 0 / 4px 4px border-box;
   transform: translateY(3px);
   box-shadow:
-    inset 0 4px 0 0 #08060d,
-    inset 3px 0 0 0 #08060d,
-    inset 0 -2px 0 0 #64748b,
-    inset -2px 0 0 0 #475569,
-    inset 0 0 0 2px #334155,
-    inset 0 0 0 4px #0c0a12;
-  filter: drop-shadow(0 2px 0 #000000) drop-shadow(2px 0 0 #000000);
+    inset 0 0 0 2px #06050a;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
 /* Carte Paramètres */

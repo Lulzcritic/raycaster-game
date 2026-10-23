@@ -18,6 +18,9 @@ import { HUDOverlay } from '../ui/HUDOverlay';
 import { PlayerHandOverlay } from '../ui/PlayerHandOverlay';
 import { GameMap } from '../world/GameMap';
 import { MapGenerator } from '../world/procedural/MapGenerator';
+import { DroppedItemOrb } from '../entities/DroppedItemOrb';
+import { Merchant } from '../entities/Merchant';
+import { MerchantUI } from '../ui/MerchantUI';
 import { InputManager } from './InputManager';
 
 export class Game {
@@ -25,6 +28,7 @@ export class Game {
   private readonly input: InputManager;
   private readonly renderer: Renderer;
   private readonly pauseMenu: PauseMenu;
+  private readonly merchantUI: MerchantUI;
   private readonly interactionPrompt: InteractionPrompt;
   private readonly worldBillboardOverlay: WorldBillboardOverlay;
   private readonly hudOverlay: HUDOverlay;
@@ -51,6 +55,7 @@ export class Game {
     this.worldBillboardOverlay = new WorldBillboardOverlay();
     this.hudOverlay = new HUDOverlay(() => this.startNewExtractionMatch());
     this.playerHandOverlay = new PlayerHandOverlay();
+    this.merchantUI = new MerchantUI();
     this.pauseMenu = new PauseMenu(
       () => {
         this.input.setPaused(false);
@@ -67,6 +72,12 @@ export class Game {
     );
 
     this.input = new InputManager(canvas, (paused) => {
+      if (this.merchantUI.isOpen()) {
+        if (paused) {
+          this.merchantUI.close();
+          return;
+        }
+      }
       this.isPaused = paused;
       this.worldBillboardOverlay.setVisible(!paused);
       this.hudOverlay.setVisible(!paused);
@@ -194,6 +205,22 @@ export class Game {
     // 2. Ajout des sprites supplémentaires déclarés par coordonnées libres (optionnel)
     if (level.sprites) {
       for (const s of level.sprites) {
+        if (s.textureId === TILE_TYPE.MERCHANT) {
+          const merchantItems = this.generateMerchantItems(s.x, s.y);
+          const merchant = new Merchant(
+            s.x,
+            s.y,
+            this.textures,
+            merchantItems,
+            (merch) => {
+              this.openMerchant(merch);
+            },
+            s.scale ?? 0.72
+          );
+          this.entities.push(merchant);
+          continue;
+        }
+
         const def = spriteDefs.get(s.textureId);
         const lootCount = chestIndex % 2 === 0 ? 2 : 3;
         const singleItem = s.itemId ? ItemDatabase.getItemById(s.itemId) : undefined;
@@ -280,6 +307,78 @@ export class Game {
         ? `EXTRACTION : L'HOMONCULUS N'A PAS PU QUITTER LE NIVEAU !`
         : `EXTRACTION RÉUSSIE : ${portal.name.toUpperCase()} !`
     );
+  }
+
+  private openMerchant(merchant: Merchant): void {
+    if (this.isPaused) return;
+    this.isPaused = true;
+    this.input.setPaused(true);
+    this.pauseMenu.hide();
+
+    this.merchantUI.open(
+      merchant,
+      (item) => {
+        const replaced = this.player.pickupItem(item);
+        if (replaced) {
+          const dropOrb = new DroppedItemOrb(
+            this.player.x,
+            this.player.y,
+            merchant.x + (Math.random() - 0.5) * 0.4,
+            merchant.y + (Math.random() - 0.5) * 0.4,
+            replaced,
+            (newEnt) => this.entities.push(newEnt)
+          );
+          this.entities.push(dropOrb);
+        }
+        this.interactionPrompt.showNotification(`OBTENU : ${item.name.toUpperCase()} !`);
+      },
+      () => {
+        this.isPaused = false;
+        this.input.setPaused(false);
+      }
+    );
+  }
+
+  private generateMerchantItems(x: number, y: number): EquipmentItem[] {
+    const center = Math.floor(MapGenerator.DEFAULT_SIZE / 2);
+    const distFromCenter = Math.hypot(x - center, y - center);
+    const pool = [...ItemDatabase.getChestLootPool()];
+
+    // Zone 3 (Sanctuaire central, r <= 6) : privilégie les objets rares, épiques, légendaires et artéfacts
+    if (distFromCenter <= 6) {
+      const rarityRank: Record<string, number> = {
+        artifact: 5,
+        legendary: 4,
+        epic: 3,
+        rare: 2,
+        uncommon: 1,
+        common: 0,
+      };
+      pool.sort((a, b) => (rarityRank[b.rarity] ?? 0) - (rarityRank[a.rarity] ?? 0));
+    } else {
+      // Zone 2 : mélange aléatoire
+      pool.sort(() => Math.random() - 0.5);
+    }
+
+    const chosen: EquipmentItem[] = [];
+    const usedSlots = new Set<string>();
+
+    for (const item of pool) {
+      if (chosen.length >= 3) break;
+      if (!usedSlots.has(item.slot)) {
+        chosen.push(item);
+        usedSlots.add(item.slot);
+      }
+    }
+
+    for (const item of pool) {
+      if (chosen.length >= 3) break;
+      if (!chosen.includes(item)) {
+        chosen.push(item);
+      }
+    }
+
+    return chosen;
   }
 
   public startNewExtractionMatch(): void {

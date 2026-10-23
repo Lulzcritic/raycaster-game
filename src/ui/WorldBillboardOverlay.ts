@@ -3,6 +3,7 @@ import { BillboardSprite } from '../entities/BillboardSprite';
 import { DroppedItemOrb } from '../entities/DroppedItemOrb';
 import { Enemy } from '../entities/Enemy';
 import { ExtractionPortal } from '../entities/ExtractionPortal';
+import { Merchant } from '../entities/Merchant';
 import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
 import { TILE_TYPE } from '../config/constants';
 import type { Player } from '../entities/Player';
@@ -39,6 +40,7 @@ export class WorldBillboardOverlay {
   private readonly enemyMap = new Map<Enemy, HTMLElement>();
   private readonly portalMap = new Map<ExtractionPortal, HTMLElement>();
   private readonly chestBeaconMap = new Map<BillboardSprite, HTMLElement>();
+  private readonly merchantMap = new Map<Merchant, HTMLElement>();
   private edgeBeaconEl: HTMLElement | null = null;
 
   constructor() {
@@ -462,6 +464,79 @@ export class WorldBillboardOverlay {
         this.edgeBeaconEl.style.display = 'none';
       }
     }
+
+    // =========================================================================
+    // 5. EN-TÊTE DU MARCHAND DANS LE MONDE 3D
+    // =========================================================================
+    const activeMerchants = new Set<Merchant>();
+    for (const entity of entities) {
+      if (entity instanceof Merchant && entity.active) {
+        activeMerchants.add(entity);
+      }
+    }
+
+    for (const [merch, el] of this.merchantMap.entries()) {
+      if (!activeMerchants.has(merch)) {
+        el.remove();
+        this.merchantMap.delete(merch);
+      }
+    }
+
+    for (const merch of activeMerchants) {
+      let merchEl = this.merchantMap.get(merch);
+      if (!merchEl) {
+        merchEl = this.createMerchantElement();
+        this.container.appendChild(merchEl);
+        this.merchantMap.set(merch, merchEl);
+      }
+
+      const dx = merch.x - player.x;
+      const dy = merch.y - player.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < 0.2 || distance > 9.5) {
+        merchEl.style.display = 'none';
+        continue;
+      }
+
+      let angleDiff = Math.atan2(dy, dx) - player.angle;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+      if (Math.abs(angleDiff) > player.fov / 2 + 0.1) {
+        merchEl.style.display = 'none';
+        continue;
+      }
+
+      const canvasX = (0.5 + angleDiff / player.fov) * 320;
+      const screenCol = Math.floor(canvasX);
+
+      // Z-buffer occlusion
+      if (screenCol >= 0 && screenCol < 320) {
+        const ray = rayHits[screenCol];
+        if (ray && ray.hit && distance > ray.distance + 0.12) {
+          merchEl.style.display = 'none';
+          continue;
+        }
+      }
+
+      const fullWallHeight = focalLength / distance;
+      const floorScreenY = (240 + fullWallHeight) / 2;
+      const topOfSpriteScreenY = floorScreenY - fullWallHeight * merch.getScale();
+      const anchorCanvasY = topOfSpriteScreenY - 14;
+
+      const screenPixelX =
+        canvasRect.left + (canvasX / 320) * canvasRect.width;
+      const screenPixelY =
+        canvasRect.top + (anchorCanvasY / 240) * canvasRect.height;
+
+      const scale = Math.max(0.7, Math.min(1.2, 1.4 / Math.sqrt(distance)));
+
+      merchEl.style.display = 'flex';
+      merchEl.style.left = `${screenPixelX}px`;
+      merchEl.style.top = `${screenPixelY}px`;
+      merchEl.style.transform = `translate(-50%, -100%) scale(${scale})`;
+    }
   }
 
   public setVisible(visible: boolean): void {
@@ -490,6 +565,11 @@ export class WorldBillboardOverlay {
       beaconEl.remove();
     }
     this.chestBeaconMap.clear();
+
+    for (const merchEl of this.merchantMap.values()) {
+      merchEl.remove();
+    }
+    this.merchantMap.clear();
 
     if (this.edgeBeaconEl) {
       this.edgeBeaconEl.remove();
@@ -824,5 +904,17 @@ export class WorldBillboardOverlay {
       this.container.appendChild(this.edgeBeaconEl);
     }
     return this.edgeBeaconEl!;
+  }
+
+  private createMerchantElement(): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'world-merchant-overhead';
+    el.innerHTML = `
+      <div class="merchant-overhead-box">
+        <span class="merchant-overhead-icon">🧙‍♂️</span>
+        <span class="merchant-overhead-name">MARCHAND</span>
+      </div>
+    `;
+    return el;
   }
 }

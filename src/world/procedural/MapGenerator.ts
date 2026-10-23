@@ -614,6 +614,54 @@ export class MapGenerator {
       });
     }
 
+    // =========================================================================
+    // ÉTAPE 7 : APPARITION DES MARCHANDS (ZONE 2 ET ZONE 3)
+    // =========================================================================
+    // 1. Marchand en Zone 3 (Sanctuaire central dans une alcôve royale)
+    const zone3MerchantPos = { x: center - 3, y: center - 2 };
+    sprites.push({
+      x: zone3MerchantPos.x + 0.5,
+      y: zone3MerchantPos.y + 0.5,
+      textureId: TILE_TYPE.MERCHANT,
+      scale: 0.72,
+    });
+
+    // 2. Marchand en Zone 2 (Anneau intermédiaire des catacombes)
+    const z2Candidates: Array<{ x: number; y: number }> = [];
+    for (let y = 8; y < size - 8; y++) {
+      for (let x = 8; x < size - 8; x++) {
+        if (grid[y][x] === TILE_TYPE.GROUND_1) {
+          const r = Math.hypot(x - center, y - center);
+          if (r >= 13 && r <= 22) {
+            const isDoor = doors.some((d) => d.x === x && d.y === y);
+            const isChest = grid[y][x] === TILE_TYPE.CHEST;
+            const isSprite = sprites.some(
+              (s) => Math.hypot(s.x - (x + 0.5), s.y - (y + 0.5)) < 2.5
+            );
+            const isPlayer = playerSpawns.some(
+              (p) => Math.hypot(p.x - (x + 0.5), p.y - (y + 0.5)) < 2.5
+            );
+            const isExtraction = extractions.some(
+              (e) => Math.hypot(e.x - (x + 0.5), e.y - (y + 0.5)) < 2.5
+            );
+            if (!isDoor && !isChest && !isSprite && !isPlayer && !isExtraction) {
+              z2Candidates.push({ x, y });
+            }
+          }
+        }
+      }
+    }
+
+    if (z2Candidates.length > 0) {
+      const chosenZ2 = z2Candidates[Math.floor(Math.random() * z2Candidates.length)];
+      sprites.push({
+        x: chosenZ2.x + 0.5,
+        y: chosenZ2.y + 0.5,
+        textureId: TILE_TYPE.MERCHANT,
+        scale: 0.72,
+      });
+    }
+
     return {
       name: `Donjon d'Extraction (Session #${Math.floor(1000 + Math.random() * 9000)})`,
       grid,

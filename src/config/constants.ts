@@ -26,6 +26,7 @@ export const TILE_TYPE = {
   CHEST: 3,
   DOOR: 4,
   HOMONCULUS: 5,
+  MERCHANT: 6,
 } as const;
 
 /**
@@ -49,6 +50,12 @@ export const TEXTURE_DEFINITIONS: readonly TextureDefinition[] = [
     category: 'sprite',
     path: '/assets/textures/homonculus.png',
     scale: 0.42,
+  },
+  {
+    id: TILE_TYPE.MERCHANT,
+    category: 'sprite',
+    path: '/assets/textures/merchant.png',
+    scale: 0.72,
   },
   {
     id: TILE_TYPE.DOOR,

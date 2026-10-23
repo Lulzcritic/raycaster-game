@@ -16,9 +16,9 @@ export const RARITY_LABELS: Record<ItemRarity, string> = {
   common: 'COMMUN',
   uncommon: 'NON COMMUN',
   rare: 'RARE',
-  epic: 'ÉPIQUE',
-  legendary: 'LÉGENDAIRE',
-  artifact: 'ARTÉFACT',
+  epic: 'EPIQUE',
+  legendary: 'LEGENDAIRE',
+  artifact: 'ARTEFACT',
 };
 
 const STAT_LABELS: Array<{

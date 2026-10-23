@@ -12,13 +12,13 @@ const STAT_LABELS: Array<{
   label: string;
   isMultiplier?: boolean;
 }> = [
-  { key: 'damage', label: 'Dégâts' },
+  { key: 'damage', label: 'Degats' },
   { key: 'magicPower', label: 'Puissance magique' },
-  { key: 'defense', label: 'Défense' },
-  { key: 'maxHealth', label: 'Santé max' },
-  { key: 'moveSpeed', label: 'Vitesse de déplacement', isMultiplier: true },
+  { key: 'defense', label: 'Defense' },
+  { key: 'maxHealth', label: 'Sante max' },
+  { key: 'moveSpeed', label: 'Vitesse de deplacement', isMultiplier: true },
   { key: 'castSpeed', label: "Vitesse d'incantation", isMultiplier: true },
-  { key: 'stealth', label: 'Discrétion' },
+  { key: 'stealth', label: 'Discretion' },
   { key: 'charisma', label: 'Charisme' },
 ];
 

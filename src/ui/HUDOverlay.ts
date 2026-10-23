@@ -6,7 +6,7 @@ const SLOT_NAMES: Record<string, string> = {
   armor: 'ARMURE',
   hat: 'CHAPEAU',
   boots: 'BOTTES',
-  key: 'CLÉ',
+  key: 'CLE',
 };
 
 export class HUDOverlay {
@@ -129,14 +129,14 @@ export class HUDOverlay {
 
     // Zone & Chronomètre
     const distFromCenter = Math.hypot(player.x - 32, player.y - 32);
-    let zoneName = 'ZONE 1 - QUARTIER DE DÉPART';
+    let zoneName = 'ZONE 1 - QUARTIER DE DEPART';
     let zoneColor = '#38bdf8';
 
     if (distFromCenter <= 7) {
       zoneName = 'ZONE 3 - SANCTUAIRE DU BOSS';
       zoneColor = '#ef4444';
     } else if (distFromCenter <= 19) {
-      zoneName = 'ZONE 2 - ANNEAU CENTRAL (PARTAGÉE)';
+      zoneName = 'ZONE 2 - ANNEAU CENTRAL (PARTAGEE)';
       zoneColor = '#f59e0b';
     }
 

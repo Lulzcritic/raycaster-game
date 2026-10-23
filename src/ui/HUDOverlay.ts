@@ -115,11 +115,11 @@ export class HUDOverlay {
     if (this.healthFill) {
       this.healthFill.style.width = `${percent}%`;
       if (ratio <= 0.25) {
-        this.healthFill.style.background = 'linear-gradient(90deg, #991b1b, #ef4444)';
+        this.healthFill.className = 'hud-health-fill critical';
       } else if (ratio <= 0.5) {
-        this.healthFill.style.background = 'linear-gradient(90deg, #c2410c, #f59e0b)';
+        this.healthFill.className = 'hud-health-fill caution';
       } else {
-        this.healthFill.style.background = 'linear-gradient(90deg, #b91c1c, #ef4444)';
+        this.healthFill.className = 'hud-health-fill';
       }
     }
 

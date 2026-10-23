@@ -1,3 +1,7 @@
+:root {
+  --font-medieval: 'Jacquarda Bastarda 9', 'Jacquard 12', 'Press Start 2P', monospace;
+}
+
 body {
   margin: 0;
   background: #000;
@@ -7,7 +11,7 @@ body {
   align-items: center;
   height: 100vh;
   width: 100vw;
-  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-family: var(--font-medieval);
   user-select: none;
 }
 
@@ -78,15 +82,15 @@ body {
 
 .pause-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 34px;
   color: #ffcc00;
   text-shadow: 4px 4px 0 #000;
   letter-spacing: 2px;
 }
 
 .pause-btn {
-  font-family: 'Press Start 2P', 'Courier New', monospace;
-  font-size: 14px;
+  font-family: var(--font-medieval);
+  font-size: 18px;
   color: #ffffff;
   background: #911111;
   border: 3px solid #ffffff;
@@ -134,7 +138,7 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  font-size: 10px;
+  font-size: 14px;
 }
 
 .setting-title {
@@ -149,7 +153,7 @@ body {
 .setting-scale-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 8px;
+  font-size: 12px;
   color: #888899;
 }
 
@@ -190,8 +194,8 @@ body {
   margin-top: 8px;
   border-top: 2px dashed #444;
   padding-top: 16px;
-  font-size: 10px;
-  line-height: 2;
+  font-size: 14px;
+  line-height: 1.8;
   color: #aaa;
   text-align: left;
   width: 100%;
@@ -210,8 +214,9 @@ body {
   background: rgba(20, 20, 25, 0.9);
   border: 3px solid #e0e0e0;
   box-shadow: 4px 4px 0 #000;
-  padding: 10px 18px;
-  font-size: 12px;
+  padding: 10px 20px;
+  font-family: var(--font-medieval);
+  font-size: 16px;
   color: #ffcc00;
   text-shadow: 2px 2px 0 #000;
   letter-spacing: 1px;
@@ -252,8 +257,7 @@ body {
   gap: 6px;
   pointer-events: none;
   transform-origin: bottom center;
-  /* Typographie normale, anti-aliasée et parfaitement lisible */
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-medieval);
   user-select: none;
   transition: opacity 0.12s ease-out;
 }
@@ -282,7 +286,7 @@ body {
 }
 
 .world-card-name {
-  font-size: 13.5px;
+  font-size: 16px;
   font-weight: 700;
   text-align: center;
   line-height: 1.35;
@@ -290,11 +294,11 @@ body {
 }
 
 .world-card-rarity {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+  font-family: var(--font-medieval);
+  font-size: 13px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  padding: 3px 6px;
+  padding: 3px 8px;
   border: 2px solid currentColor;
   box-shadow: 2px 2px 0 #000000;
   background: #0d0b14;
@@ -310,7 +314,7 @@ body {
   flex-direction: column;
   gap: 3px;
   color: #ffffff;
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 600;
   text-align: center;
   line-height: 1.45;
@@ -325,7 +329,7 @@ body {
   border-top: 2px dashed #3a324a;
   padding-top: 6px;
   color: #4eff4e;
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1.4;
   text-align: center;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
@@ -341,7 +345,7 @@ body {
   border-top: 2px dashed #3a324a;
   padding-top: 6px;
   color: #ffd700;
-  font-size: 11px;
+  font-size: 13px;
   font-style: italic;
   line-height: 1.4;
   text-align: center;
@@ -349,7 +353,7 @@ body {
 }
 
 /* =========================================================================
-   HUD DU JOUEUR (HAUTE RÉSOLUTION DOM)
+   HUD DU JOUEUR (HAUTE RÉSOLUTION DOM STYLE PIXELISÉ)
    ========================================================================= */
 .player-hud {
   position: fixed;
@@ -362,10 +366,13 @@ body {
   position: absolute;
   top: 18px;
   left: 18px;
-  background: rgba(20, 20, 25, 0.9);
-  border: 3px solid #ffffff;
-  box-shadow: 4px 4px 0 #000000;
-  padding: 8px 12px;
+  background: rgba(18, 15, 24, 0.92);
+  border: 3px solid #000000;
+  box-shadow:
+    0 0 0 2px #4a4237,
+    inset 0 0 0 2px #1f1b26,
+    4px 4px 0 #000000;
+  padding: 8px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -373,28 +380,54 @@ body {
 }
 
 .hud-health-track {
-  width: 180px;
-  height: 14px;
-  background: #000000;
-  border: 2px solid #555566;
+  width: 200px;
+  height: 18px;
+  background: #0c0a12;
+  border: 2px solid #000000;
   box-shadow: inset 1px 1px 0 #000000;
   overflow: hidden;
+  position: relative;
 }
 
+/* Remplissage de vie du joueur en dégradé de bandes pixel-art 16-bit */
 .hud-health-fill {
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #b91c1c, #ef4444);
+  background: #c0392b;
+  box-shadow:
+    inset 0 2px 0 #f5b7b1,
+    inset 0 5px 0 #e74c3c,
+    inset 0 -3px 0 #78281f,
+    inset 0 -1px 0 #3b110b;
   transition: width 0.1s ease-out;
 }
 
+.hud-health-fill.caution {
+  background: #d35400;
+  box-shadow:
+    inset 0 2px 0 #f5cba7,
+    inset 0 5px 0 #e67e22,
+    inset 0 -3px 0 #873600,
+    inset 0 -1px 0 #4e1f00;
+}
+
+.hud-health-fill.critical {
+  background: #922b21;
+  box-shadow:
+    inset 0 2px 0 #f1948a,
+    inset 0 5px 0 #c0392b,
+    inset 0 -3px 0 #641e16,
+    inset 0 -1px 0 #37100c;
+  animation: pixel-critical-pulse 0.7s steps(2, start) infinite alternate;
+}
+
 .hud-health-text {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
+  font-family: var(--font-medieval);
+  font-size: 16px;
   color: #ffffff;
   text-shadow: 2px 2px 0 #000000;
   margin-top: 6px;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .hud-zone-panel {
@@ -402,45 +435,47 @@ body {
   top: 18px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(20, 20, 25, 0.9);
-  border: 3px solid #38bdf8;
-  box-shadow: 4px 4px 0 #000000;
-  padding: 8px 18px;
+  background: rgba(18, 15, 24, 0.92);
+  border: 3px solid #000000;
+  box-shadow:
+    0 0 0 2px #38bdf8,
+    4px 4px 0 #000000;
+  padding: 8px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   box-sizing: border-box;
   text-align: center;
 }
 
 .hud-zone-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
+  font-family: var(--font-medieval);
+  font-size: 16px;
   color: #38bdf8;
   text-shadow: 2px 2px 0 #000000;
   letter-spacing: 1px;
 }
 
 .hud-raid-timer {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+  font-family: var(--font-medieval);
+  font-size: 15px;
   color: #94a3b8;
   text-shadow: 1px 1px 0 #000000;
 }
 
 /* =========================================================================
-   BARRES DE VIE ET NOMS DES MONSTRES DANS LE MONDE 3D (STYLE DEADLOCK)
+   BARRES DE VIE ET NOMS DES MONSTRES DANS LE MONDE 3D (STYLE PIXEL-ART MÉDIÉVAL NET)
    ========================================================================= */
 .world-enemy-overhead {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   pointer-events: none;
   transform-origin: bottom center;
-  font-family: 'Press Start 2P', monospace;
+  font-family: var(--font-medieval);
   user-select: none;
   white-space: nowrap;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.9));
@@ -457,71 +492,104 @@ body {
 }
 
 .deadlock-mob-title {
-  font-size: 8.5px;
+  font-size: 15px;
   color: #ffffff;
   text-shadow: 2px 2px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .deadlock-hp-number {
-  font-size: 8px;
+  font-size: 15px;
   font-weight: bold;
   color: #fdba74;
   text-shadow: 2px 2px 0 #000000;
   letter-spacing: 0.5px;
 }
 
-/* Châssis principal biseauté et incliné à -12deg façon Deadlock */
+/* Châssis de jauge pixel-art médiéval : droit, étagé, bordures pixelisées nettes sans biais diagonal */
 .deadlock-bar-frame {
-  transform: skewX(-12deg);
-  background: #0b0d13;
-  border: 2px solid #475569;
+  position: relative;
+  background: #0d0b12;
+  border: 3px solid #000000;
   box-shadow:
-    0 0 0 1px #000000,
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 4px 10px rgba(0, 0, 0, 0.85);
-  padding: 2px;
+    0 0 0 2px #3e354d,
+    inset 0 0 0 1px #14111a,
+    4px 4px 0 #000000;
+  padding: 3px;
   box-sizing: border-box;
+}
+
+/* Pattes de renfort en fer forgé pixel-art aux extrémités de la barre */
+.deadlock-bar-frame::before,
+.deadlock-bar-frame::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: calc(100% + 6px);
+  background: #473e57;
+  border: 2px solid #000000;
+  box-sizing: border-box;
+}
+
+.deadlock-bar-frame::before {
+  left: -6px;
+}
+
+.deadlock-bar-frame::after {
+  right: -6px;
 }
 
 .deadlock-bar-track {
   position: relative;
   width: 100%;
   height: 100%;
-  background: #11131a;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9);
+  background: #08060c;
+  box-shadow: inset 1px 1px 0 #000000;
   overflow: hidden;
 }
 
-/* Ghost damage bar (s'évapore progressivement après l'impact façon Deadlock) */
+/* Ghost damage bar (s'évapore progressivement après l'impact pour une sensation punchy) */
 .deadlock-bar-ghost {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
-  background: #fed7aa;
-  transition: width 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s;
+  background: #fdebd0;
+  box-shadow:
+    inset 0 2px 0 #ffffff,
+    inset 0 -2px 0 #f5cba7;
+  transition: width 0.35s ease-out 0.12s;
   z-index: 1;
 }
 
-/* Barre de vie principale */
+/* Barre de vie principale en dégradé de bandes 16-bit pixel-art */
 .deadlock-bar-fill {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
-  background: linear-gradient(180deg, #ff9d5c 0%, #f97316 45%, #c2410c 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+  background: #d35400;
+  box-shadow:
+    inset 0 2px 0 #f39c12,
+    inset 0 5px 0 #e67e22,
+    inset 0 -3px 0 #962d00,
+    inset 0 -1px 0 #4a1500;
   transition: width 0.08s ease-out;
   z-index: 2;
 }
 
 .deadlock-bar-fill.critical {
-  background: linear-gradient(180deg, #f87171 0%, #dc2626 50%, #7f1d1d 100%) !important;
-  animation: deadlock-critical-pulse 0.8s infinite alternate;
+  background: #c0392b !important;
+  box-shadow:
+    inset 0 2px 0 #f5b7b1,
+    inset 0 5px 0 #e74c3c,
+    inset 0 -3px 0 #78281f,
+    inset 0 -1px 0 #3b110b !important;
+  animation: pixel-critical-pulse 0.7s steps(2, start) infinite alternate;
 }
 
-/* Encoches / Segments de graduation Deadlock */
+/* Encoches / Segments de graduation pixelisés nets de 2px */
 .deadlock-bar-segments {
   position: absolute;
   inset: 0;
@@ -531,48 +599,59 @@ body {
     90deg,
     transparent 0,
     transparent calc(20% - 2px),
-    rgba(10, 12, 18, 0.85) calc(20% - 2px),
-    rgba(10, 12, 18, 0.85) 20%
+    #000000 calc(20% - 2px),
+    #000000 20%
   );
 }
 
 /* --- Variantes selon le Rang (Normal / Élite / Boss) --- */
 
-/* Normal (Trooper / Blob standard) */
+/* Normal (Blob standard) */
 .world-enemy-overhead.rank-normal .deadlock-bar-frame {
-  width: 150px;
-  height: 16px;
-  border-color: #64748b;
+  width: 160px;
+  height: 18px;
 }
 
 /* Élite */
 .world-enemy-overhead.rank-elite .deadlock-bar-frame {
-  width: 220px;
-  height: 20px;
-  border-color: #c084fc;
+  width: 230px;
+  height: 22px;
   box-shadow:
-    0 0 0 1px #000000,
-    0 0 14px rgba(192, 132, 252, 0.5),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 4px 10px rgba(0, 0, 0, 0.85);
+    0 0 0 2px #7e22ce,
+    inset 0 0 0 1px #14111a,
+    4px 4px 0 #000000;
+}
+
+.world-enemy-overhead.rank-elite .deadlock-bar-frame::before,
+.world-enemy-overhead.rank-elite .deadlock-bar-frame::after {
+  background: #7e22ce;
 }
 
 .world-enemy-overhead.rank-elite .deadlock-mob-title {
   color: #e9d5ff;
-  font-size: 9.5px;
+  font-size: 16px;
   text-shadow: 2px 2px 0 #000000, 0 0 8px rgba(192, 132, 252, 0.8);
 }
 
 .world-enemy-overhead.rank-elite .deadlock-hp-number {
   color: #e9d5ff;
+  font-size: 16px;
 }
 
 .world-enemy-overhead.rank-elite .deadlock-bar-fill {
-  background: linear-gradient(180deg, #f3e8ff 0%, #a855f7 45%, #6b21a8 100%);
+  background: #8e44ad;
+  box-shadow:
+    inset 0 2px 0 #d7bde2,
+    inset 0 5px 0 #af7ac5,
+    inset 0 -3px 0 #5b2c6f,
+    inset 0 -1px 0 #31143d;
 }
 
 .world-enemy-overhead.rank-elite .deadlock-bar-ghost {
   background: #f5d0fe;
+  box-shadow:
+    inset 0 2px 0 #ffffff,
+    inset 0 -2px 0 #e879f9;
 }
 
 .world-enemy-overhead.rank-elite .deadlock-bar-segments {
@@ -580,40 +659,51 @@ body {
     90deg,
     transparent 0,
     transparent calc(12.5% - 2px),
-    rgba(10, 12, 18, 0.85) calc(12.5% - 2px),
-    rgba(10, 12, 18, 0.85) 12.5%
+    #000000 calc(12.5% - 2px),
+    #000000 12.5%
   );
 }
 
 /* Boss */
 .world-enemy-overhead.rank-boss .deadlock-bar-frame {
-  width: 300px;
-  height: 26px;
-  border-color: #f59e0b;
+  width: 310px;
+  height: 28px;
   box-shadow:
-    0 0 0 2px #000000,
-    0 0 20px rgba(245, 158, 11, 0.7),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.3),
-    0 4px 10px rgba(0, 0, 0, 0.85);
+    0 0 0 2px #d97706,
+    inset 0 0 0 1px #14111a,
+    5px 5px 0 #000000;
+}
+
+.world-enemy-overhead.rank-boss .deadlock-bar-frame::before,
+.world-enemy-overhead.rank-boss .deadlock-bar-frame::after {
+  background: #d97706;
 }
 
 .world-enemy-overhead.rank-boss .deadlock-mob-title {
   color: #fde047;
-  font-size: 11px;
+  font-size: 18px;
   text-shadow: 2px 2px 0 #000000, 0 0 10px rgba(245, 158, 11, 0.9);
 }
 
 .world-enemy-overhead.rank-boss .deadlock-hp-number {
   color: #fde047;
-  font-size: 9px;
+  font-size: 17px;
 }
 
 .world-enemy-overhead.rank-boss .deadlock-bar-fill {
-  background: linear-gradient(180deg, #fef9c3 0%, #f59e0b 45%, #b45309 100%);
+  background: #d4ac0d;
+  box-shadow:
+    inset 0 3px 0 #fef9e7,
+    inset 0 6px 0 #f9e79f,
+    inset 0 -4px 0 #9a7d0a,
+    inset 0 -1px 0 #4d3e05;
 }
 
 .world-enemy-overhead.rank-boss .deadlock-bar-ghost {
   background: #fef08a;
+  box-shadow:
+    inset 0 2px 0 #ffffff,
+    inset 0 -2px 0 #fde047;
 }
 
 .world-enemy-overhead.rank-boss .deadlock-bar-segments {
@@ -621,17 +711,18 @@ body {
     90deg,
     transparent 0,
     transparent calc(10% - 2px),
-    rgba(10, 12, 18, 0.9) calc(10% - 2px),
-    rgba(10, 12, 18, 0.9) 10%
+    #000000 calc(10% - 2px),
+    #000000 10%
   );
 }
 
-@keyframes deadlock-critical-pulse {
+/* Clignotement critique rétro pixelisé avec steps(2) */
+@keyframes pixel-critical-pulse {
   0% {
     filter: brightness(1);
   }
   100% {
-    filter: brightness(1.35) drop-shadow(0 0 6px #ef4444);
+    filter: brightness(1.4) drop-shadow(0 0 4px #ef4444);
   }
 }
 
@@ -642,9 +733,9 @@ body {
   position: absolute;
   pointer-events: none;
   transform-origin: bottom center;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  padding: 6px 12px;
+  font-family: var(--font-medieval);
+  font-size: 15px;
+  padding: 6px 14px;
   box-shadow: 3px 3px 0 #000000;
   user-select: none;
   white-space: nowrap;
@@ -676,13 +767,13 @@ body {
 
 .extraction-title {
   color: #38bdf8;
-  font-size: 20px;
+  font-size: 26px;
   line-height: 1.4;
   text-shadow: 4px 4px 0 #000000;
 }
 
 .extraction-subtitle {
-  font-size: 11px;
+  font-size: 15px;
   color: #e2e8f0;
   margin: 0;
   line-height: 1.6;
@@ -692,7 +783,7 @@ body {
   display: flex;
   justify-content: space-around;
   width: 100%;
-  font-size: 10px;
+  font-size: 15px;
   background: #09080e;
   border: 2px solid #332d47;
   padding: 12px 16px;
@@ -701,7 +792,7 @@ body {
 }
 
 .extraction-loot-title {
-  font-size: 10px;
+  font-size: 14px;
   color: #94a3b8;
   letter-spacing: 1px;
   margin-top: 4px;
@@ -724,7 +815,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -737,7 +828,7 @@ body {
 }
 
 .extraction-loot-empty {
-  font-size: 10px;
+  font-size: 14px;
   color: #64748b;
   font-style: italic;
   text-align: center;
@@ -747,6 +838,7 @@ body {
 .extraction-restart-btn {
   background: #0284c7;
   border-color: #ffffff;
+  font-size: 16px;
 }
 
 .extraction-restart-btn:hover {
@@ -766,12 +858,12 @@ body {
 
 .death-title {
   color: #ef4444;
-  font-size: 24px;
+  font-size: 32px;
   text-shadow: 4px 4px 0 #000000;
 }
 
 .death-subtitle {
-  font-size: 11px;
+  font-size: 15px;
   color: #cbd5e1;
   margin: 0;
   line-height: 1.6;
@@ -780,6 +872,7 @@ body {
 .death-respawn-btn {
   background: #991b1b;
   border-color: #ffffff;
+  font-size: 16px;
 }
 
 .death-respawn-btn:hover {

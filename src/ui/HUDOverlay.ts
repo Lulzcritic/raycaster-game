@@ -68,7 +68,12 @@ export class HUDOverlay {
     this.deathScreen?.classList.add('hidden');
   }
 
-  public update(player: Player, raidTimerSec: number, isExtracted: boolean): void {
+  public update(
+    player: Player,
+    raidTimerSec: number,
+    isExtracted: boolean,
+    lostHomonculusOnExtract = false
+  ): void {
     const isAlive = player.isAlive();
 
     // 1. Écran de Mort
@@ -90,7 +95,7 @@ export class HUDOverlay {
     if (isExtracted) {
       if (!this.isExtractedScreenShown) {
         this.isExtractedScreenShown = true;
-        this.renderExtractionScreen(player, raidTimerSec);
+        this.renderExtractionScreen(player, raidTimerSec, lostHomonculusOnExtract);
         this.extractionScreen?.classList.remove('hidden');
         if (this.playerHud) this.playerHud.style.display = 'none';
       }
@@ -169,7 +174,11 @@ export class HUDOverlay {
     }
   }
 
-  private renderExtractionScreen(player: Player, raidTimerSec: number): void {
+  private renderExtractionScreen(
+    player: Player,
+    raidTimerSec: number,
+    lostHomonculusOnExtract = false
+  ): void {
     const timerMin = Math.floor(raidTimerSec / 60);
     const timerSec = Math.floor(raidTimerSec % 60);
     const formattedTimer = `${timerMin.toString().padStart(2, '0')}:${timerSec.toString().padStart(2, '0')}`;
@@ -210,7 +219,22 @@ export class HUDOverlay {
         }
       }
 
-      if (!hasItems) {
+      if (lostHomonculusOnExtract) {
+        const unextractableRow = document.createElement('div');
+        unextractableRow.className = 'extraction-loot-row';
+        unextractableRow.style.opacity = '0.85';
+        unextractableRow.style.borderLeft = '3px solid #b048f8';
+        unextractableRow.style.paddingLeft = '8px';
+        unextractableRow.style.marginTop = '6px';
+        unextractableRow.innerHTML = `
+          <span class="extraction-loot-slot" style="color: #c084fc;">[NON EXTRACTIBLE]</span>
+          <span class="extraction-loot-name" style="color: #e879f9; text-decoration: line-through;">Homonculus</span>
+          <span style="font-size: 11px; color: #a855f7; margin-left: 6px;">(dissous dans le portail)</span>
+        `;
+        this.extractionLootList.appendChild(unextractableRow);
+      }
+
+      if (!hasItems && !lostHomonculusOnExtract) {
         const emptyNotice = document.createElement('div');
         emptyNotice.className = 'extraction-loot-empty';
         emptyNotice.textContent = '(Aucun équipement emporté)';

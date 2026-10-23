@@ -38,6 +38,7 @@ export class Game {
   private animationFrameId: number | null = null;
   private raidTimer = 0;
   private isExtracted = false;
+  private lostHomonculusOnExtract = false;
 
   constructor(canvas: HTMLCanvasElement, initialLevel?: LevelData) {
     const startLevel = initialLevel ?? MapGenerator.generate();
@@ -113,6 +114,7 @@ export class Game {
     this.currentLevel = level;
     this.raidTimer = 0;
     this.isExtracted = false;
+    this.lostHomonculusOnExtract = false;
     this.map = new GameMap(level.grid, level.floorGrid, level.skyTileId);
     this.player.x = level.playerSpawn.x;
     this.player.y = level.playerSpawn.y;
@@ -263,12 +265,26 @@ export class Game {
       return;
     }
     this.isExtracted = true;
+
+    // L'Homonculus ne peut pas être extrait du niveau : il se dissout immédiatement dans le vortex
+    this.lostHomonculusOnExtract = this.player.inventory.hasItem('offhand');
+    if (this.lostHomonculusOnExtract) {
+      this.player.inventory.unequip('offhand');
+    }
+
+    // Les clés de la crypte sont également consommées/abandonnées à l'extraction
+    this.player.inventory.unequip('key');
+
     this.interactionPrompt.showNotification(
-      `EXTRACTION RÉUSSIE : ${portal.name.toUpperCase()} !`
+      this.lostHomonculusOnExtract
+        ? `EXTRACTION : L'HOMONCULUS N'A PAS PU QUITTER LE NIVEAU !`
+        : `EXTRACTION RÉUSSIE : ${portal.name.toUpperCase()} !`
     );
   }
 
   public startNewExtractionMatch(): void {
+    this.player.inventory.unequip('offhand');
+    this.player.inventory.unequip('key');
     const newMap = MapGenerator.generate();
     this.loadLevel(newMap);
     this.interactionPrompt.showNotification('NOUVELLE EXPÉDITION DÉMARRÉE !');
@@ -421,6 +437,11 @@ export class Game {
     this.renderer.render(this.player, this.map, this.entities);
     this.playerHandOverlay.update(this.player, this.renderer, this.isExtracted);
     this.worldBillboardOverlay.update(this.entities, this.player, this.renderer);
-    this.hudOverlay.update(this.player, this.raidTimer, this.isExtracted);
+    this.hudOverlay.update(
+      this.player,
+      this.raidTimer,
+      this.isExtracted,
+      this.lostHomonculusOnExtract
+    );
   }
 }

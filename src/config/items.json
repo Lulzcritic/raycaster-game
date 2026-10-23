@@ -195,7 +195,7 @@
       "magicPower": 8,
       "maxHealth": 15
     },
-    "effect": "Détecte les coffres les plus proches à travers les murs.",
-    "description": "Créature alchimique tenue en main gauche. Elle frissonne et pointe obstinément vers les coffres cachés dans les catacombes."
+    "effect": "Détecte les coffres les plus proches à travers les murs. Ne peut pas être extrait du niveau.",
+    "description": "Créature alchimique tenue en main gauche. Elle frissonne et pointe obstinément vers les coffres cachés. Liée aux énergies des cryptes, elle se dissout si vous tentez de l'extraire du niveau."
   }
 ]

@@ -39,7 +39,7 @@ export class Door extends Entity {
     }
     const keyItem = ItemDatabase.getItemById(this.requiredKeyId);
     const keyName = keyItem ? keyItem.name.toUpperCase() : 'CLÉ';
-    const hasKey = player ? (player.hasKey(this.requiredKeyId) || player.hasKey()) : false;
+    const hasKey = player ? player.hasKey(this.requiredKeyId) : false;
     return hasKey
       ? `[F] DÉVERROUILLER LA PORTE (${keyName})`
       : `[F] PORTE VERROUILLÉE (${keyName} REQUISE)`;
@@ -53,7 +53,7 @@ export class Door extends Entity {
     const keyItem = ItemDatabase.getItemById(this.requiredKeyId);
     const keyName = keyItem ? keyItem.name : 'la clé requise';
 
-    if (player.hasKey(this.requiredKeyId) || player.hasKey()) {
+    if (player.hasKey(this.requiredKeyId)) {
       player.useKey(this.requiredKeyId);
       this.isOpening = true;
       this.openProgress = 0;

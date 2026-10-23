@@ -56,12 +56,15 @@ export class Inventory {
     if (!keyId) {
       return true;
     }
-    return item.id === keyId || item.slot === 'key';
+    return item.id === keyId;
   }
 
-  public useKey(_keyId?: string): boolean {
+  public useKey(keyId?: string): boolean {
     const item = this.slots.get('key');
     if (!item) {
+      return false;
+    }
+    if (keyId && item.id !== keyId) {
       return false;
     }
     this.slots.set('key', null);

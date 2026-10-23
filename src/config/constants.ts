@@ -105,8 +105,8 @@ export const DEFAULT_PLAYER_CONFIG: PlayerConfig = {
   angle: 0,
   fov: (75 * Math.PI) / 180, // Champ de vision par défaut à 75° (au lieu de 45° trop zoomé)
   speedRotation: 1,
-  speedMove: 1,
-  speedStrafe: 0.65,
+  speedMove: 1.5,
+  speedStrafe: 1.35,
   mouseSensitivity: 0.0025,
   bobFrequency: 10,
   bobAmplitude: 3.5,

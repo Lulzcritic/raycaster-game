@@ -83,6 +83,7 @@
           <div class="pause-btn-group">
             <button id="resume-btn" class="pause-btn" type="button">REPRENDRE</button>
             <button id="settings-btn" class="pause-btn pause-btn-secondary" type="button">PARAMETRES</button>
+            <button id="pause-main-menu-btn" class="pause-btn pause-btn-tertiary" type="button">MENU PRINCIPAL</button>
           </div>
           <div class="pause-controls">
             <p>W / S : AVANCER / RECULER</p>
@@ -120,6 +121,83 @@
             <button id="settings-resume-btn" class="pause-btn" type="button">REPRENDRE</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Menu Principal -->
+    <div id="main-menu" class="main-menu">
+      <div class="main-menu-overlay"></div>
+      <div class="main-menu-container">
+        <!-- Logo centré en haut avec animation d'apparition -->
+        <header class="main-menu-header">
+          <img
+            id="main-menu-logo"
+            class="main-menu-logo animate-appear"
+            src="/src/assets/textures/logo.png"
+            alt="Raycaster Logo"
+          />
+        </header>
+
+        <!-- Vue principale (Jouer / Paramètres) -->
+        <div id="main-menu-main-view" class="main-menu-view">
+          <div class="main-menu-btn-group">
+            <button id="main-play-btn" class="main-menu-btn main-menu-btn-primary" type="button">
+              JOUER
+            </button>
+            <button id="main-settings-btn" class="main-menu-btn main-menu-btn-secondary" type="button">
+              PARAMÈTRES
+            </button>
+          </div>
+        </div>
+
+        <!-- Vue Paramètres du Menu Principal -->
+        <div id="main-menu-settings-view" class="main-menu-view hidden">
+          <div class="main-menu-settings-card">
+            <h2 class="main-menu-settings-title">PARAMÈTRES</h2>
+
+            <div class="settings-group">
+              <div class="setting-row">
+                <span class="setting-title">CHAMP DE VISION (FOV)</span>
+                <span id="main-fov-value" class="setting-value">75°</span>
+              </div>
+              <input
+                id="main-fov-slider"
+                class="pixel-slider"
+                type="range"
+                min="60"
+                max="110"
+                step="1"
+                value="75"
+              />
+              <div class="setting-scale-labels">
+                <span>60° (ZOOM)</span>
+                <span>110° (LARGE)</span>
+              </div>
+            </div>
+
+            <div class="main-menu-controls-guide">
+              <div class="controls-guide-title">✦ COMMANDES DU JEU ✦</div>
+              <div class="controls-grid">
+                <div class="control-item"><span class="control-key">W / S</span><span>Avancer / Reculer</span></div>
+                <div class="control-item"><span class="control-key">A / D</span><span>Strafe Gauche / Droite</span></div>
+                <div class="control-item"><span class="control-key">SOURIS</span><span>Orienter la vue</span></div>
+                <div class="control-item"><span class="control-key">CLIC / ESPACE</span><span>Boule de Feu</span></div>
+                <div class="control-item"><span class="control-key">F</span><span>Interagir (Coffres, Portes, Marchand)</span></div>
+                <div class="control-item"><span class="control-key">ÉCHAP</span><span>Menu Pause en jeu</span></div>
+              </div>
+            </div>
+
+            <div class="main-menu-btn-group">
+              <button id="main-settings-back-btn" class="main-menu-btn main-menu-btn-secondary" type="button">
+                RETOUR
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <footer class="main-menu-footer">
+          <span>RAYCASTER DUNGEON • v1.0</span>
+        </footer>
       </div>
     </div>
 

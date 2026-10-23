@@ -6,16 +6,19 @@ export class PauseMenu {
   private readonly settingsButton: HTMLButtonElement | null;
   private readonly settingsBackBtn: HTMLButtonElement | null;
   private readonly settingsResumeBtn: HTMLButtonElement | null;
+  private readonly mainMenuButton: HTMLButtonElement | null;
   private readonly fovSlider: HTMLInputElement | null;
   private readonly fovValueDisplay: HTMLElement | null;
 
   private onResumeCallback?: () => void;
   private onFovChangeCallback?: (fovDegrees: number) => void;
+  private onMainMenuCallback?: () => void;
 
   constructor(
     onResume?: () => void,
     onFovChange?: (fovDegrees: number) => void,
-    initialFovDegrees = 75
+    initialFovDegrees = 75,
+    onMainMenu?: () => void
   ) {
     this.menuElement = document.getElementById('pause-menu');
     this.mainView = document.getElementById('pause-main-view');
@@ -24,11 +27,13 @@ export class PauseMenu {
     this.settingsButton = document.getElementById('settings-btn') as HTMLButtonElement | null;
     this.settingsBackBtn = document.getElementById('settings-back-btn') as HTMLButtonElement | null;
     this.settingsResumeBtn = document.getElementById('settings-resume-btn') as HTMLButtonElement | null;
+    this.mainMenuButton = document.getElementById('pause-main-menu-btn') as HTMLButtonElement | null;
     this.fovSlider = document.getElementById('fov-slider') as HTMLInputElement | null;
     this.fovValueDisplay = document.getElementById('fov-value');
 
     this.onResumeCallback = onResume;
     this.onFovChangeCallback = onFovChange;
+    this.onMainMenuCallback = onMainMenu;
 
     this.setFov(initialFovDegrees);
 
@@ -36,11 +41,16 @@ export class PauseMenu {
     this.settingsButton?.addEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.addEventListener('click', this.handleBackClick);
     this.settingsResumeBtn?.addEventListener('click', this.handleResumeClick);
+    this.mainMenuButton?.addEventListener('click', this.handleMainMenuClick);
     this.fovSlider?.addEventListener('input', this.handleFovInput);
   }
 
   private readonly handleResumeClick = (): void => {
     this.onResumeCallback?.();
+  };
+
+  private readonly handleMainMenuClick = (): void => {
+    this.onMainMenuCallback?.();
   };
 
   private readonly handleSettingsClick = (): void => {
@@ -97,6 +107,7 @@ export class PauseMenu {
     this.settingsButton?.removeEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.removeEventListener('click', this.handleBackClick);
     this.settingsResumeBtn?.removeEventListener('click', this.handleResumeClick);
+    this.mainMenuButton?.removeEventListener('click', this.handleMainMenuClick);
     this.fovSlider?.removeEventListener('input', this.handleFovInput);
   }
 }

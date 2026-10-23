@@ -7,6 +7,8 @@ export class InputManager {
   private paused = false;
   private lastPointerUnlockTime = 0;
   private readonly onPauseChange?: (paused: boolean) => void;
+  public canTogglePause?: () => boolean;
+  public onEscapeWhileBlocked?: () => void;
 
   private readonly handleKeyEvent: (e: KeyboardEvent) => void;
   private readonly handleMouseMove: (e: MouseEvent) => void;
@@ -20,6 +22,10 @@ export class InputManager {
 
     this.handleKeyEvent = (e: KeyboardEvent) => {
       if (e.type === 'keydown' && e.key === 'Escape') {
+        if (this.canTogglePause && !this.canTogglePause()) {
+          this.onEscapeWhileBlocked?.();
+          return;
+        }
         // Évite un double déclenchement si la sortie du PointerLock vient déjà d'ouvrir le menu
         if (performance.now() - this.lastPointerUnlockTime < 150) {
           return;
@@ -87,7 +93,7 @@ export class InputManager {
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
   }
 
-  public setPaused(paused: boolean): void {
+  public setPaused(paused: boolean, notify = true): void {
     if (this.paused === paused) {
       return;
     }
@@ -106,7 +112,9 @@ export class InputManager {
       this.lockPointer();
     }
 
-    this.onPauseChange?.(paused);
+    if (notify) {
+      this.onPauseChange?.(paused);
+    }
   }
 
   public lockPointer(): void {

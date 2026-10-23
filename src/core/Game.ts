@@ -13,6 +13,7 @@ import { TextureManager } from '../graphics/TextureManager';
 import type { EquipmentItem, LevelData, TextureDefinition } from '../types';
 import { InteractionPrompt } from '../ui/InteractionPrompt';
 import { PauseMenu } from '../ui/PauseMenu';
+import { MainMenu } from '../ui/MainMenu';
 import { WorldBillboardOverlay } from '../ui/WorldBillboardOverlay';
 import { HUDOverlay } from '../ui/HUDOverlay';
 import { PlayerHandOverlay } from '../ui/PlayerHandOverlay';
@@ -28,6 +29,7 @@ export class Game {
   private readonly input: InputManager;
   private readonly renderer: Renderer;
   private readonly pauseMenu: PauseMenu;
+  private readonly mainMenu: MainMenu;
   private readonly merchantUI: MerchantUI;
   private readonly interactionPrompt: InteractionPrompt;
   private readonly worldBillboardOverlay: WorldBillboardOverlay;
@@ -38,6 +40,7 @@ export class Game {
   private player: Player;
   private entities: Entity[] = [];
   private isPaused = false;
+  private isInMainMenu = true;
   private lastTime = 0;
   private animationFrameId: number | null = null;
   private raidTimer = 0;
@@ -56,12 +59,13 @@ export class Game {
     this.hudOverlay = new HUDOverlay(() => this.startNewExtractionMatch());
     this.playerHandOverlay = new PlayerHandOverlay();
     this.merchantUI = new MerchantUI();
-    this.pauseMenu = new PauseMenu(
+    this.mainMenu = new MainMenu(
       () => {
-        this.input.setPaused(false);
+        this.startGameFromMenu();
       },
       (fovDegrees) => {
         this.player.fov = (fovDegrees * Math.PI) / 180;
+        this.pauseMenu.setFov(fovDegrees);
         try {
           localStorage.setItem('raycaster_fov', String(fovDegrees));
         } catch {
@@ -70,8 +74,29 @@ export class Game {
       },
       initialFovDeg
     );
+    this.pauseMenu = new PauseMenu(
+      () => {
+        this.input.setPaused(false);
+      },
+      (fovDegrees) => {
+        this.player.fov = (fovDegrees * Math.PI) / 180;
+        this.mainMenu.setFov(fovDegrees);
+        try {
+          localStorage.setItem('raycaster_fov', String(fovDegrees));
+        } catch {
+          // Ignore storage restrictions
+        }
+      },
+      initialFovDeg,
+      () => {
+        this.returnToMainMenu();
+      }
+    );
 
     this.input = new InputManager(canvas, (paused) => {
+      if (this.isInMainMenu) {
+        return;
+      }
       if (this.merchantUI.isOpen()) {
         if (paused) {
           this.merchantUI.close();
@@ -89,6 +114,13 @@ export class Game {
         this.pauseMenu.hide();
       }
     });
+
+    this.input.canTogglePause = () => !this.isInMainMenu;
+    this.input.onEscapeWhileBlocked = () => {
+      if (this.isInMainMenu && this.mainMenu.isInSettings()) {
+        this.mainMenu.showMain();
+      }
+    };
 
     this.textures = new TextureManager();
     this.renderer = new Renderer(canvas, this.textures);
@@ -111,6 +143,14 @@ export class Game {
     );
 
     this.spawnLevelSprites(startLevel);
+
+    // Initialisation dans l'état Menu Principal (jeu en pause, HUD masqué)
+    this.isPaused = true;
+    this.input.setPaused(true, false);
+    this.worldBillboardOverlay.setVisible(false);
+    this.hudOverlay.setVisible(false);
+    this.playerHandOverlay.setVisible(false);
+    this.mainMenu.show();
   }
 
   public getCurrentLevel(): LevelData {
@@ -389,6 +429,29 @@ export class Game {
     this.interactionPrompt.showNotification('NOUVELLE EXPÉDITION DÉMARRÉE !');
   }
 
+  public startGameFromMenu(): void {
+    this.isInMainMenu = false;
+    this.mainMenu.hide();
+    this.isPaused = false;
+    this.worldBillboardOverlay.setVisible(true);
+    this.hudOverlay.setVisible(true);
+    this.playerHandOverlay.setVisible(true);
+    this.input.setPaused(false);
+  }
+
+  public returnToMainMenu(): void {
+    this.isInMainMenu = true;
+    this.pauseMenu.hide();
+    this.merchantUI.close();
+    this.interactionPrompt.clear();
+    this.isPaused = true;
+    this.worldBillboardOverlay.setVisible(false);
+    this.hudOverlay.setVisible(false);
+    this.playerHandOverlay.setVisible(false);
+    this.input.setPaused(true, false);
+    this.mainMenu.show();
+  }
+
   public start(): void {
     if (this.animationFrameId !== null) {
       return;
@@ -408,7 +471,7 @@ export class Game {
     const dt = (time - this.lastTime) / 1000;
     this.lastTime = time;
 
-    if (!this.isPaused) {
+    if (!this.isPaused && !this.isInMainMenu) {
       this.update(dt);
     }
     this.render();
@@ -534,13 +597,15 @@ export class Game {
 
   private render(): void {
     this.renderer.render(this.player, this.map, this.entities);
-    this.playerHandOverlay.update(this.player, this.renderer, this.isExtracted);
-    this.worldBillboardOverlay.update(this.entities, this.player, this.renderer);
-    this.hudOverlay.update(
-      this.player,
-      this.raidTimer,
-      this.isExtracted,
-      this.lostHomonculusOnExtract
-    );
+    if (!this.isInMainMenu) {
+      this.playerHandOverlay.update(this.player, this.renderer, this.isExtracted);
+      this.worldBillboardOverlay.update(this.entities, this.player, this.renderer);
+      this.hudOverlay.update(
+        this.player,
+        this.raidTimer,
+        this.isExtracted,
+        this.lostHomonculusOnExtract
+      );
+    }
   }
 }

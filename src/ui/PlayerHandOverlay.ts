@@ -36,8 +36,8 @@ export class PlayerHandOverlay {
     const canvas = renderer.getCanvas();
     const rect = canvas.getBoundingClientRect();
 
-    // Taille agrandie ("plus grosse") : 74% de la hauteur de la vue de jeu 4:3
-    const handSize = Math.round(rect.height * 0.74);
+    // Taille agrandie ("plus grosse") : 78% de la hauteur de la vue de jeu 4:3
+    const handSize = Math.round(rect.height * 0.78);
     this.handImg.style.width = `${handSize}px`;
     this.handImg.style.height = `${handSize}px`;
 
@@ -50,9 +50,9 @@ export class PlayerHandOverlay {
     const castOffsetX = casting ? -8 * scaleX : 0;
     const castOffsetY = casting ? -12 * scaleY : 0;
 
-    // Positionnement au premier plan en bas à droite, orienté vers le centre
+    // Positionnement abaissé pour masquer l'angle bas-droit découpé de l'avant-bras
     const baseX = rect.left + rect.width * 0.90 - handSize;
-    const baseY = rect.top + rect.height - handSize + (rect.height * 0.04);
+    const baseY = rect.top + rect.height - handSize + Math.round(rect.height * 0.13);
 
     const x = Math.round(baseX + player.handBobX * scaleX + castOffsetX);
     const y = Math.round(baseY + player.handBobY * scaleY + castOffsetY);

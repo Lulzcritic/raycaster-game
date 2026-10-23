@@ -11,6 +11,16 @@ export class ItemDatabase {
     return ITEMS;
   }
 
+  /**
+   * Retourne la liste des objets pouvant apparaître dans les coffres au trésor.
+   * Exclut strictement les clés de quête ainsi que les objets uniques trouvés uniquement seuls au sol (comme l'Homonculus).
+   */
+  public static getChestLootPool(): readonly EquipmentItem[] {
+    return ITEMS.filter(
+      (item) => item.slot !== 'key' && item.slot !== 'offhand' && item.id !== 'offhand_homonculus'
+    );
+  }
+
   public static getItemById(id: string): EquipmentItem | undefined {
     return ITEMS_BY_ID.get(id);
   }

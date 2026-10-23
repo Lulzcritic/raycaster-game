@@ -134,7 +134,7 @@ export class Game {
       ])
     );
 
-    const catalogItems = ItemDatabase.getAllItems();
+    const catalogItems = ItemDatabase.getChestLootPool();
     let chestIndex = 0;
     let itemCursor = 0;
 
@@ -160,6 +160,7 @@ export class Game {
 
           if (customItemIds && customItemIds.length > 0) {
             chestLoot = customItemIds
+              .filter((id) => id !== 'offhand_homonculus')
               .map((id) => ItemDatabase.getItemById(id))
               .filter((item): item is EquipmentItem => item !== undefined);
           } else if (tileId === TILE_TYPE.CHEST && catalogItems.length > 0) {
@@ -194,14 +195,15 @@ export class Game {
         const def = spriteDefs.get(s.textureId);
         const lootCount = chestIndex % 2 === 0 ? 2 : 3;
         const singleItem = s.itemId ? ItemDatabase.getItemById(s.itemId) : undefined;
-        const chestLoot = singleItem
-          ? [singleItem]
-          : s.textureId === TILE_TYPE.CHEST && catalogItems.length > 0
-            ? Array.from(
-                { length: lootCount },
-                () => catalogItems[itemCursor++ % catalogItems.length]
-              )
-            : undefined;
+        // Un coffre ne peut jamais recevoir l'Homonculus ; seuls les sprites d'items libres (s.textureId !== CHEST) portent leur item unique
+        const chestLoot = s.textureId === TILE_TYPE.CHEST
+          ? (catalogItems.length > 0
+              ? Array.from(
+                  { length: lootCount },
+                  () => catalogItems[itemCursor++ % catalogItems.length]
+                )
+              : undefined)
+          : (singleItem ? [singleItem] : undefined);
 
         chestIndex++;
 

@@ -40,6 +40,14 @@ export class BillboardSprite extends Entity {
       : lootItems
         ? [lootItems]
         : [];
+
+    // Règle stricte : un coffre ne peut JAMAIS renfermer l'Homonculus (trouvé uniquement seul sur la carte)
+    if (this.textureId === TILE_TYPE.CHEST && this.lootItems.length > 0) {
+      this.lootItems = this.lootItems.filter(
+        (item) => item.id !== 'offhand_homonculus' && item.slot !== 'offhand'
+      );
+    }
+
     this.onSpawnEntity = onSpawnEntity;
   }
 

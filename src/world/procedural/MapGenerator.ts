@@ -389,9 +389,7 @@ export class MapGenerator {
       { x: 38, y: 20 },
     ];
 
-    const poolItems = ItemDatabase.getAllItems().filter(
-      (item) => item.slot !== 'key'
-    );
+    const poolItems = ItemDatabase.getChestLootPool();
 
     // Mélange des coffres pour une répartition aléatoire des 3 clés du sanctuaire
     const shuffledChestSpots = [...zone2ChestPositions].sort(

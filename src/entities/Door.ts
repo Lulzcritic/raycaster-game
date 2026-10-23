@@ -39,7 +39,7 @@ export class Door extends Entity {
     }
     const keyItem = ItemDatabase.getItemById(this.requiredKeyId);
     const keyName = keyItem ? keyItem.name.toUpperCase() : 'CLÉ';
-    const hasKey = player ? player.hasKey(this.requiredKeyId) : false;
+    const hasKey = player ? (player.hasKey(this.requiredKeyId) || player.hasKey()) : false;
     return hasKey
       ? `[F] DÉVERROUILLER LA PORTE (${keyName})`
       : `[F] PORTE VERROUILLÉE (${keyName} REQUISE)`;
@@ -53,7 +53,7 @@ export class Door extends Entity {
     const keyItem = ItemDatabase.getItemById(this.requiredKeyId);
     const keyName = keyItem ? keyItem.name : 'la clé requise';
 
-    if (player.hasKey(this.requiredKeyId)) {
+    if (player.hasKey(this.requiredKeyId) || player.hasKey()) {
       player.useKey(this.requiredKeyId);
       this.isOpening = true;
       this.openProgress = 0;
@@ -65,7 +65,7 @@ export class Door extends Entity {
 
   public override update(deltaTime: number, map: GameMap): void {
     if (this.isOpening) {
-      this.openProgress = Math.min(1, this.openProgress + deltaTime * 2.0);
+      this.openProgress = Math.min(1, this.openProgress + deltaTime * 3.5);
 
       const frameIdx = Math.min(
         this.doorFrames.length - 1,

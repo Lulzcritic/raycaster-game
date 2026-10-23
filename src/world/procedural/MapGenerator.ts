@@ -391,7 +391,7 @@ export class MapGenerator {
 
     const poolItems = ItemDatabase.getChestLootPool();
 
-    // Mélange des coffres pour une répartition aléatoire des 3 clés du sanctuaire
+    // Mélange des coffres pour une répartition généreuse des clés du sanctuaire (au moins 6 sur 12)
     const shuffledChestSpots = [...zone2ChestPositions].sort(
       () => Math.random() - 0.5
     );
@@ -399,7 +399,7 @@ export class MapGenerator {
     shuffledChestSpots.forEach((pos, idx) => {
       grid[pos.y][pos.x] = TILE_TYPE.CHEST;
       const loots: string[] = [];
-      if (idx < 3) {
+      if (idx < 6) {
         loots.push('key_crypt_skull');
       }
       const item1 =

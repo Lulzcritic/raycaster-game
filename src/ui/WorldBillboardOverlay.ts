@@ -1,5 +1,6 @@
 import type { Entity } from '../entities/Entity';
 import { BillboardSprite } from '../entities/BillboardSprite';
+import { Door } from '../entities/Door';
 import { DroppedItemOrb } from '../entities/DroppedItemOrb';
 import { Enemy } from '../entities/Enemy';
 import { ExtractionPortal } from '../entities/ExtractionPortal';
@@ -41,6 +42,7 @@ export class WorldBillboardOverlay {
   private readonly portalMap = new Map<ExtractionPortal, HTMLElement>();
   private readonly chestBeaconMap = new Map<BillboardSprite, HTMLElement>();
   private readonly merchantMap = new Map<Merchant, HTMLElement>();
+  private readonly doorMap = new Map<Door, HTMLElement>();
   private edgeBeaconEl: HTMLElement | null = null;
 
   constructor() {
@@ -537,6 +539,79 @@ export class WorldBillboardOverlay {
       merchEl.style.top = `${screenPixelY}px`;
       merchEl.style.transform = `translate(-50%, -100%) scale(${scale})`;
     }
+
+    // =========================================================================
+    // 6. EN-TÊTE DES PORTES DANS LE MONDE 3D
+    // =========================================================================
+    const activeDoors = new Set<Door>();
+    for (const entity of entities) {
+      if (entity instanceof Door && entity.active && entity.isInteractable()) {
+        activeDoors.add(entity);
+      }
+    }
+
+    for (const [door, el] of this.doorMap.entries()) {
+      if (!activeDoors.has(door)) {
+        el.remove();
+        this.doorMap.delete(door);
+      }
+    }
+
+    for (const door of activeDoors) {
+      let doorEl = this.doorMap.get(door);
+      if (!doorEl) {
+        doorEl = this.createDoorElement(door);
+        this.container.appendChild(doorEl);
+        this.doorMap.set(door, doorEl);
+      }
+
+      const dx = door.x - player.x;
+      const dy = door.y - player.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < 0.2 || distance > 9.0) {
+        doorEl.style.display = 'none';
+        continue;
+      }
+
+      let angleDiff = Math.atan2(dy, dx) - player.angle;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+      if (Math.abs(angleDiff) > player.fov / 2 + 0.1) {
+        doorEl.style.display = 'none';
+        continue;
+      }
+
+      const canvasX = (0.5 + angleDiff / player.fov) * 320;
+      const screenCol = Math.floor(canvasX);
+
+      // Z-buffer occlusion
+      if (screenCol >= 0 && screenCol < 320) {
+        const ray = rayHits[screenCol];
+        if (ray && ray.hit && distance > ray.distance + 0.15) {
+          doorEl.style.display = 'none';
+          continue;
+        }
+      }
+
+      const fullWallHeight = focalLength / distance;
+      const floorScreenY = (240 + fullWallHeight) / 2;
+      const topOfDoorScreenY = floorScreenY - fullWallHeight;
+      const anchorCanvasY = topOfDoorScreenY - 14;
+
+      const screenPixelX =
+        canvasRect.left + (canvasX / 320) * canvasRect.width;
+      const screenPixelY =
+        canvasRect.top + (anchorCanvasY / 240) * canvasRect.height;
+
+      const scale = Math.max(0.7, Math.min(1.2, 1.4 / Math.sqrt(distance)));
+
+      doorEl.style.display = 'flex';
+      doorEl.style.left = `${screenPixelX}px`;
+      doorEl.style.top = `${screenPixelY}px`;
+      doorEl.style.transform = `translate(-50%, -100%) scale(${scale})`;
+    }
   }
 
   public setVisible(visible: boolean): void {
@@ -570,6 +645,11 @@ export class WorldBillboardOverlay {
       merchEl.remove();
     }
     this.merchantMap.clear();
+
+    for (const doorEl of this.doorMap.values()) {
+      doorEl.remove();
+    }
+    this.doorMap.clear();
 
     if (this.edgeBeaconEl) {
       this.edgeBeaconEl.remove();
@@ -913,6 +993,20 @@ export class WorldBillboardOverlay {
       <div class="merchant-overhead-box">
         <span class="merchant-overhead-icon">🧙‍♂️</span>
         <span class="merchant-overhead-name">MARCHAND</span>
+      </div>
+    `;
+    return el;
+  }
+
+  private createDoorElement(door: Door): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'world-door-overhead';
+    const isSanctum = door.requiredKeyId === 'key_crypt_skull';
+    const label = isSanctum ? '⛩️ SANCTUAIRE (ZONE 3)' : '🚪 SECTEUR (ZONE 1)';
+    const borderColor = isSanctum ? '#ffd700' : '#a855f7';
+    el.innerHTML = `
+      <div class="door-overhead-box" style="border-color: ${borderColor};">
+        <span class="door-overhead-name">${label}</span>
       </div>
     `;
     return el;

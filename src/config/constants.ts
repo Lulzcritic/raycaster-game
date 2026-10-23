@@ -31,7 +31,7 @@ export const TILE_TYPE = {
  * Catalogue des textures du dossier src/assets/textures/ associées à leur ID et catégorie
  */
 export const TEXTURE_DEFINITIONS: readonly TextureDefinition[] = [
-  { id: TILE_TYPE.HAND_WAND, category: 'weapon', path: '/assets/textures/handwand.jpg' },
+  { id: TILE_TYPE.HAND_WAND, category: 'weapon', path: '/assets/textures/handwand.png' },
   { id: TILE_TYPE.SKY_1, category: 'sky', path: '/assets/textures/skybox2.jpg' },
   { id: TILE_TYPE.SKY_2, category: 'sky', path: '/assets/textures/skybox.jpg' },
   { id: TILE_TYPE.GROUND_1, category: 'floor', path: '/assets/textures/ground1.jpg' },

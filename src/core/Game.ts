@@ -15,6 +15,7 @@ import { InteractionPrompt } from '../ui/InteractionPrompt';
 import { PauseMenu } from '../ui/PauseMenu';
 import { WorldBillboardOverlay } from '../ui/WorldBillboardOverlay';
 import { HUDOverlay } from '../ui/HUDOverlay';
+import { PlayerHandOverlay } from '../ui/PlayerHandOverlay';
 import { GameMap } from '../world/GameMap';
 import { MapGenerator } from '../world/procedural/MapGenerator';
 import { InputManager } from './InputManager';
@@ -27,6 +28,7 @@ export class Game {
   private readonly interactionPrompt: InteractionPrompt;
   private readonly worldBillboardOverlay: WorldBillboardOverlay;
   private readonly hudOverlay: HUDOverlay;
+  private readonly playerHandOverlay: PlayerHandOverlay;
   private currentLevel: LevelData;
   private map: GameMap;
   private player: Player;
@@ -47,6 +49,7 @@ export class Game {
     this.interactionPrompt = new InteractionPrompt();
     this.worldBillboardOverlay = new WorldBillboardOverlay();
     this.hudOverlay = new HUDOverlay(() => this.startNewExtractionMatch());
+    this.playerHandOverlay = new PlayerHandOverlay();
     this.pauseMenu = new PauseMenu(
       () => {
         this.input.setPaused(false);
@@ -66,6 +69,7 @@ export class Game {
       this.isPaused = paused;
       this.worldBillboardOverlay.setVisible(!paused);
       this.hudOverlay.setVisible(!paused);
+      this.playerHandOverlay.setVisible(!paused);
       if (paused) {
         this.pauseMenu.show();
         this.interactionPrompt.clear();
@@ -118,6 +122,7 @@ export class Game {
     this.interactionPrompt.clear();
     this.worldBillboardOverlay.clear();
     this.hudOverlay.reset();
+    this.playerHandOverlay.setVisible(true);
     this.spawnLevelSprites(level);
   }
 
@@ -412,6 +417,7 @@ export class Game {
 
   private render(): void {
     this.renderer.render(this.player, this.map, this.entities);
+    this.playerHandOverlay.update(this.player, this.renderer, this.isExtracted);
     this.worldBillboardOverlay.update(this.entities, this.player, this.renderer);
     this.hudOverlay.update(this.player, this.raidTimer, this.isExtracted);
   }

@@ -1,4 +1,4 @@
-import { COLORS, SCREEN_CONFIG, TEXTURE_CONFIG, TILE_TYPE } from '../config/constants';
+import { COLORS, SCREEN_CONFIG, TEXTURE_CONFIG } from '../config/constants';
 import type { Entity } from '../entities/Entity';
 import type { Player } from '../entities/Player';
 import type { RayHit } from '../types';
@@ -160,39 +160,14 @@ export class Renderer {
     // 4. Dessin des entités et projectiles 3D (triés par distance + Z-buffer)
     this.drawSprites(player, entities);
 
-    // 5. Dessin du sprite de la main du joueur au premier plan
-    this.drawPlayerHand(player);
-
-    // 6. Dessin de l'inventaire en losange en bas à gauche
+    // 5. Dessin de l'inventaire en losange en bas à gauche
     this.inventoryHud.render(this.ctx, player.inventory, this.textureManager);
 
-    // 7. Dessin du réticule de visée fixe au centre de l'écran
+    // 6. Dessin du réticule de visée fixe au centre de l'écran
     this.drawCrosshair();
 
-    // 8. Effet de flash rouge d'impact de dégâts
+    // 7. Effet de flash rouge d'impact de dégâts
     this.drawDamageFlash(player);
-  }
-
-  private drawPlayerHand(player: Player): void {
-    const sprite = this.textureManager.getTexture(TILE_TYPE.HAND_WAND);
-    if (!sprite) {
-      return;
-    }
-
-    const casting = player.isCasting();
-    const drawWidth = sprite.width;
-    const drawHeight = sprite.height;
-
-    // Positionnée au premier plan en bas à droite, avec marge pour le balancement
-    const baseX = Math.floor(this.canvas.width * 0.62 - drawWidth / 2);
-    const baseY = this.canvas.height - drawHeight + 8;
-
-    const castOffsetX = casting ? -4 : 0;
-    const castOffsetY = casting ? -6 : 0;
-    const x = Math.round(baseX + player.handBobX + castOffsetX);
-    const y = Math.round(baseY + player.handBobY + castOffsetY);
-
-    this.ctx.drawImage(sprite, x, y, drawWidth, drawHeight);
   }
 
   private drawSprites(player: Player, entities: readonly Entity[]): void {

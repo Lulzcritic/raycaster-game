@@ -23,7 +23,12 @@ body {
   user-select: none;
 }
 
-#screen {
+#screen,
+#ui-canvas {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+
   /* Échelle responsive en gardant le ratio 4:3 */
   width: 100vw;
   height: 100vh;
@@ -37,6 +42,10 @@ body {
   cursor: none;
 }
 
+#screen {
+  z-index: 1;
+}
+
 /* Calque de la main et de la baguette du joueur en haute résolution non-pixelisée */
 .player-hand-container {
   position: fixed;
@@ -44,6 +53,11 @@ body {
   pointer-events: none;
   overflow: hidden;
   z-index: 2;
+}
+
+#ui-canvas {
+  z-index: 5;
+  pointer-events: none;
 }
 
 .player-hand-image {

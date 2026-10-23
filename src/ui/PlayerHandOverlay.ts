@@ -80,25 +80,26 @@ export class PlayerHandOverlay {
       } else {
         this.leftHandImg.style.display = 'block';
 
-        const leftSize = Math.round(rect.height * 0.76);
+        // Homonculus taille : deux fois moins gros (38% de la hauteur au lieu de 76%)
+        const leftSize = Math.round(rect.height * 0.38);
         this.leftHandImg.style.width = `${leftSize}px`;
         this.leftHandImg.style.height = `${leftSize}px`;
 
         // Respiration organique vivante de la créature
         const nowSec = performance.now() * 0.003;
-        const breatheY = Math.sin(nowSec * 2.2) * (3.5 * scaleY);
-        const breatheX = Math.cos(nowSec * 1.5) * (1.8 * scaleX);
+        const breatheY = Math.sin(nowSec * 2.2) * (2 * scaleY);
+        const breatheX = Math.cos(nowSec * 1.5) * (1 * scaleX);
 
         // Réaction au lancer de sort
-        const leftCastOffsetY = casting ? 8 * scaleY : 0;
+        const leftCastOffsetY = casting ? 4 * scaleY : 0;
 
-        // Ancrage en bas à gauche de la vue
-        const baseLeftX = rect.left + rect.width * 0.10 - Math.round(leftSize * 0.32);
-        const baseLeftY = rect.top + rect.height - leftSize + Math.round(rect.height * 0.12);
+        // Positionnement en bas à gauche de la vue (sous l'UI)
+        const baseLeftX = rect.left + Math.round(rect.width * 0.06) - Math.round(leftSize * 0.35);
+        const baseLeftY = rect.top + rect.height - leftSize + Math.round(rect.height * 0.05);
 
         // Balancement asymétrique naturel
-        const leftBobX = -player.handBobX * scaleX * 0.75;
-        const leftBobY = player.handBobY * scaleY * 0.75;
+        const leftBobX = -player.handBobX * scaleX * 0.5;
+        const leftBobY = player.handBobY * scaleY * 0.5;
 
         const lx = Math.round(baseLeftX + leftBobX + breatheX);
         const ly = Math.round(baseLeftY + leftBobY + breatheY + leftCastOffsetY);

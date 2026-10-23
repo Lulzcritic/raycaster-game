@@ -10,6 +10,8 @@ import type { TextureManager } from './TextureManager';
 export class Renderer {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
+  private readonly uiCanvas: HTMLCanvasElement | null;
+  private readonly uiCtx: CanvasRenderingContext2D | null;
   private readonly raycaster: Raycaster;
   private readonly textureManager: TextureManager;
   private readonly inventoryHud = new InventoryHUD();
@@ -36,6 +38,18 @@ export class Renderer {
     this.ctx = context;
     // Désactive le lissage pour garder un rendu pixel-art net sur les textures
     this.ctx.imageSmoothingEnabled = false;
+
+    this.uiCanvas = document.getElementById('ui-canvas') as HTMLCanvasElement | null;
+    if (this.uiCanvas) {
+      this.uiCanvas.width = SCREEN_CONFIG.WIDTH;
+      this.uiCanvas.height = SCREEN_CONFIG.HEIGHT;
+      this.uiCtx = this.uiCanvas.getContext('2d');
+      if (this.uiCtx) {
+        this.uiCtx.imageSmoothingEnabled = false;
+      }
+    } else {
+      this.uiCtx = null;
+    }
 
     this.raycaster = new Raycaster();
     this.textureManager = textureManager;
@@ -160,11 +174,16 @@ export class Renderer {
     // 4. Dessin des entités et projectiles 3D (triés par distance + Z-buffer)
     this.drawSprites(player, entities);
 
-    // 5. Dessin de l'inventaire en losange en bas à gauche
-    this.inventoryHud.render(this.ctx, player.inventory, this.textureManager);
+    // 5. Dessin de l'inventaire en losange en bas à gauche (au-dessus des mains sur le calque UI)
+    const targetUiCtx = this.uiCtx ?? this.ctx;
+    if (this.uiCtx) {
+      this.uiCtx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    this.inventoryHud.render(targetUiCtx, player.inventory, this.textureManager);
 
     // 6. Dessin du réticule de visée fixe au centre de l'écran
-    this.drawCrosshair();
+    this.drawCrosshair(targetUiCtx);
 
     // 7. Effet de flash rouge d'impact de dégâts
     this.drawDamageFlash(player);
@@ -297,25 +316,25 @@ export class Renderer {
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  private drawCrosshair(): void {
+  private drawCrosshair(targetCtx: CanvasRenderingContext2D = this.ctx): void {
     const centerX = Math.floor(this.canvas.width / 2);
     const centerY = Math.floor(this.canvas.height / 2);
     const gap = 2;
     const armLength = 3;
 
     // Contour sombre pour la lisibilité sur tous les fonds
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-    this.ctx.fillRect(centerX - gap - armLength - 1, centerY - 1, armLength + 2, 3);
-    this.ctx.fillRect(centerX + gap, centerY - 1, armLength + 2, 3);
-    this.ctx.fillRect(centerX - 1, centerY - gap - armLength - 1, 3, armLength + 2);
-    this.ctx.fillRect(centerX - 1, centerY + gap, 3, armLength + 2);
+    targetCtx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    targetCtx.fillRect(centerX - gap - armLength - 1, centerY - 1, armLength + 2, 3);
+    targetCtx.fillRect(centerX + gap, centerY - 1, armLength + 2, 3);
+    targetCtx.fillRect(centerX - 1, centerY - gap - armLength - 1, 3, armLength + 2);
+    targetCtx.fillRect(centerX - 1, centerY + gap, 3, armLength + 2);
 
     // Branches blanches pixel-art du viseur
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillRect(centerX - gap - armLength, centerY, armLength, 1); // Gauche
-    this.ctx.fillRect(centerX + gap + 1, centerY, armLength, 1);         // Droite
-    this.ctx.fillRect(centerX, centerY - gap - armLength, 1, armLength); // Haut
-    this.ctx.fillRect(centerX, centerY + gap + 1, 1, armLength);         // Bas
+    targetCtx.fillStyle = '#ffffff';
+    targetCtx.fillRect(centerX - gap - armLength, centerY, armLength, 1); // Gauche
+    targetCtx.fillRect(centerX + gap + 1, centerY, armLength, 1);         // Droite
+    targetCtx.fillRect(centerX, centerY - gap - armLength, 1, armLength); // Haut
+    targetCtx.fillRect(centerX, centerY + gap + 1, 1, armLength);         // Bas
   }
 
   private drawWallSlice(column: number, rayResult: RayHit): void {

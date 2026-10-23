@@ -34,7 +34,7 @@ export class MainMenu {
     this.onFovChangeCallback = onFovChange;
 
     if (this.menuElement) {
-      this.menuElement.style.backgroundImage = `radial-gradient(circle at center, rgba(12, 10, 20, 0.4) 0%, rgba(6, 5, 12, 0.82) 100%), url('${mainMenuBgUrl}')`;
+      this.menuElement.style.backgroundImage = `url('${mainMenuBgUrl}')`;
     }
 
     if (this.logoImg) {

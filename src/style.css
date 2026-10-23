@@ -1455,7 +1455,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #08060c url('/src/assets/textures/mainmenu.jpg') no-repeat center center;
+  background: url('/src/assets/textures/mainmenu.jpg') no-repeat center center;
   background-size: cover;
   overflow: hidden;
   cursor: default;
@@ -1464,15 +1464,6 @@ body {
 
 .main-menu.hidden {
   display: none !important;
-}
-
-.main-menu-overlay {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at center, rgba(12, 10, 20, 0.42) 0%, rgba(5, 4, 10, 0.85) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.7) 100%);
-  pointer-events: none;
 }
 
 .main-menu-container {
@@ -1489,7 +1480,7 @@ body {
   box-sizing: border-box;
 }
 
-/* En-tête avec logo centré */
+/* En-tête avec logo centré (sans halo) */
 .main-menu-header {
   display: flex;
   justify-content: center;
@@ -1509,19 +1500,17 @@ body {
   image-rendering: auto;
   user-select: none;
   pointer-events: none;
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 16px rgba(255, 204, 0, 0.28));
+  filter: none;
 }
 
 @keyframes logoEntrance {
   0% {
     opacity: 0;
     transform: translateY(-34px) scale(0.85);
-    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0)) brightness(0.5);
   }
   60% {
     opacity: 1;
     transform: translateY(6px) scale(1.03);
-    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 25px rgba(255, 204, 0, 0.5)) brightness(1.15);
   }
   85% {
     transform: translateY(-2px) scale(0.99);
@@ -1529,7 +1518,6 @@ body {
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 16px rgba(255, 204, 0, 0.28)) brightness(1);
   }
 }
 

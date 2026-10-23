@@ -1,4 +1,5 @@
 import { TILE_TYPE } from '../config/constants';
+import { ItemDatabase } from '../config/ItemDatabase';
 import type { TextureManager } from '../graphics/TextureManager';
 import type { EquipmentItem } from '../types';
 import { findSpacedDropPositions } from '../utils/dropSpread';
@@ -78,19 +79,69 @@ export class BillboardSprite extends Entity {
   }
 
   public override isInteractable(): boolean {
-    return this.textureId === TILE_TYPE.CHEST && !this.isOpened;
+    if (this.textureId === TILE_TYPE.CHEST) {
+      return !this.isOpened;
+    }
+    if (this.textureId === TILE_TYPE.HOMONCULUS) {
+      return this.active;
+    }
+    return false;
   }
 
-  public override getInteractionPrompt(_player?: Player): string | null {
+  public override getInspectedItem(): EquipmentItem | null {
+    if (this.textureId === TILE_TYPE.HOMONCULUS && this.active) {
+      return this.lootItems[0] ?? ItemDatabase.getItemById('offhand_homonculus') ?? null;
+    }
+    return null;
+  }
+
+  public override getInteractionPrompt(player?: Player): string | null {
     if (!this.isInteractable()) {
       return null;
     }
-    return '[F] OUVRIR LE COFFRE';
+    if (this.textureId === TILE_TYPE.CHEST) {
+      return '[F] OUVRIR LE COFFRE';
+    }
+    if (this.textureId === TILE_TYPE.HOMONCULUS) {
+      const isEquipped = player ? player.inventory.hasItem('offhand') : false;
+      const item = this.getInspectedItem();
+      const itemName = item?.name.toUpperCase() ?? 'HOMONCULUS';
+      return isEquipped
+        ? `[F] REMPLACER PAR : ${itemName} (MAIN GAUCHE)`
+        : `[F] PRENDRE : ${itemName} (MAIN GAUCHE)`;
+    }
+    return null;
   }
 
   public override interact(player: Player, map?: GameMap): string | null {
     if (!this.isInteractable()) {
       return null;
+    }
+
+    if (this.textureId === TILE_TYPE.HOMONCULUS) {
+      const item = this.getInspectedItem() ?? ItemDatabase.getItemById('offhand_homonculus');
+      if (!item) {
+        return null;
+      }
+
+      const replaced = player.pickupItem(item);
+      this.active = false;
+
+      if (replaced && this.onSpawnEntity) {
+        const replacementOrb = new DroppedItemOrb(
+          player.x,
+          player.y,
+          this.x,
+          this.y,
+          replaced,
+          this.onSpawnEntity
+        );
+        this.onSpawnEntity(replacementOrb);
+      }
+
+      return replaced
+        ? `REMPLACÉ : ${item.name.toUpperCase()} (ANCIEN AU SOL)`
+        : `OBTENU : ${item.name.toUpperCase()} (MAIN GAUCHE)`;
     }
 
     this.isOpened = true;

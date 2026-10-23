@@ -1,22 +1,30 @@
 import handwandUrl from '../assets/textures/handwand.png';
+import homonculusUrl from '../assets/textures/homonculus.png';
 import type { Player } from '../entities/Player';
 import type { Renderer } from '../graphics/Renderer';
 
 /**
- * Calque haute résolution pour l'affichage de la main et de la baguette du joueur.
+ * Calque haute résolution pour l'affichage de la main et de la baguette du joueur,
+ * ainsi que de l'Homonculus tenu en main gauche lorsque équipé.
  * Rendu à la résolution native de l'écran (anti-aliasé et parfaitement net, non-pixelisé)
  * avec une échelle agrandie et réactive selon le ratio d'affichage.
  */
 export class PlayerHandOverlay {
   private readonly container: HTMLElement | null;
   private readonly handImg: HTMLImageElement | null;
+  private readonly leftHandImg: HTMLImageElement | null;
   private isVisible = true;
 
   constructor() {
     this.container = document.getElementById('player-hand-container');
     this.handImg = document.getElementById('player-hand-image') as HTMLImageElement | null;
+    this.leftHandImg = document.getElementById('player-left-hand-image') as HTMLImageElement | null;
+
     if (this.handImg) {
       this.handImg.src = handwandUrl;
+    }
+    if (this.leftHandImg) {
+      this.leftHandImg.src = homonculusUrl;
     }
   }
 
@@ -36,21 +44,21 @@ export class PlayerHandOverlay {
     const canvas = renderer.getCanvas();
     const rect = canvas.getBoundingClientRect();
 
-    // Taille agrandie ("plus grosse") : 78% de la hauteur de la vue de jeu 4:3
+    // Échelle des mouvements de balancement (bobbing)
+    const scaleX = rect.width / 320;
+    const scaleY = rect.height / 240;
+    const casting = player.isCasting();
+
+    // =========================================================================
+    // 1. MAIN DROITE (BAGUETTE MAGIQUE)
+    // =========================================================================
     const handSize = Math.round(rect.height * 0.78);
     this.handImg.style.width = `${handSize}px`;
     this.handImg.style.height = `${handSize}px`;
 
-    // Échelle des mouvements de balancement (bobbing)
-    const scaleX = rect.width / 320;
-    const scaleY = rect.height / 240;
-
-    // Recul lors de l'incantation d'une boule de feu
-    const casting = player.isCasting();
     const castOffsetX = casting ? -8 * scaleX : 0;
     const castOffsetY = casting ? -12 * scaleY : 0;
 
-    // Positionnement abaissé pour masquer l'angle bas-droit découpé de l'avant-bras
     const baseX = rect.left + rect.width * 0.90 - handSize;
     const baseY = rect.top + rect.height - handSize + Math.round(rect.height * 0.13);
 
@@ -59,6 +67,46 @@ export class PlayerHandOverlay {
 
     this.handImg.style.left = `${x}px`;
     this.handImg.style.top = `${y}px`;
+
+    // =========================================================================
+    // 2. MAIN GAUCHE (HOMONCULUS ÉQUIPÉ)
+    // =========================================================================
+    if (this.leftHandImg) {
+      const offhandItem = player.inventory.getItem('offhand');
+      const hasHomonculus = offhandItem?.id === 'offhand_homonculus';
+
+      if (!hasHomonculus) {
+        this.leftHandImg.style.display = 'none';
+      } else {
+        this.leftHandImg.style.display = 'block';
+
+        const leftSize = Math.round(rect.height * 0.76);
+        this.leftHandImg.style.width = `${leftSize}px`;
+        this.leftHandImg.style.height = `${leftSize}px`;
+
+        // Respiration organique vivante de la créature
+        const nowSec = performance.now() * 0.003;
+        const breatheY = Math.sin(nowSec * 2.2) * (3.5 * scaleY);
+        const breatheX = Math.cos(nowSec * 1.5) * (1.8 * scaleX);
+
+        // Réaction au lancer de sort
+        const leftCastOffsetY = casting ? 8 * scaleY : 0;
+
+        // Ancrage en bas à gauche de la vue
+        const baseLeftX = rect.left + rect.width * 0.10 - Math.round(leftSize * 0.32);
+        const baseLeftY = rect.top + rect.height - leftSize + Math.round(rect.height * 0.12);
+
+        // Balancement asymétrique naturel
+        const leftBobX = -player.handBobX * scaleX * 0.75;
+        const leftBobY = player.handBobY * scaleY * 0.75;
+
+        const lx = Math.round(baseLeftX + leftBobX + breatheX);
+        const ly = Math.round(baseLeftY + leftBobY + breatheY + leftCastOffsetY);
+
+        this.leftHandImg.style.left = `${lx}px`;
+        this.leftHandImg.style.top = `${ly}px`;
+      }
+    }
   }
 
   public setVisible(visible: boolean): void {

@@ -1,8 +1,10 @@
 import type { Entity } from '../entities/Entity';
+import { BillboardSprite } from '../entities/BillboardSprite';
 import { DroppedItemOrb } from '../entities/DroppedItemOrb';
 import { Enemy } from '../entities/Enemy';
 import { ExtractionPortal } from '../entities/ExtractionPortal';
 import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
+import { TILE_TYPE } from '../config/constants';
 import type { Player } from '../entities/Player';
 import type { Renderer } from '../graphics/Renderer';
 import type { EquipmentItem, ItemStats } from '../types';
@@ -24,17 +26,20 @@ const STAT_LABELS: Array<{
 
 /**
  * Gestionnaire d'affichage haute résolution dans le monde 3D :
- * - Fiches d'objets flottant au-dessus des orbes
+ * - Fiches d'objets flottant au-dessus des orbes et billboards d'objets
  * - Barres de vie et noms au-dessus des monstres (Blobs, Élites, Boss)
  * - Indicateurs d'état et chronos au-dessus des portails d'extraction
+ * - Radar de détection des coffres à travers les murs par l'Homonculus
  *
  * Le rendu est effectué en HTML/DOM haute résolution (typographie nette non-pixelisée).
  */
 export class WorldBillboardOverlay {
   private readonly container: HTMLElement | null;
-  private readonly cardMap = new Map<DroppedItemOrb, HTMLElement>();
+  private readonly cardMap = new Map<Entity, HTMLElement>();
   private readonly enemyMap = new Map<Enemy, HTMLElement>();
   private readonly portalMap = new Map<ExtractionPortal, HTMLElement>();
+  private readonly chestBeaconMap = new Map<BillboardSprite, HTMLElement>();
+  private edgeBeaconEl: HTMLElement | null = null;
 
   constructor() {
     this.container = document.getElementById('world-billboards');
@@ -55,41 +60,50 @@ export class WorldBillboardOverlay {
     const focalLength = renderer.getFocalLength();
 
     // =========================================================================
-    // 1. FICHES D'OBJETS AU SOL (ORBES)
+    // 1. FICHES D'OBJETS AU SOL (ORBES ET BILLBOARDS D'OBJETS)
     // =========================================================================
-    const activeOrbs = new Set<DroppedItemOrb>();
+    const activeHolders = new Map<Entity, EquipmentItem>();
     for (const entity of entities) {
-      if (entity instanceof DroppedItemOrb && entity.active) {
-        activeOrbs.add(entity);
+      if (!entity.active) continue;
+      if (entity instanceof DroppedItemOrb) {
+        activeHolders.set(entity, entity.item);
+      } else if (
+        entity instanceof BillboardSprite &&
+        entity.textureId === TILE_TYPE.HOMONCULUS
+      ) {
+        const item = entity.getInspectedItem();
+        if (item) {
+          activeHolders.set(entity, item);
+        }
       }
     }
 
-    for (const [orb, cardEl] of this.cardMap.entries()) {
-      if (!activeOrbs.has(orb)) {
+    for (const [holder, cardEl] of this.cardMap.entries()) {
+      if (!activeHolders.has(holder)) {
         cardEl.remove();
-        this.cardMap.delete(orb);
+        this.cardMap.delete(holder);
       }
     }
 
-    for (const orb of activeOrbs) {
-      let cardEl = this.cardMap.get(orb);
+    for (const [holder, item] of activeHolders.entries()) {
+      let cardEl = this.cardMap.get(holder);
       if (!cardEl) {
-        cardEl = this.createCardElement(orb.item);
+        cardEl = this.createCardElement(item);
         this.container.appendChild(cardEl);
-        this.cardMap.set(orb, cardEl);
+        this.cardMap.set(holder, cardEl);
       }
 
-      if (!orb.hasLanded()) {
+      if (holder instanceof DroppedItemOrb && !holder.hasLanded()) {
         cardEl.style.display = 'none';
         continue;
       }
 
-      const dx = orb.x - player.x;
-      const dy = orb.y - player.y;
+      const dx = holder.x - player.x;
+      const dy = holder.y - player.y;
       const distance = Math.hypot(dx, dy);
 
-      const MAX_CARD_DISTANCE = 2.2;
-      const FADE_START_DISTANCE = 1.6;
+      const MAX_CARD_DISTANCE = 2.4;
+      const FADE_START_DISTANCE = 1.7;
 
       if (distance < 0.1 || distance > MAX_CARD_DISTANCE) {
         cardEl.style.display = 'none';
@@ -127,8 +141,8 @@ export class WorldBillboardOverlay {
 
       const fullWallHeight = focalLength / distance;
       const floorScreenY = (240 + fullWallHeight) / 2;
-      const bottomScreenY = floorScreenY - fullWallHeight * orb.getElevation();
-      const topOfOrbScreenY = bottomScreenY - fullWallHeight * orb.getScale();
+      const bottomScreenY = floorScreenY - fullWallHeight * holder.getElevation();
+      const topOfOrbScreenY = bottomScreenY - fullWallHeight * holder.getScale();
       const floatGap = 10;
       let anchorCanvasY = topOfOrbScreenY - floatGap;
       anchorCanvasY = Math.min(anchorCanvasY, 204);
@@ -309,6 +323,145 @@ export class WorldBillboardOverlay {
       portalEl.style.top = `${screenPixelY}px`;
       portalEl.style.transform = `translate(-50%, -100%) scale(${scale})`;
     }
+
+    // =========================================================================
+    // 4. DÉTECTION DES COFFRES PAR L'HOMONCULUS (VISION À TRAVERS LES MURS)
+    // =========================================================================
+    const hasHomonculus =
+      player.inventory.getItem('offhand')?.id === 'offhand_homonculus';
+
+    if (!hasHomonculus) {
+      if (this.chestBeaconMap.size > 0) {
+        for (const el of this.chestBeaconMap.values()) {
+          el.remove();
+        }
+        this.chestBeaconMap.clear();
+      }
+      if (this.edgeBeaconEl) {
+        this.edgeBeaconEl.style.display = 'none';
+      }
+    } else {
+      // Collecte de tous les coffres non-ouverts actifs
+      const unopenedChests: BillboardSprite[] = [];
+      for (const entity of entities) {
+        if (
+          entity instanceof BillboardSprite &&
+          entity.active &&
+          entity.textureId === TILE_TYPE.CHEST &&
+          !entity.isChestOpened()
+        ) {
+          unopenedChests.push(entity);
+        }
+      }
+
+      const detected = unopenedChests
+        .map((chest) => {
+          const dx = chest.x - player.x;
+          const dy = chest.y - player.y;
+          const dist = Math.hypot(dx, dy);
+          return { chest, dx, dy, dist };
+        })
+        .sort((a, b) => a.dist - b.dist);
+
+      const MAX_RADAR_DIST = 26;
+      // Détecte les coffres les plus proches (jusqu'à 4), ou le plus proche s'il est au-delà
+      const targets = detected
+        .filter((c, idx) => c.dist <= MAX_RADAR_DIST || idx === 0)
+        .slice(0, 4);
+
+      const activeChestSet = new Set(targets.map((t) => t.chest));
+      for (const [chest, el] of this.chestBeaconMap.entries()) {
+        if (!activeChestSet.has(chest)) {
+          el.remove();
+          this.chestBeaconMap.delete(chest);
+        }
+      }
+
+      let closestInFov = false;
+
+      for (let i = 0; i < targets.length; i++) {
+        const target = targets[i];
+        let beaconEl = this.chestBeaconMap.get(target.chest);
+        if (!beaconEl) {
+          beaconEl = this.createChestBeaconElement();
+          this.container.appendChild(beaconEl);
+          this.chestBeaconMap.set(target.chest, beaconEl);
+        }
+
+        let angleDiff = Math.atan2(target.dy, target.dx) - player.angle;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+        const inFov = Math.abs(angleDiff) <= player.fov / 2 + 0.12;
+
+        if (i === 0 && inFov) {
+          closestInFov = true;
+        }
+
+        if (!inFov) {
+          beaconEl.style.display = 'none';
+          continue;
+        }
+
+        const canvasX = (0.5 + angleDiff / player.fov) * 320;
+        const screenCol = Math.floor(canvasX);
+
+        let behindWall = false;
+        if (screenCol >= 0 && screenCol < 320) {
+          const ray = rayHits[screenCol];
+          if (ray && ray.hit && target.dist > ray.distance + 0.15) {
+            behindWall = true;
+          }
+        }
+
+        const fullWallHeight = focalLength / target.dist;
+        const floorScreenY = (240 + fullWallHeight) / 2;
+        const anchorCanvasY = floorScreenY - (fullWallHeight * 0.42) / 2;
+
+        const screenPixelX =
+          canvasRect.left + (canvasX / 320) * canvasRect.width;
+        const screenPixelY =
+          canvasRect.top + (anchorCanvasY / 240) * canvasRect.height;
+
+        const scale = Math.max(0.65, Math.min(1.2, 1.3 / Math.sqrt(target.dist)));
+
+        beaconEl.style.display = 'flex';
+        beaconEl.style.left = `${screenPixelX}px`;
+        beaconEl.style.top = `${screenPixelY}px`;
+        beaconEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+        this.updateChestBeaconContent(beaconEl, target.dist, behindWall);
+      }
+
+      // Indicateur sur le bord de l'écran pour guider vers le coffre le plus proche s'il est hors champ
+      if (targets.length > 0 && !closestInFov) {
+        const closest = targets[0];
+        let angleDiff = Math.atan2(closest.dy, closest.dx) - player.angle;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+        const edgeEl = this.getOrCreateEdgeBeaconElement();
+        edgeEl.style.display = 'flex';
+
+        const isLeft = angleDiff < 0;
+        const edgeX = isLeft
+          ? canvasRect.left + 54
+          : canvasRect.left + canvasRect.width - 54;
+        const edgeY = canvasRect.top + canvasRect.height * 0.5;
+
+        edgeEl.style.left = `${edgeX}px`;
+        edgeEl.style.top = `${edgeY}px`;
+
+        const label = edgeEl.querySelector('.edge-text');
+        if (label) {
+          label.textContent = isLeft
+            ? `◄ COFFRE ${closest.dist.toFixed(1)}m`
+            : `${closest.dist.toFixed(1)}m COFFRE ►`;
+        }
+      } else if (this.edgeBeaconEl) {
+        this.edgeBeaconEl.style.display = 'none';
+      }
+    }
   }
 
   public setVisible(visible: boolean): void {
@@ -332,6 +485,16 @@ export class WorldBillboardOverlay {
       portalEl.remove();
     }
     this.portalMap.clear();
+
+    for (const beaconEl of this.chestBeaconMap.values()) {
+      beaconEl.remove();
+    }
+    this.chestBeaconMap.clear();
+
+    if (this.edgeBeaconEl) {
+      this.edgeBeaconEl.remove();
+      this.edgeBeaconEl = null;
+    }
   }
 
   // =========================================================================
@@ -591,6 +754,75 @@ export class WorldBillboardOverlay {
       ctx.fillRect(10, 8, 1, 2);
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(4, 4, 2, 1);
+    } else if (item.slot === 'offhand') {
+      ctx.fillRect(4, 3, 8, 4);
+      ctx.fillRect(3, 7, 10, 6);
+      ctx.fillStyle = '#ffe600';
+      ctx.fillRect(5, 5, 2, 2);
+      ctx.fillRect(9, 5, 2, 2);
+      ctx.fillStyle = '#b048f8';
+      ctx.fillRect(7, 8, 2, 3);
     }
+  }
+
+  // =========================================================================
+  // GESTION DU RADAR / BALISES DE COFFRES (HOMONCULUS)
+  // =========================================================================
+
+  private createChestBeaconElement(): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'chest-beacon';
+    el.innerHTML = `
+      <div class="chest-beacon-pulse"></div>
+      <div class="chest-beacon-box">
+        <span class="chest-beacon-icon">📦</span>
+        <span class="chest-beacon-label">COFFRE</span>
+        <span class="chest-beacon-dist">--m</span>
+      </div>
+      <div class="chest-beacon-walltag" style="display: none;">À TRAVERS LE MUR</div>
+    `;
+    return el;
+  }
+
+  private updateChestBeaconContent(
+    el: HTMLElement,
+    distance: number,
+    behindWall: boolean
+  ): void {
+    const distEl = el.querySelector('.chest-beacon-dist');
+    if (distEl) {
+      distEl.textContent = `${distance.toFixed(1)}m`;
+    }
+    const wallTag = el.querySelector('.chest-beacon-walltag') as HTMLElement | null;
+    if (wallTag) {
+      wallTag.style.display = behindWall ? 'block' : 'none';
+    }
+    const box = el.querySelector('.chest-beacon-box') as HTMLElement | null;
+    if (box) {
+      if (behindWall) {
+        box.style.borderColor = '#c084fc';
+        box.style.background = 'rgba(28, 14, 48, 0.88)';
+        box.style.opacity = '0.92';
+      } else {
+        box.style.borderColor = '#ffd700';
+        box.style.background = 'rgba(38, 22, 10, 0.95)';
+        box.style.opacity = '1.0';
+      }
+    }
+  }
+
+  private getOrCreateEdgeBeaconElement(): HTMLElement {
+    if (!this.edgeBeaconEl && this.container) {
+      this.edgeBeaconEl = document.createElement('div');
+      this.edgeBeaconEl.className = 'chest-beacon chest-beacon-edge';
+      this.edgeBeaconEl.innerHTML = `
+        <div class="chest-beacon-box" style="border-color: #e879f9;">
+          <span class="chest-beacon-icon">🔮</span>
+          <span class="chest-beacon-label edge-text">COFFRE</span>
+        </div>
+      `;
+      this.container.appendChild(this.edgeBeaconEl);
+    }
+    return this.edgeBeaconEl!;
   }
 }

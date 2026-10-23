@@ -179,6 +179,34 @@ const ITEM_PIXEL_ART: Record<
       '................',
     ],
   },
+  offhand: {
+    palette: {
+      o: '#0c0a12',
+      d: '#2b1b3d',
+      m: '#6a329f',
+      l: '#b048f8',
+      y: '#ffe600',
+      w: '#ffffff',
+    },
+    grid: [
+      '.....oooooo.....',
+      '....ommmmmmo....',
+      '...ommwllwldo...',
+      '..ommmwllwlddo..',
+      '..ommmlllldddo..',
+      '..ommmmyyddddo..',
+      '...ommmmyydoo...',
+      '...oodmmmmdoo...',
+      '..ooddmmmmddo...',
+      '..ommmmmmmmmdo..',
+      '.ommmmmmmmmmmdo.',
+      '.odddmmmmmmdddo.',
+      '..ooddmmmmddoo..',
+      '...oodmmmmdoo...',
+      '....ooddddoo....',
+      '.....oooooo.....',
+    ],
+  },
 };
 
 /**

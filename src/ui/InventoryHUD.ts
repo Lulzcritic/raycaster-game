@@ -69,6 +69,19 @@ const SLOT_ICONS: Record<EquipmentSlot, readonly string[]> = {
     '....xx....',
     '..........',
   ],
+  // Main gauche / Relique (Homonculus)
+  offhand: [
+    '...xxxx...',
+    '..xxxxxx..',
+    '.xx.xx.xx.',
+    '.xxxxxxxx.',
+    '..xxxxxx..',
+    '..xxxxxx..',
+    '.xxxxxxxx.',
+    '.xxxxxxxx.',
+    '..xxxxxx..',
+    '...xxxx...',
+  ],
 };
 
 export class InventoryHUD {
@@ -83,22 +96,29 @@ export class InventoryHUD {
     const screenHeight = ctx.canvas.height;
 
     // Centre du losange en bas à gauche de l'écran (320x240)
-    const hubX = 36;
+    const hubX = 46;
     const hubY = screenHeight - 38;
 
     // Dessin du petit losange central de liaison
     this.drawCenterHub(ctx, hubX, hubY);
 
-    // Positions des 4 slots formant le losange + slot de clé rattaché
+    // Positions des 4 slots formant le losange + slot main gauche (gauche) + slot clé (droite)
     const slots: Array<{ slot: EquipmentSlot; cx: number; cy: number }> = [
       { slot: 'hat', cx: hubX, cy: hubY - this.centerOffset },
       { slot: 'weapon', cx: hubX - this.centerOffset, cy: hubY },
       { slot: 'armor', cx: hubX + this.centerOffset, cy: hubY },
       { slot: 'boots', cx: hubX, cy: hubY + this.centerOffset },
+      { slot: 'offhand', cx: hubX - 28, cy: hubY - 14 },
       { slot: 'key', cx: hubX + 28, cy: hubY - 14 },
     ];
 
-    // Petit maillon de chaîne reliant le hub au slot de clé
+    // Petit maillon de chaîne reliant le hub au slot de main gauche (gauche)
+    ctx.fillStyle = '#4c4559';
+    ctx.fillRect(hubX - 19, hubY - 7, 7, 2);
+    ctx.fillStyle = '#26222e';
+    ctx.fillRect(hubX - 18, hubY - 6, 5, 1);
+
+    // Petit maillon de chaîne reliant le hub au slot de clé (droite)
     ctx.fillStyle = '#4c4559';
     ctx.fillRect(hubX + 12, hubY - 7, 7, 2);
     ctx.fillStyle = '#26222e';

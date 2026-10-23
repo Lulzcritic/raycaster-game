@@ -907,3 +907,93 @@ body {
   background: #b91c1c;
   color: #ffcc00;
 }
+
+/* =========================================================================
+   DÉTECTION DES COFFRES PAR L'HOMONCULUS (RADAR / VISION À TRAVERS LES MURS)
+   ========================================================================= */
+.chest-beacon {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 5;
+  will-change: left, top, transform;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.15s ease-out;
+  font-family: 'Alagard', monospace;
+}
+
+.chest-beacon-pulse {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(176, 72, 248, 0.7);
+  box-shadow: 0 0 16px rgba(176, 72, 248, 0.6), inset 0 0 10px rgba(176, 72, 248, 0.4);
+  animation: chestBeaconPulse 1.6s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes chestBeaconPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.4);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.chest-beacon-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(18, 12, 30, 0.88);
+  border: 2px solid #b048f8;
+  box-shadow: 0 0 12px rgba(176, 72, 248, 0.5), inset 0 0 6px rgba(176, 72, 248, 0.2), 3px 3px 0 #000;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.chest-beacon-icon {
+  font-size: 16px;
+  filter: drop-shadow(0 0 4px #ffd700);
+}
+
+.chest-beacon-label {
+  font-size: 15px;
+  color: #f5d0fe;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 0 #000;
+  font-weight: bold;
+}
+
+.chest-beacon-dist {
+  font-size: 14px;
+  color: #ffd700;
+  text-shadow: 1px 1px 0 #000;
+  font-weight: bold;
+}
+
+.chest-beacon-walltag {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #c084fc;
+  background: rgba(40, 20, 60, 0.75);
+  border: 1px solid rgba(176, 72, 248, 0.4);
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.chest-beacon-edge {
+  border-color: #e879f9;
+  background: rgba(28, 15, 45, 0.92);
+  box-shadow: 0 0 14px rgba(232, 121, 249, 0.7), 2px 2px 0 #000;
+}

@@ -184,5 +184,18 @@
     },
     "effect": "Des côtes spectrales se resserrent autour de vous pour dévier les assauts meurtriers.",
     "description": "Assemblage rituel de vertèbres de titans maudits, scellées ensemble par de la résine nécrotique."
+  },
+  {
+    "id": "offhand_homonculus",
+    "name": "Homonculus",
+    "slot": "offhand",
+    "rarity": "artifact",
+    "textureId": 5,
+    "stats": {
+      "magicPower": 8,
+      "maxHealth": 15
+    },
+    "effect": "Détecte les coffres les plus proches à travers les murs.",
+    "description": "Créature alchimique tenue en main gauche. Elle frissonne et pointe obstinément vers les coffres cachés dans les catacombes."
   }
 ]

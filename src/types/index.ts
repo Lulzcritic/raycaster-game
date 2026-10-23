@@ -16,7 +16,7 @@ export interface TextureDefinition {
   scale?: number;
 }
 
-export type EquipmentSlot = 'hat' | 'weapon' | 'armor' | 'boots' | 'key';
+export type EquipmentSlot = 'hat' | 'weapon' | 'armor' | 'boots' | 'key' | 'offhand';
 
 export type ItemRarity =
   | 'common'

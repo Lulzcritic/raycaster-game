@@ -7,6 +7,7 @@ const SLOT_NAMES: Record<string, string> = {
   hat: 'CHAPEAU',
   boots: 'BOTTES',
   key: 'CLE',
+  offhand: 'MAIN GAUCHE',
 };
 
 export class HUDOverlay {

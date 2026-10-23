@@ -5,6 +5,7 @@ import type {
   EnemySpawnData,
   ExtractionSpawnData,
   LevelData,
+  SpriteSpawnData,
 } from '../../types';
 
 export interface MapGeneratorOptions {
@@ -44,6 +45,7 @@ export class MapGenerator {
     const enemies: EnemySpawnData[] = [];
     const doors: DoorSpawnData[] = [];
     const extractions: ExtractionSpawnData[] = [];
+    const sprites: SpriteSpawnData[] = [];
     const playerSpawns: Array<{ x: number; y: number; angle: number }> = [];
 
     // Helper pour creuser une case individuelle
@@ -577,6 +579,43 @@ export class MapGenerator {
       angle: (3 * Math.PI) / 2,
     };
 
+    // =========================================================================
+    // ÉTAPE 6 : APPARITION RARE DE L'HOMONCULUS SUR LA CARTE (HORS COFFRES)
+    // =========================================================================
+    const candidateSpawns: Array<{ x: number; y: number }> = [];
+    for (let y = 6; y < size - 6; y++) {
+      for (let x = 6; x < size - 6; x++) {
+        if (grid[y][x] === TILE_TYPE.GROUND_1) {
+          const r = Math.hypot(x - center, y - center);
+          if (r >= 12 && r <= 24) {
+            const isDoor = doors.some((d) => d.x === x && d.y === y);
+            const isChest = grid[y][x] === TILE_TYPE.CHEST;
+            const isPlayer = playerSpawns.some(
+              (p) => Math.hypot(p.x - (x + 0.5), p.y - (y + 0.5)) < 2.5
+            );
+            const isExtraction = extractions.some(
+              (e) => Math.hypot(e.x - (x + 0.5), e.y - (y + 0.5)) < 2.5
+            );
+            if (!isDoor && !isChest && !isPlayer && !isExtraction) {
+              candidateSpawns.push({ x, y });
+            }
+          }
+        }
+      }
+    }
+
+    if (candidateSpawns.length > 0) {
+      const chosen =
+        candidateSpawns[Math.floor(Math.random() * candidateSpawns.length)];
+      sprites.push({
+        x: chosen.x + 0.5,
+        y: chosen.y + 0.5,
+        textureId: TILE_TYPE.HOMONCULUS,
+        scale: 0.42,
+        itemId: 'offhand_homonculus',
+      });
+    }
+
     return {
       name: `Donjon d'Extraction (Session #${Math.floor(1000 + Math.random() * 9000)})`,
       grid,
@@ -586,6 +625,7 @@ export class MapGenerator {
       enemies,
       doors,
       extractions,
+      sprites,
       playerSpawns: playerSpawns.map((s) => ({ x: s.x, y: s.y })),
       playerSpawn: {
         x: chosenSpawn.x,

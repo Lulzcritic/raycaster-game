@@ -6,6 +6,7 @@ export const EQUIPMENT_SLOTS: readonly EquipmentSlot[] = [
   'armor',
   'boots',
   'key',
+  'offhand',
 ] as const;
 
 export class Inventory {
@@ -15,6 +16,7 @@ export class Inventory {
     ['armor', null],
     ['boots', null],
     ['key', null],
+    ['offhand', null],
   ]);
 
   /**

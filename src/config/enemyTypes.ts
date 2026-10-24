@@ -96,6 +96,35 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
       { itemId: 'armor_shrunk_black_mass_robe', chance: 0.8 },
     ],
   },
+
+  mimic: {
+    id: 'mimic',
+    name: 'Mimic Vorace',
+    rank: 'normal',
+    attackType: 'melee',
+    movementPattern: 'chase',
+    stats: {
+      maxHealth: 45,
+      damage: 14,
+      defense: 2,
+      moveSpeed: 1.2,
+      aggroRadius: 10.0,
+      attackRange: 0.72,
+      attackCooldown: 1.0,
+      attackWindup: 0.16,
+    },
+    scale: 0.52,
+    hitBox: 0.35,
+    colorTheme: {
+      primary: '#5c3a21',
+      secondary: '#8b2252',
+      outline: '#1c1008',
+      eyeColor: '#ff2200',
+      glowColor: 'rgba(220, 38, 38, 0.45)',
+    },
+    description: 'Une créature démoniaque déguisée en coffre à trésor, aux mâchoires béantes et aux membres agiles.',
+    dropTable: [],
+  },
 };
 
 export function getEnemyType(id: string): EnemyTypeDefinition {

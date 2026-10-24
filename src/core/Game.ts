@@ -23,6 +23,7 @@ import { DroppedItemOrb } from '../entities/DroppedItemOrb';
 import { Merchant } from '../entities/Merchant';
 import { MerchantUI } from '../ui/MerchantUI';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
+import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import { InputManager } from './InputManager';
 
 export class Game {
@@ -162,6 +163,7 @@ export class Game {
     await Promise.all([
       this.textures.loadAllTextures(),
       ItemSpriteManager.preloadAll(),
+      MimicSpriteManager.preloadAll(),
     ]);
   }
 

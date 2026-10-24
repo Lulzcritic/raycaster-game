@@ -1843,6 +1843,7 @@ body {
 .main-menu-logo {
   display: block;
   margin: 0 auto;
+  margin-top: 100px;
   max-width: min(620px, 86vw);
   max-height: 28vh;
   width: auto;

@@ -1,10 +1,12 @@
 import { TILE_TYPE } from '../config/constants';
+import { ENEMY_TYPES } from '../config/enemyTypes';
 import { ItemDatabase } from '../config/ItemDatabase';
 import type { TextureManager } from '../graphics/TextureManager';
 import type { EquipmentItem } from '../types';
 import { findSpacedDropPositions } from '../utils/dropSpread';
 import type { GameMap } from '../world/GameMap';
 import { DroppedItemOrb } from './DroppedItemOrb';
+import { Enemy } from './Enemy';
 import { Entity } from './Entity';
 import type { Player } from './Player';
 
@@ -87,6 +89,9 @@ export class BillboardSprite extends Entity {
   }
 
   public override isInteractable(): boolean {
+    if (!this.active) {
+      return false;
+    }
     if (this.textureId === TILE_TYPE.CHEST) {
       return !this.isOpened;
     }
@@ -153,6 +158,31 @@ export class BillboardSprite extends Entity {
     }
 
     this.isOpened = true;
+
+    // Un coffre a 1 chance sur 4 de se transformer en Mimic s'il ne contient pas de clé essentielle
+    const hasKey = this.lootItems.some((item) => item.slot === 'key');
+    const isMimic = !hasKey && Math.random() < 0.25;
+
+    if (isMimic) {
+      this.active = false;
+      this.lootItems = [];
+
+      if (this.onSpawnEntity) {
+        const mimicType = ENEMY_TYPES.mimic;
+        const mimic = new Enemy(
+          this.x,
+          this.y,
+          mimicType,
+          player,
+          this.onSpawnEntity
+        );
+        mimic.state = 'aggro';
+        mimic.setAttackCooldown(0.5); // 0.5s de fenêtre de réaction pour le joueur
+        this.onSpawnEntity(mimic);
+      }
+
+      return 'ATTENTION : LE COFFRE ÉTAIT UN MIMIC !';
+    }
 
     if (this.lootItems.length === 0) {
       return 'COFFRE VIDE...';

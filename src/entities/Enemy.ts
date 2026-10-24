@@ -1,4 +1,5 @@
 import { ItemDatabase } from '../config/ItemDatabase';
+import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import type { EnemyTypeDefinition } from '../types/enemy';
 import type { GameMap } from '../world/GameMap';
 import { DroppedItemOrb } from './DroppedItemOrb';
@@ -36,7 +37,11 @@ export class Enemy extends Entity {
     this.onSpawnEntity = onSpawnEntity;
     this.health = type.stats.maxHealth;
     this.maxHealth = type.stats.maxHealth;
-    this.sprites = Enemy.generateEnemySprites(type);
+    this.sprites = type.id === 'mimic' ? {} : Enemy.generateEnemySprites(type);
+  }
+
+  public setAttackCooldown(duration: number): void {
+    this.attackCooldownTimer = duration;
   }
 
   public override isFloorAnchored(): boolean {
@@ -52,6 +57,14 @@ export class Enemy extends Entity {
   }
 
   public override getSprite(): HTMLCanvasElement | null {
+    if (this.type.id === 'mimic') {
+      return MimicSpriteManager.getSprite(
+        this.state,
+        this.animTimer,
+        this.stateTimer
+      );
+    }
+
     if (this.state === 'dead') {
       return this.sprites.dead;
     }

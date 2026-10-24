@@ -6,6 +6,7 @@ import { Enemy } from '../entities/Enemy';
 import { ExtractionPortal } from '../entities/ExtractionPortal';
 import { Merchant } from '../entities/Merchant';
 import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
+import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { TILE_TYPE } from '../config/constants';
 import type { Player } from '../entities/Player';
 import type { Renderer } from '../graphics/Renderer';
@@ -790,9 +791,9 @@ export class WorldBillboardOverlay {
 
     const iconCanvas = document.createElement('canvas');
     iconCanvas.className = 'world-card-icon';
-    iconCanvas.width = 16;
-    iconCanvas.height = 16;
-    this.renderPixelIcon(iconCanvas, item);
+    iconCanvas.width = 36;
+    iconCanvas.height = 36;
+    ItemSpriteManager.renderToCanvas(iconCanvas, item);
     iconWrapper.appendChild(iconCanvas);
     card.appendChild(iconWrapper);
 
@@ -852,77 +853,6 @@ export class WorldBillboardOverlay {
     }
 
     return card;
-  }
-
-  private renderPixelIcon(canvas: HTMLCanvasElement, item: EquipmentItem): void {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.imageSmoothingEnabled = false;
-
-    const SLOT_PALETTES: Record<string, { bg: string; fill: string; outline: string }> = {
-      hat: { bg: '#1c152b', fill: '#8062b8', outline: '#3d2e59' },
-      weapon: { bg: '#241b16', fill: '#c27d44', outline: '#472f1e' },
-      armor: { bg: '#1b1b26', fill: '#646894', outline: '#33354d' },
-      boots: { bg: '#211d16', fill: '#9c8143', outline: '#423720' },
-      key: { bg: '#221a0d', fill: '#ffcc00', outline: '#4a3a16' },
-    };
-
-    const palette = SLOT_PALETTES[item.slot] ?? {
-      bg: '#161421',
-      fill: '#a09ab3',
-      outline: '#383347',
-    };
-
-    ctx.fillStyle = palette.bg;
-    ctx.fillRect(0, 0, 16, 16);
-
-    ctx.fillStyle = palette.fill;
-    if (item.slot === 'hat') {
-      ctx.fillRect(7, 2, 2, 2);
-      ctx.fillRect(6, 4, 4, 3);
-      ctx.fillRect(5, 7, 6, 3);
-      ctx.fillRect(2, 10, 12, 2);
-      ctx.fillStyle = '#ffcc00';
-      ctx.fillRect(5, 9, 6, 1);
-    } else if (item.slot === 'weapon') {
-      ctx.fillRect(11, 2, 3, 3);
-      ctx.fillRect(9, 4, 3, 3);
-      ctx.fillRect(7, 6, 3, 3);
-      ctx.fillRect(5, 8, 3, 3);
-      ctx.fillRect(3, 10, 3, 3);
-      ctx.fillStyle = '#ff4444';
-      ctx.fillRect(12, 3, 1, 1);
-    } else if (item.slot === 'armor') {
-      ctx.fillRect(3, 3, 10, 3);
-      ctx.fillRect(5, 6, 6, 7);
-      ctx.fillRect(2, 4, 2, 4);
-      ctx.fillRect(12, 4, 2, 4);
-      ctx.fillStyle = '#ffcc00';
-      ctx.fillRect(7, 4, 2, 2);
-    } else if (item.slot === 'boots') {
-      ctx.fillRect(4, 3, 4, 7);
-      ctx.fillRect(4, 10, 8, 3);
-      ctx.fillStyle = '#c49a35';
-      ctx.fillRect(4, 3, 4, 1);
-    } else if (item.slot === 'key') {
-      ctx.fillRect(3, 4, 6, 6);
-      ctx.fillStyle = palette.bg;
-      ctx.fillRect(5, 5, 2, 4);
-      ctx.fillStyle = '#ffcc00';
-      ctx.fillRect(8, 6, 6, 2);
-      ctx.fillRect(12, 8, 2, 3);
-      ctx.fillRect(10, 8, 1, 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(4, 4, 2, 1);
-    } else if (item.slot === 'offhand') {
-      ctx.fillRect(4, 3, 8, 4);
-      ctx.fillRect(3, 7, 10, 6);
-      ctx.fillStyle = '#ffe600';
-      ctx.fillRect(5, 5, 2, 2);
-      ctx.fillRect(9, 5, 2, 2);
-      ctx.fillStyle = '#b048f8';
-      ctx.fillRect(7, 8, 2, 3);
-    }
   }
 
   // =========================================================================

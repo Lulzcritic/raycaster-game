@@ -22,6 +22,7 @@ import { MapGenerator } from '../world/procedural/MapGenerator';
 import { DroppedItemOrb } from '../entities/DroppedItemOrb';
 import { Merchant } from '../entities/Merchant';
 import { MerchantUI } from '../ui/MerchantUI';
+import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { InputManager } from './InputManager';
 
 export class Game {
@@ -158,7 +159,10 @@ export class Game {
   }
 
   public async init(): Promise<void> {
-    await this.textures.loadAllTextures();
+    await Promise.all([
+      this.textures.loadAllTextures(),
+      ItemSpriteManager.preloadAll(),
+    ]);
   }
 
   public loadLevel(level: LevelData): void {

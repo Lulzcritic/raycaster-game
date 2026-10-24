@@ -443,8 +443,8 @@ body {
 }
 
 .world-card-icon-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   border: 3px solid #ffffff;
   border-radius: 0;
   background: #0a0812;
@@ -459,8 +459,8 @@ body {
 }
 
 .world-card-icon {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
@@ -1589,8 +1589,8 @@ body {
 }
 
 .merchant-card-icon-box {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   background: #0a0814;
   border: 2px solid;
   border-radius: 4px;
@@ -1601,8 +1601,8 @@ body {
 }
 
 .merchant-card-icon-box canvas {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
   image-rendering: pixelated;
 }
 

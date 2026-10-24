@@ -1,4 +1,5 @@
 import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
+import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import type { Merchant, MysteryCard } from '../entities/Merchant';
 import type { EquipmentItem, ItemStats } from '../types';
 
@@ -171,9 +172,9 @@ export class MerchantUI {
     iconWrapper.style.borderColor = rarityColor;
 
     const iconCanvas = document.createElement('canvas');
-    iconCanvas.width = 16;
-    iconCanvas.height = 16;
-    this.renderPixelIcon(iconCanvas, item);
+    iconCanvas.width = 36;
+    iconCanvas.height = 36;
+    ItemSpriteManager.renderToCanvas(iconCanvas, item);
     iconWrapper.appendChild(iconCanvas);
     headerEl.appendChild(iconWrapper);
 
@@ -278,46 +279,5 @@ export class MerchantUI {
 
     cardEl.appendChild(actionsEl);
     return cardEl;
-  }
-
-  private renderPixelIcon(canvas: HTMLCanvasElement, item: EquipmentItem): void {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.imageSmoothingEnabled = false;
-
-    ctx.fillStyle = '#0a0812';
-    ctx.fillRect(0, 0, 16, 16);
-
-    ctx.fillStyle = '#f8fafc';
-    if (item.slot === 'hat') {
-      ctx.fillRect(7, 2, 2, 2);
-      ctx.fillRect(6, 4, 4, 3);
-      ctx.fillRect(5, 7, 6, 3);
-      ctx.fillRect(2, 10, 12, 2);
-      ctx.fillStyle = '#ffd700';
-      ctx.fillRect(5, 9, 6, 1);
-    } else if (item.slot === 'weapon') {
-      ctx.fillRect(11, 2, 3, 3);
-      ctx.fillRect(9, 4, 3, 3);
-      ctx.fillRect(7, 6, 3, 3);
-      ctx.fillRect(5, 8, 3, 3);
-      ctx.fillRect(3, 10, 3, 3);
-      ctx.fillStyle = '#ef4444';
-      ctx.fillRect(12, 3, 1, 1);
-    } else if (item.slot === 'armor') {
-      ctx.fillRect(3, 3, 10, 3);
-      ctx.fillRect(5, 6, 6, 7);
-      ctx.fillRect(2, 4, 2, 4);
-      ctx.fillRect(12, 4, 2, 4);
-      ctx.fillStyle = '#ffd700';
-      ctx.fillRect(7, 4, 2, 2);
-    } else if (item.slot === 'boots') {
-      ctx.fillRect(4, 3, 4, 7);
-      ctx.fillRect(4, 10, 8, 3);
-      ctx.fillStyle = '#c49a35';
-      ctx.fillRect(4, 3, 4, 1);
-    } else {
-      ctx.fillRect(4, 4, 8, 8);
-    }
   }
 }

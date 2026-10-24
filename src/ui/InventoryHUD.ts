@@ -2,6 +2,7 @@ import type { Inventory } from '../entities/Inventory';
 import type { TextureManager } from '../graphics/TextureManager';
 import type { EquipmentSlot } from '../types';
 import { RARITY_COLORS } from '../entities/ItemCardBillboard';
+import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 
 const SLOT_ICONS: Record<EquipmentSlot, readonly string[]> = {
   // Chapeau (Haut)
@@ -180,25 +181,28 @@ export class InventoryHUD {
     ctx.fillRect(x + 1, y + 1, 1, size - 2);
 
     // Affichage du contenu du slot
-    const iconX = x + 4;
-    const iconY = y + 4;
-    const iconSize = 10;
-
-    if (item && item.textureId !== undefined) {
-      const texture = textureManager.getTexture(item.textureId);
-      if (texture) {
-        ctx.drawImage(texture, iconX - 1, iconY - 1, iconSize + 2, iconSize + 2);
-        return;
+    if (item) {
+      if (item.textureId !== undefined) {
+        const texture = textureManager.getTexture(item.textureId);
+        if (texture) {
+          ctx.drawImage(texture, x + 2, y + 2, size - 4, size - 4);
+          return;
+        }
       }
+
+      ItemSpriteManager.drawItemIcon(ctx, item, x + 2, y + 2, size - 4);
+      return;
     }
 
-    // Silhouette pixel-art du type de slot (grise si vide, couleur de rareté si équipé sans texture)
+    // Silhouette pixel-art du type de slot si vide
+    const iconX = x + 4;
+    const iconY = y + 4;
     this.drawSlotSilhouette(
       ctx,
       iconX,
       iconY,
       slot,
-      isEquipped ? rarityColor : '#4a435a'
+      '#4a435a'
     );
   }
 

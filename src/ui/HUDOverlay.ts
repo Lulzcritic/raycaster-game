@@ -1,5 +1,6 @@
 import type { Player } from '../entities/Player';
 import { RARITY_COLORS } from '../entities/ItemCardBillboard';
+import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 
 const SLOT_NAMES: Record<string, string> = {
   weapon: 'ARME',
@@ -210,9 +211,13 @@ export class HUDOverlay {
 
           const rarityColor = RARITY_COLORS[item.rarity] ?? '#ffffff';
           const slotLabel = SLOT_NAMES[item.slot] ?? item.slot.toUpperCase();
+          const spriteUrl = ItemSpriteManager.getItemSpriteUrl(item);
+          const iconHtml = spriteUrl
+            ? `<img src="${spriteUrl}" alt="" style="width: 20px; height: 20px; object-fit: contain; image-rendering: pixelated; margin-right: 6px; vertical-align: middle;">`
+            : '';
 
           row.innerHTML = `
-            <span class="extraction-loot-slot">[${slotLabel}]</span>
+            <span class="extraction-loot-slot" style="display: flex; align-items: center;">${iconHtml}[${slotLabel}]</span>
             <span class="extraction-loot-name" style="color: ${rarityColor};">${item.name}</span>
           `;
           this.extractionLootList.appendChild(row);

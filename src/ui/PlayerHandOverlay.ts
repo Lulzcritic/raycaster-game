@@ -94,7 +94,7 @@ export class PlayerHandOverlay {
         const leftCastOffsetY = casting ? 4 * scaleY : 0;
 
         // Positionnement en bas à gauche de la vue (sous l'UI)
-        const baseLeftX = rect.left + Math.round(rect.width * 0.06) - Math.round(leftSize * 0.35);
+        const baseLeftX = rect.left + Math.round(rect.width * 0.1) - Math.round(leftSize * 0.35);
         const baseLeftY = rect.top + rect.height - leftSize + Math.round(rect.height * 0.05);
 
         // Balancement asymétrique naturel

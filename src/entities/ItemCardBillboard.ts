@@ -1,7 +1,8 @@
 import type { TextureManager } from '../graphics/TextureManager';
-import type { EquipmentItem, EquipmentSlot, ItemRarity, ItemStats } from '../types';
+import type { EquipmentItem, ItemRarity, ItemStats } from '../types';
 import type { GameMap } from '../world/GameMap';
 import { Entity } from './Entity';
+import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 
 export const RARITY_COLORS: Record<ItemRarity, string> = {
   common: '#ffffff',    // Commun : Blanc
@@ -35,179 +36,6 @@ const STAT_LABELS: Array<{
   { key: 'stealth', label: 'DISCRÉTION' },
   { key: 'charisma', label: 'CHARISME' },
 ];
-
-const ITEM_PIXEL_ART: Record<
-  EquipmentSlot,
-  { palette: Record<string, string>; grid: readonly string[] }
-> = {
-  hat: {
-    palette: {
-      o: '#0c0a12',
-      d: '#261c38',
-      m: '#3f2e5e',
-      l: '#5c4585',
-      b: '#8c6239',
-      g: '#ffcc00',
-    },
-    grid: [
-      '.......oo.......',
-      '......odlo......',
-      '.....odmllo.....',
-      '.....odmllo.....',
-      '....odmmlllo....',
-      '....odmmlllo....',
-      '...odmmmllllo...',
-      '...odmmmmlllo...',
-      '..odbbgggbbloo..',
-      '..odbbgggbbloo..',
-      '.ooddddddddddoo.',
-      'oodmmmmmmmmmmloo',
-      'odlllllllllllllo',
-      '.oooooooooooooo.',
-      '................',
-      '................',
-    ],
-  },
-  weapon: {
-    palette: {
-      o: '#0c0a12',
-      w: '#593a22',
-      l: '#8c5e38',
-      b: '#d8cfb8',
-      r: '#ff3b3b',
-      g: '#ffae00',
-    },
-    grid: [
-      '..........oooo..',
-      '.........obggbo.',
-      '........obgrrgbo',
-      '........obgrrgbo',
-      '.........obggbo.',
-      '........oloooo..',
-      '.......olwo.....',
-      '......olwo......',
-      '.....olwo.......',
-      '....olwo........',
-      '...olwo.........',
-      '..olwo..........',
-      '.olwo...........',
-      'olwo............',
-      'owo.............',
-      '.o..............',
-    ],
-  },
-  armor: {
-    palette: {
-      o: '#0c0a12',
-      d: '#1d1829',
-      m: '#322947',
-      l: '#4b3d69',
-      r: '#7a1c24',
-      g: '#d4a024',
-    },
-    grid: [
-      '....oooooooo....',
-      '...oddrggrddo...',
-      '..odmmrrrrdmdo..',
-      '.odmmmrrrrdmmdo.',
-      'odmmmmrrrrdmmmdo',
-      'odmmodmrrdmommdo',
-      'odoo.odmmdo.oodo',
-      '.....odggdo.....',
-      '....odmrrldo....',
-      '....odmrrldo....',
-      '...odmmrrlldo...',
-      '...odmmrrlldo...',
-      '..odmmmrrllldo..',
-      '..oddddddldddo..',
-      '..oooooooooooo..',
-      '................',
-    ],
-  },
-  boots: {
-    palette: {
-      o: '#0c0a12',
-      d: '#2b1d16',
-      m: '#4a3225',
-      l: '#6e4a37',
-      g: '#c99e32',
-      s: '#17131c',
-    },
-    grid: [
-      '................',
-      '....oooo........',
-      '...odggdo.......',
-      '...odmmdo.......',
-      '...odmldo.......',
-      '...odmldo.......',
-      '...odmldo.......',
-      '...odmldo...oo..',
-      '...odmldo..odlo.',
-      '...odmmldoodmlo.',
-      '..odmmmmmmmmmlo.',
-      '..odllllllllllo.',
-      '..ossssssssssso.',
-      '...ooooooooooo..',
-      '................',
-      '................',
-    ],
-  },
-  key: {
-    palette: {
-      o: '#0c0a12',
-      d: '#7a5214',
-      m: '#b8821d',
-      l: '#ffcc00',
-      w: '#ffffff',
-    },
-    grid: [
-      '................',
-      '.....ooooo......',
-      '....olllldo.....',
-      '...olwwwwlldo...',
-      '...olw..wlldo...',
-      '...olwwwwlldo...',
-      '....olllldoooooo',
-      '.....oodlllllllo',
-      '......odmddddmdo',
-      '......odlo..odlo',
-      '......odlo..odlo',
-      '......odlo..oooo',
-      '......odlo......',
-      '......odlo......',
-      '.......oo.......',
-      '................',
-    ],
-  },
-  offhand: {
-    palette: {
-      o: '#0c0a12',
-      d: '#2b1b3d',
-      m: '#6a329f',
-      l: '#b048f8',
-      y: '#ffe600',
-      w: '#ffffff',
-    },
-    grid: [
-      '.....oooooo.....',
-      '....ommmmmmo....',
-      '...ommwllwldo...',
-      '..ommmwllwlddo..',
-      '..ommmlllldddo..',
-      '..ommmmyyddddo..',
-      '...ommmmyydoo...',
-      '...oodmmmmdoo...',
-      '..ooddmmmmddo...',
-      '..ommmmmmmmmdo..',
-      '.ommmmmmmmmmmdo.',
-      '.odddmmmmmmdddo.',
-      '..ooddmmmmddoo..',
-      '...oodmmmmdoo...',
-      '....ooddddoo....',
-      '.....oooooo.....',
-    ],
-  },
-};
 
 /**
  * Entité Billboard affichant la fiche de caractéristiques de l'objet flottant au-dessus d'un orbe d'objet
@@ -319,7 +147,7 @@ export class ItemCardBillboard extends Entity {
     let currentY = 8;
 
     // 3. IMAGE DE L'ITEM en premier (en haut)
-    const iconBoxSize = 26;
+    const iconBoxSize = 32;
     const iconBoxX = Math.floor((w - iconBoxSize) / 2);
     const iconBoxY = currentY;
 
@@ -329,8 +157,8 @@ export class ItemCardBillboard extends Entity {
     ctx.fillStyle = rarityColor;
     ctx.strokeRect(iconBoxX + 0.5, iconBoxY + 0.5, iconBoxSize - 1, iconBoxSize - 1);
 
-    // Dessin du sprite de l'objet (16x16 centré dans 26x26)
-    this.drawItemIcon(ctx, iconBoxX + 5, iconBoxY + 5);
+    // Dessin du sprite de l'objet (centré et proportionné)
+    this.drawItemIcon(ctx, iconBoxX + 2, iconBoxY + 2, iconBoxSize - 4);
     currentY += iconBoxSize + 4;
 
     // Petit badge de rareté sous l'icône
@@ -402,35 +230,18 @@ export class ItemCardBillboard extends Entity {
   private drawItemIcon(
     ctx: CanvasRenderingContext2D,
     startX: number,
-    startY: number
+    startY: number,
+    size = 28
   ): void {
     if (this.item.textureId !== undefined) {
       const tex = this.textureManager.getTexture(this.item.textureId);
       if (tex) {
-        ctx.drawImage(tex, startX, startY, 16, 16);
+        ctx.drawImage(tex, startX, startY, size, size);
         return;
       }
     }
 
-    const art = ITEM_PIXEL_ART[this.item.slot];
-    if (!art) {
-      return;
-    }
-
-    for (let row = 0; row < art.grid.length; row++) {
-      const line = art.grid[row];
-      for (let col = 0; col < line.length; col++) {
-        const ch = line[col];
-        if (ch === '.') {
-          continue;
-        }
-        const color = art.palette[ch];
-        if (color) {
-          ctx.fillStyle = color;
-          ctx.fillRect(startX + col, startY + row, 1, 1);
-        }
-      }
-    }
+    ItemSpriteManager.drawItemIcon(ctx, this.item, startX, startY, size);
   }
 
   private drawSeparator(

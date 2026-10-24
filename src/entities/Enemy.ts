@@ -1,8 +1,11 @@
+import { ItemDatabase } from '../config/ItemDatabase';
 import { WalletManager } from '../core/WalletManager';
+import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import type { EnemyTypeDefinition } from '../types/enemy';
 import type { GameMap } from '../world/GameMap';
 import { DroppedCoin } from './DroppedCoin';
+import { DroppedItemOrb } from './DroppedItemOrb';
 import { Entity } from './Entity';
 import type { Player } from './Player';
 
@@ -16,6 +19,7 @@ export class Enemy extends Entity {
 
   private readonly player: Player;
   private readonly onSpawnEntity?: (entity: Entity) => void;
+  private readonly onNotify?: (message: string) => void;
   private readonly sprites: Record<string, HTMLCanvasElement>;
 
   private stateTimer = 0;
@@ -24,20 +28,30 @@ export class Enemy extends Entity {
   private currentElevation = 0;
   private animTimer = 0;
 
+  // Variables propres au Gobelin au Trésor (fuite, timer de disparition & traînée de pièces)
+  private isFleeing = false;
+  private fleeTimer = 8.0;
+  private coinTrailCooldown = 0.85;
+
   constructor(
     x: number,
     y: number,
     type: EnemyTypeDefinition,
     player: Player,
-    onSpawnEntity?: (entity: Entity) => void
+    onSpawnEntity?: (entity: Entity) => void,
+    onNotify?: (message: string) => void
   ) {
     super(x, y, 0, type.hitBox);
     this.type = type;
     this.player = player;
     this.onSpawnEntity = onSpawnEntity;
+    this.onNotify = onNotify;
     this.health = type.stats.maxHealth;
     this.maxHealth = type.stats.maxHealth;
-    this.sprites = type.id === 'mimic' ? {} : Enemy.generateEnemySprites(type);
+    this.sprites =
+      type.id === 'mimic' || type.id === 'goblin'
+        ? {}
+        : Enemy.generateEnemySprites(type);
   }
 
   public setAttackCooldown(duration: number): void {
@@ -59,6 +73,13 @@ export class Enemy extends Entity {
   public override getSprite(): HTMLCanvasElement | null {
     if (this.type.id === 'mimic') {
       return MimicSpriteManager.getSprite(
+        this.state,
+        this.animTimer,
+        this.stateTimer
+      );
+    }
+    if (this.type.id === 'goblin') {
+      return GoblinSpriteManager.getSprite(
         this.state,
         this.animTimer,
         this.stateTimer
@@ -104,12 +125,17 @@ export class Enemy extends Entity {
         this.state === 'aggro' ||
         this.type.rank !== 'normal');
 
+    const name =
+      this.type.id === 'goblin' && this.isFleeing
+        ? `${this.type.name} [${Math.max(0, this.fleeTimer).toFixed(1)}s]`
+        : this.type.name;
+
     return {
       percent: Math.max(0, Math.min(1, this.health / this.maxHealth)),
       health: Math.ceil(this.health),
       maxHealth: this.maxHealth,
       rank: this.type.rank,
-      name: this.type.name,
+      name,
       isVisible,
     };
   }
@@ -129,6 +155,13 @@ export class Enemy extends Entity {
     // L'ennemi s'aggro immédiatement quand on l'attaque
     this.state = 'hurt';
     this.stateTimer = 0.18;
+
+    if (this.type.movementPattern === 'flee' && !this.isFleeing) {
+      this.isFleeing = true;
+      this.fleeTimer = 8.0;
+      this.coinTrailCooldown = 0.85;
+      this.onNotify?.("GOBELIN AU TRÉSOR ! IL S'ENFUIT AVEC SON SAC (8s) !");
+    }
 
     // Léger recul suite à l'impact
     if (hitAngle !== undefined) {
@@ -150,7 +183,54 @@ export class Enemy extends Entity {
     this.stateTimer = 0.42;
     this.currentElevation = 0;
 
-    // Seuls les monstres lâchent de l'argent et ne peuvent plus lâcher d'objets
+    // Gobelin au trésor : éruption de pièces ET loot au moins RARE garanti
+    if (this.type.id === 'goblin') {
+      if (this.onSpawnEntity) {
+        // 1. Éruption de 12 à 16 pièces d'or
+        const dropCount = 14;
+        for (let i = 0; i < dropCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 0.18 + Math.random() * 0.4;
+          let targetX = this.x + Math.cos(angle) * dist;
+          let targetY = this.y + Math.sin(angle) * dist;
+          if (this.lastMap && !this.lastMap.isWalkable(targetX, targetY)) {
+            targetX = this.x;
+            targetY = this.y;
+          }
+          const coin = new DroppedCoin(
+            this.x,
+            this.y,
+            targetX,
+            targetY,
+            1,
+            this.player,
+            (gained) => {
+              WalletManager.addCoins(gained);
+            }
+          );
+          this.onSpawnEntity(coin);
+        }
+
+        // 2. Butin au moins RARE garanti (rare, epic, legendary, artifact)
+        const rarePool = ItemDatabase.getRareOrBetterLootPool();
+        if (rarePool.length > 0) {
+          const prize = rarePool[Math.floor(Math.random() * rarePool.length)];
+          const dropOrb = new DroppedItemOrb(
+            this.x,
+            this.y,
+            this.x + (Math.random() - 0.5) * 0.35,
+            this.y + (Math.random() - 0.5) * 0.35,
+            prize,
+            this.onSpawnEntity
+          );
+          this.onSpawnEntity(dropOrb);
+        }
+      }
+      this.onNotify?.('GOBELIN AU TRÉSOR ÉLIMINÉ ! UN BUTIN RARE APPARAÎT !');
+      return;
+    }
+
+    // Monstres standards : pièces d'or uniquement
     if (this.onSpawnEntity) {
       const dropInfo = this.getCoinDropInfo();
       for (let i = 0; i < dropInfo.count; i++) {
@@ -248,12 +328,57 @@ export class Enemy extends Entity {
         if (distanceToPlayer <= 2.2 || this.hasLineOfSight(map)) {
           this.state = 'aggro';
           this.hopTimer = 0;
+          if (this.type.movementPattern === 'flee' && !this.isFleeing) {
+            this.isFleeing = true;
+            this.fleeTimer = 8.0;
+            this.coinTrailCooldown = 0.85;
+            this.onNotify?.("ATTENTION : GOBELIN AU TRÉSOR REPÉRÉ ! (8s POUR L'ÉLIMINER)");
+          }
         }
       }
     }
 
-    // 2. Comportement en mode Aggro (poursuite du joueur)
+    // 2. Comportement en mode Aggro (poursuite du joueur OU fuite)
     if (this.state === 'aggro') {
+      if (this.type.movementPattern === 'flee') {
+        // Décompte des 8 secondes avant fuite définitive
+        this.fleeTimer -= deltaTime;
+        if (this.fleeTimer <= 0) {
+          this.active = false;
+          this.onNotify?.("LE GOBELIN AU TRÉSOR S'EST ÉCHAPPÉ DANS LES OMBRES !");
+          return;
+        }
+
+        // Lâche des pièces derrière lui dans sa course
+        this.coinTrailCooldown -= deltaTime;
+        if (this.coinTrailCooldown <= 0 && this.onSpawnEntity) {
+          this.coinTrailCooldown = 0.85;
+          const angleToPlayer = Math.atan2(dy, dx);
+          let dropX = this.x + Math.cos(angleToPlayer) * 0.28;
+          let dropY = this.y + Math.sin(angleToPlayer) * 0.28;
+          if (map && !map.isWalkable(dropX, dropY)) {
+            dropX = this.x;
+            dropY = this.y;
+          }
+          const coin = new DroppedCoin(
+            this.x,
+            this.y,
+            dropX,
+            dropY,
+            1,
+            this.player,
+            (gained) => {
+              WalletManager.addCoins(gained);
+            }
+          );
+          this.onSpawnEntity(coin);
+        }
+
+        // Fuite à l'opposé du joueur avec navigation
+        this.updateFleeMovement(deltaTime, map, dx, dy);
+        return;
+      }
+
       // Déclenchement de l'attaque si à portée
       if (
         distanceToPlayer <= this.type.stats.attackRange &&
@@ -268,6 +393,37 @@ export class Enemy extends Entity {
       const angleToPlayer = Math.atan2(dy, dx);
       this.updateMovement(deltaTime, map, angleToPlayer, distanceToPlayer);
     }
+  }
+
+  private updateFleeMovement(
+    deltaTime: number,
+    map: GameMap,
+    dx: number,
+    dy: number
+  ): void {
+    this.currentElevation = 0;
+    const angleToPlayer = Math.atan2(dy, dx);
+    const baseAngle = angleToPlayer + Math.PI;
+
+    // Balayage d'angles pour trouver une issue dégagée évitant les murs
+    let fleeAngle = baseAngle;
+    const offsets = [
+      0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.4, -1.4, 1.75, -1.75, Math.PI,
+    ];
+    for (const offset of offsets) {
+      const candidate = baseAngle + offset;
+      const testX = this.x + Math.cos(candidate) * (this.hitBox + 0.35);
+      const testY = this.y + Math.sin(candidate) * (this.hitBox + 0.35);
+      if (map.isWalkable(testX, testY)) {
+        fleeAngle = candidate;
+        break;
+      }
+    }
+
+    const speed = this.type.stats.moveSpeed;
+    const moveX = Math.cos(fleeAngle) * speed * deltaTime;
+    const moveY = Math.sin(fleeAngle) * speed * deltaTime;
+    this.moveWithCollision(moveX, moveY, map);
   }
 
   private updateMovement(

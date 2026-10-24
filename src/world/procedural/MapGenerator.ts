@@ -353,6 +353,15 @@ export class MapGenerator {
       enemies.push({ typeId: 'blob', x: pat.x, y: pat.y });
     }
 
+    // Gobelins au Trésor en vadrouille dans les couloirs de la Zone 2
+    const goblinSpots = [
+      { x: 32.5, y: 46.5 },
+      { x: 32.5, y: 17.5 },
+    ];
+    for (const gspot of goblinSpots) {
+      enemies.push({ typeId: 'goblin', x: gspot.x, y: gspot.y });
+    }
+
     // 3 Portails d'extraction de Zone 2 (activations progressives)
     extractions.push({
       x: 44.5,

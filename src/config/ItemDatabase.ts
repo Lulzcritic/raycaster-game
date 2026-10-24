@@ -21,6 +21,21 @@ export class ItemDatabase {
     );
   }
 
+  /**
+   * Retourne la liste des objets d'équipement de rareté Rare, Épique, Légendaire ou Artéfact.
+   * Utilisé notamment comme récompense garantie lors de l'élimination du Gobelin au Trésor.
+   */
+  public static getRareOrBetterLootPool(): readonly EquipmentItem[] {
+    const validRarities = new Set(['rare', 'epic', 'legendary', 'artifact']);
+    return ITEMS.filter(
+      (item) =>
+        validRarities.has(item.rarity) &&
+        item.slot !== 'key' &&
+        item.slot !== 'offhand' &&
+        item.id !== 'offhand_homonculus'
+    );
+  }
+
   public static getItemById(id: string): EquipmentItem | undefined {
     return ITEMS_BY_ID.get(id);
   }

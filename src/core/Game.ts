@@ -25,6 +25,7 @@ import { MerchantUI } from '../ui/MerchantUI';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
+import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { WalletManager } from './WalletManager';
 import { InputManager } from './InputManager';
 
@@ -168,6 +169,7 @@ export class Game {
       ItemSpriteManager.preloadAll(),
       MimicSpriteManager.preloadAll(),
       CoinSpriteManager.preloadAll(),
+      GoblinSpriteManager.preloadAll(),
     ]);
   }
 
@@ -313,6 +315,9 @@ export class Game {
             this.player,
             (newEntity) => {
               this.entities.push(newEntity);
+            },
+            (msg) => {
+              this.interactionPrompt.showNotification(msg);
             }
           );
           this.entities.push(enemy);

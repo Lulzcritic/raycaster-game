@@ -2,7 +2,7 @@ export type EnemyRank = 'normal' | 'elite' | 'boss';
 
 export type AttackType = 'melee' | 'ranged';
 
-export type MovementPattern = 'hop' | 'chase' | 'patrol' | 'stationary';
+export type MovementPattern = 'hop' | 'chase' | 'patrol' | 'stationary' | 'flee';
 
 export interface EnemyStats {
   maxHealth: number;

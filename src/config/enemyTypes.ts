@@ -116,6 +116,35 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
     description: 'Une créature démoniaque déguisée en coffre à trésor, aux mâchoires béantes et aux membres agiles.',
     coinDrop: { min: 4, max: 7 },
   },
+
+  goblin: {
+    id: 'goblin',
+    name: 'Gobelin au Trésor',
+    rank: 'elite',
+    attackType: 'melee',
+    movementPattern: 'flee',
+    stats: {
+      maxHealth: 38,
+      damage: 0,
+      defense: 1,
+      moveSpeed: 1.35,
+      aggroRadius: 6.5,
+      attackRange: 0,
+      attackCooldown: 999,
+      attackWindup: 0,
+    },
+    scale: 0.46,
+    hitBox: 0.32,
+    colorTheme: {
+      primary: '#eab308',
+      secondary: '#22c55e',
+      outline: '#15803d',
+      eyeColor: '#facc15',
+      glowColor: 'rgba(234, 179, 8, 0.55)',
+    },
+    description: 'Un pillard cupide portant un sac débordant de pièces d’or. Dès qu’il aperçoit le joueur, il s’enfuit dans la direction opposée en semant des pièces, et disparaît au bout de 8 secondes s’il n’est pas éliminé.',
+    coinDrop: { min: 10, max: 16 },
+  },
 };
 
 export function getEnemyType(id: string): EnemyTypeDefinition {

@@ -20,6 +20,11 @@ export interface EnemyDropEntry {
   chance: number; // 0 à 1
 }
 
+export interface EnemyCoinDrop {
+  min: number;
+  max: number;
+}
+
 export interface EnemyTypeDefinition {
   id: string;
   name: string;
@@ -38,6 +43,7 @@ export interface EnemyTypeDefinition {
   };
   description?: string;
   dropTable?: readonly EnemyDropEntry[];
+  coinDrop?: EnemyCoinDrop;
 }
 
 export interface EnemySpawnData {

@@ -1,8 +1,8 @@
-import { ItemDatabase } from '../config/ItemDatabase';
+import { WalletManager } from '../core/WalletManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import type { EnemyTypeDefinition } from '../types/enemy';
 import type { GameMap } from '../world/GameMap';
-import { DroppedItemOrb } from './DroppedItemOrb';
+import { DroppedCoin } from './DroppedCoin';
 import { Entity } from './Entity';
 import type { Player } from './Player';
 
@@ -143,31 +143,58 @@ export class Enemy extends Entity {
     return true;
   }
 
+  private lastMap?: GameMap;
+
   private die(): void {
     this.state = 'dead';
     this.stateTimer = 0.42;
     this.currentElevation = 0;
 
-    // Déclenchement des récompenses et butins au sol
-    if (this.type.dropTable && this.onSpawnEntity) {
-      for (const entry of this.type.dropTable) {
-        if (Math.random() <= entry.chance) {
-          const item = ItemDatabase.getItemById(entry.itemId);
-          if (item) {
-            const dropOrb = new DroppedItemOrb(
-              this.x,
-              this.y,
-              this.x + (Math.random() - 0.5) * 0.4,
-              this.y + (Math.random() - 0.5) * 0.4,
-              item,
-              this.onSpawnEntity
-            );
-            this.onSpawnEntity(dropOrb);
-            break; // 1 objet par monstre pour garder un équilibre
-          }
+    // Seuls les monstres lâchent de l'argent et ne peuvent plus lâcher d'objets
+    if (this.onSpawnEntity) {
+      const dropInfo = this.getCoinDropInfo();
+      for (let i = 0; i < dropInfo.count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 0.18 + Math.random() * 0.32;
+        let targetX = this.x + Math.cos(angle) * dist;
+        let targetY = this.y + Math.sin(angle) * dist;
+
+        if (this.lastMap && !this.lastMap.isWalkable(targetX, targetY)) {
+          targetX = this.x;
+          targetY = this.y;
         }
+
+        const coin = new DroppedCoin(
+          this.x,
+          this.y,
+          targetX,
+          targetY,
+          dropInfo.valuePerCoin,
+          this.player,
+          (gained) => {
+            WalletManager.addCoins(gained);
+          }
+        );
+        this.onSpawnEntity(coin);
       }
     }
+  }
+
+  private getCoinDropInfo(): { count: number; valuePerCoin: number } {
+    const range = this.type.coinDrop ?? {
+      min: this.type.rank === 'boss' ? 18 : this.type.rank === 'elite' ? 5 : 2,
+      max: this.type.rank === 'boss' ? 26 : this.type.rank === 'elite' ? 8 : 3,
+    };
+    const totalCoins =
+      range.min + Math.floor(Math.random() * (range.max - range.min + 1));
+
+    if (totalCoins > 10) {
+      const count = Math.min(8, Math.max(5, Math.floor(totalCoins / 3)));
+      const valuePerCoin = Math.max(1, Math.round(totalCoins / count));
+      return { count, valuePerCoin };
+    }
+
+    return { count: Math.max(1, totalCoins), valuePerCoin: 1 };
   }
 
   public override update(deltaTime: number, map: GameMap): void {
@@ -175,6 +202,7 @@ export class Enemy extends Entity {
       return;
     }
 
+    this.lastMap = map;
     this.animTimer += deltaTime;
 
     if (this.attackCooldownTimer > 0) {

@@ -1,6 +1,8 @@
 import type { Player } from '../entities/Player';
 import { RARITY_COLORS } from '../entities/ItemCardBillboard';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
+import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
+import { WalletManager } from '../core/WalletManager';
 
 const SLOT_NAMES: Record<string, string> = {
   weapon: 'ARME',
@@ -18,6 +20,10 @@ export class HUDOverlay {
   private readonly zonePanel: HTMLElement | null;
   private readonly zoneTitle: HTMLElement | null;
   private readonly raidTimer: HTMLElement | null;
+  private readonly coinPanel: HTMLElement | null;
+  private readonly coinText: HTMLElement | null;
+  private readonly coinIcon: HTMLImageElement | null;
+  private lastCoins = -1;
 
   private readonly extractionScreen: HTMLElement | null;
   private readonly extractionStats: HTMLElement | null;
@@ -38,6 +44,13 @@ export class HUDOverlay {
     this.zonePanel = document.getElementById('hud-zone-panel');
     this.zoneTitle = document.getElementById('hud-zone-title');
     this.raidTimer = document.getElementById('hud-raid-timer');
+    this.coinPanel = document.getElementById('hud-coin-panel');
+    this.coinText = document.getElementById('hud-coin-text');
+    this.coinIcon = document.getElementById('hud-coin-icon') as HTMLImageElement | null;
+
+    if (this.coinIcon) {
+      this.coinIcon.src = CoinSpriteManager.getCoinUrl();
+    }
 
     this.extractionScreen = document.getElementById('extraction-screen');
     this.extractionStats = document.getElementById('extraction-stats');
@@ -65,6 +78,7 @@ export class HUDOverlay {
   public reset(): void {
     this.isExtractedScreenShown = false;
     this.isDeathScreenShown = false;
+    this.lastCoins = -1;
     this.extractionScreen?.classList.add('hidden');
     this.deathScreen?.classList.add('hidden');
   }
@@ -163,6 +177,18 @@ export class HUDOverlay {
     if (this.raidTimer) {
       this.raidTimer.textContent = `⏱️ RAID ${formattedTimer}`;
     }
+
+    // 3. Compteur de pièces d'or
+    const currentCoins = WalletManager.getCoins();
+    if (this.coinText && currentCoins !== this.lastCoins) {
+      this.coinText.textContent = String(currentCoins);
+      if (this.lastCoins >= 0 && currentCoins > this.lastCoins && this.coinPanel) {
+        this.coinPanel.classList.remove('hud-coin-bump');
+        void this.coinPanel.offsetWidth;
+        this.coinPanel.classList.add('hud-coin-bump');
+      }
+      this.lastCoins = currentCoins;
+    }
   }
 
   public setVisible(visible: boolean): void {
@@ -188,6 +214,7 @@ export class HUDOverlay {
       this.extractionStats.innerHTML = `
         <span>⏱️ TEMPS DE RAID : <strong style="color: #f59e0b;">${formattedTimer}</strong></span>
         <span>❤️ PV RESTANTS : <strong style="color: #ef4444;">${Math.ceil(player.health)}/${player.maxHealth}</strong></span>
+        <span>💰 BUTIN D'OR : <strong style="color: #fbbf24;">+${WalletManager.getSessionCoins()} (TOTAL : ${WalletManager.getCoins()})</strong></span>
       `;
     }
 

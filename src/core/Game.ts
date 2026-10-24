@@ -24,6 +24,8 @@ import { Merchant } from '../entities/Merchant';
 import { MerchantUI } from '../ui/MerchantUI';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
+import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
+import { WalletManager } from './WalletManager';
 import { InputManager } from './InputManager';
 
 export class Game {
@@ -160,10 +162,12 @@ export class Game {
   }
 
   public async init(): Promise<void> {
+    WalletManager.init();
     await Promise.all([
       this.textures.loadAllTextures(),
       ItemSpriteManager.preloadAll(),
       MimicSpriteManager.preloadAll(),
+      CoinSpriteManager.preloadAll(),
     ]);
   }
 
@@ -428,6 +432,7 @@ export class Game {
   }
 
   public startNewExtractionMatch(): void {
+    WalletManager.resetSessionCoins();
     this.player.inventory.unequip('offhand');
     this.player.inventory.unequip('key');
     const newMap = MapGenerator.generate();
@@ -436,6 +441,7 @@ export class Game {
   }
 
   public startGameFromMenu(): void {
+    WalletManager.resetSessionCoins();
     this.isInMainMenu = false;
     this.mainMenu.hide();
     this.isPaused = false;

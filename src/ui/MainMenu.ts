@@ -1,5 +1,7 @@
 import mainMenuBgUrl from '../assets/textures/mainmenu.jpg';
 import logoUrl from '../assets/textures/logo.png';
+import { WalletManager } from '../core/WalletManager';
+import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 
 export class MainMenu {
   private readonly menuElement: HTMLElement | null;
@@ -11,6 +13,8 @@ export class MainMenu {
   private readonly settingsBackBtn: HTMLButtonElement | null;
   private readonly fovSlider: HTMLInputElement | null;
   private readonly fovValueDisplay: HTMLElement | null;
+  private readonly coinIcon: HTMLImageElement | null;
+  private readonly coinText: HTMLElement | null;
 
   private onPlayCallback?: () => void;
   private onFovChangeCallback?: (fovDegrees: number) => void;
@@ -29,6 +33,8 @@ export class MainMenu {
     this.settingsBackBtn = document.getElementById('main-settings-back-btn') as HTMLButtonElement | null;
     this.fovSlider = document.getElementById('main-fov-slider') as HTMLInputElement | null;
     this.fovValueDisplay = document.getElementById('main-fov-value');
+    this.coinIcon = document.getElementById('main-menu-coin-icon') as HTMLImageElement | null;
+    this.coinText = document.getElementById('main-menu-coin-text');
 
     this.onPlayCallback = onPlay;
     this.onFovChangeCallback = onFovChange;
@@ -39,6 +45,10 @@ export class MainMenu {
 
     if (this.logoImg) {
       this.logoImg.src = logoUrl;
+    }
+
+    if (this.coinIcon) {
+      this.coinIcon.src = CoinSpriteManager.getCoinUrl();
     }
 
     this.setFov(initialFovDegrees);
@@ -75,6 +85,9 @@ export class MainMenu {
   };
 
   public showMain(): void {
+    if (this.coinText) {
+      this.coinText.textContent = String(WalletManager.getCoins());
+    }
     this.mainView?.classList.remove('hidden');
     this.settingsView?.classList.add('hidden');
   }

@@ -27,10 +27,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
       glowColor: 'rgba(68, 204, 51, 0.4)',
     },
     description: 'Une masse de vase nécromantique visqueuse qui bondit lourdement vers tout ce qui respire.',
-    dropTable: [
-      { itemId: 'boots_squeaky_abyss_poulaines', chance: 0.35 },
-      { itemId: 'hat_leech_infested_mitre', chance: 0.2 },
-    ],
+    coinDrop: { min: 1, max: 3 },
   },
 
   blob_elite: {
@@ -59,10 +56,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
       glowColor: 'rgba(153, 51, 238, 0.55)',
     },
     description: 'Un spécimen corrompu gorgé de résidus d’âmes errantes. Ses bonds projettent des vapeurs suffocantes.',
-    dropTable: [
-      { itemId: 'hat_myopic_necromancer', chance: 0.6 },
-      { itemId: 'boots_slippery_graveyard_clogs', chance: 0.45 },
-    ],
+    coinDrop: { min: 4, max: 8 },
   },
 
   blob_boss: {
@@ -91,10 +85,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
       glowColor: 'rgba(204, 34, 51, 0.65)',
     },
     description: 'La source ancestrale de la corruption des cryptes. Une masse colossale de chair gélatineuse et de soufre.',
-    dropTable: [
-      { itemId: 'weapon_crooked_phylactery_dagger', chance: 1.0 },
-      { itemId: 'armor_shrunk_black_mass_robe', chance: 0.8 },
-    ],
+    coinDrop: { min: 18, max: 28 },
   },
 
   mimic: {
@@ -123,7 +114,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
       glowColor: 'rgba(220, 38, 38, 0.45)',
     },
     description: 'Une créature démoniaque déguisée en coffre à trésor, aux mâchoires béantes et aux membres agiles.',
-    dropTable: [],
+    coinDrop: { min: 4, max: 7 },
   },
 };
 

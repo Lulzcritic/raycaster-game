@@ -653,6 +653,64 @@ body {
   text-shadow: 1px 1px 0 #000000;
 }
 
+.hud-coin-panel {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  clip-path: var(--pixel-notch-small);
+  filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000);
+  background: radial-gradient(circle at center, #261c0e 0%, #130e07 100%);
+  border: 2px solid #ca8a04;
+  box-shadow:
+    inset 0 2px 0 0 #fde047,
+    inset 2px 0 0 0 #eab308,
+    inset 0 -3px 0 0 #422006,
+    inset -2px 0 0 0 #422006,
+    inset 0 0 0 1px #000000;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.hud-coin-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 2px 0 #000000);
+}
+
+.hud-coin-text {
+  font-family: var(--font-medieval);
+  font-size: 19px;
+  font-weight: bold;
+  color: #fef08a;
+  text-shadow: 2px 2px 0 #000000;
+  letter-spacing: 1px;
+  min-width: 20px;
+}
+
+.hud-coin-bump {
+  animation: coin-bump 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes coin-bump {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 /* =========================================================================
    BARRES DE VIE ET NOMS DES MONSTRES DANS LE MONDE 3D (STYLE PIXEL-ART MÉDIÉVAL NET)
    ========================================================================= */
@@ -1920,6 +1978,44 @@ body {
   width: 100%;
   max-width: 320px;
   align-items: stretch;
+}
+
+.main-menu-wallet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 8px 18px;
+  clip-path: var(--pixel-notch-small);
+  filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000);
+  background: radial-gradient(circle at center, #261c0e 0%, #130e07 100%);
+  border: 2px solid #ca8a04;
+  box-shadow:
+    inset 0 2px 0 0 #fde047,
+    inset 2px 0 0 0 #eab308,
+    inset 0 -3px 0 0 #422006,
+    inset -2px 0 0 0 #422006,
+    inset 0 0 0 1px #000000;
+}
+
+.main-menu-coin-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 2px 0 #000000);
+}
+
+.main-menu-coin-text {
+  font-family: var(--font-medieval);
+  font-size: 20px;
+  font-weight: bold;
+  color: #fef08a;
+  text-shadow: 2px 2px 0 #000000;
+  letter-spacing: 1px;
 }
 
 .main-menu-btn {

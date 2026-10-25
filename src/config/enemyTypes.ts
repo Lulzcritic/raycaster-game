@@ -162,8 +162,8 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
       attackCooldown: 2.2,
       attackWindup: 0.65,
     },
-    scale: 0.52,
-    hitBox: 0.32,
+    scale: 0.78,
+    hitBox: 0.38,
     colorTheme: {
       primary: '#cbd5e1',
       secondary: '#64748b',

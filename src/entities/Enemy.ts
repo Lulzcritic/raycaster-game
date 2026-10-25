@@ -1,3 +1,4 @@
+import { getEnemyType } from '../config/enemyTypes';
 import { ItemDatabase } from '../config/ItemDatabase';
 import { WalletManager } from '../core/WalletManager';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
@@ -17,7 +18,6 @@ import { DroppedCoin } from './DroppedCoin';
 import { DroppedItemOrb } from './DroppedItemOrb';
 import { Entity } from './Entity';
 import type { Player } from './Player';
-import { PumpkinSeed } from './PumpkinSeed';
 
 export type EnemyState = 'idle' | 'aggro' | 'attacking' | 'hurt' | 'dead';
 
@@ -52,6 +52,11 @@ export class Enemy extends Entity {
 
   // Variables propres à la Citrouille (ponte de graines régulières)
   private seedLayTimer = 4.0;
+
+  // Variables propres à la Graine de Citrouille (compte à rebours avant éclosion)
+  private hatchTimer = 5.5;
+  private readonly totalHatchTime = 5.5;
+  private hasHatched = false;
 
   constructor(
     x: number,
@@ -139,10 +144,11 @@ export class Enemy extends Entity {
       );
     }
     if (this.type.id === 'pumpkin_seed') {
+      const progress = 1 - Math.max(0, this.hatchTimer) / this.totalHatchTime;
       return PumpkinSpriteManager.getSeedSprite(
         this.state,
         this.animTimer,
-        0
+        progress
       );
     }
 
@@ -190,10 +196,7 @@ export class Enemy extends Entity {
     if (this.type.id === 'goblin' && this.isFleeing) {
       name = `${this.type.name} [${Math.max(0, this.fleeTimer).toFixed(1)}s]`;
     } else if (this.type.id === 'pumpkin_seed') {
-      const remaining = (this as any).hatchTimer !== undefined
-        ? Math.max(0, (this as any).hatchTimer).toFixed(1)
-        : '5.0';
-      name = `${this.type.name} [${remaining}s]`;
+      name = `${this.type.name} [${Math.max(0, this.hatchTimer).toFixed(1)}s]`;
     }
 
     return {
@@ -248,6 +251,28 @@ export class Enemy extends Entity {
     this.state = 'dead';
     this.stateTimer = 0.42;
     this.currentElevation = 0;
+
+    // Graine de Citrouille écrasée par le joueur avant son éclosion
+    if (this.type.id === 'pumpkin_seed') {
+      if (this.hasHatched) return;
+      this.stateTimer = 0.35;
+      if (this.onSpawnEntity) {
+        const coin = new DroppedCoin(
+          this.x,
+          this.y,
+          this.x + (Math.random() - 0.5) * 0.2,
+          this.y + (Math.random() - 0.5) * 0.2,
+          1,
+          this.player,
+          (gained) => {
+            WalletManager.addCoins(gained);
+          }
+        );
+        this.onSpawnEntity(coin);
+      }
+      this.onNotify?.("GRAINE DE CITROUILLE ÉCRASÉE AVANT ÉCLOSION !");
+      return;
+    }
 
     // Gobelin au trésor : éruption de pièces ET loot au moins RARE garanti
     if (this.type.id === 'goblin') {
@@ -381,7 +406,31 @@ export class Enemy extends Entity {
       this.isMoving = false;
       this.stateTimer -= deltaTime;
       if (this.stateTimer <= 0) {
-        this.state = 'aggro';
+        this.state = this.type.id === 'pumpkin_seed' ? 'idle' : 'aggro';
+      }
+      return;
+    }
+
+    // Gestion propre à la Graine de Citrouille (immobile, compte à rebours vers éclosion)
+    if (this.type.id === 'pumpkin_seed') {
+      this.isMoving = false;
+      this.hatchTimer -= deltaTime;
+      if (this.hatchTimer <= 0 && !this.hasHatched && this.isAlive()) {
+        this.hasHatched = true;
+        this.active = false;
+        if (this.onSpawnEntity) {
+          const babyPumpkin = new Enemy(
+            this.x,
+            this.y,
+            getEnemyType('pumpkin'),
+            this.player,
+            this.onSpawnEntity,
+            this.onNotify
+          );
+          babyPumpkin.state = 'aggro';
+          this.onSpawnEntity(babyPumpkin);
+        }
+        this.onNotify?.("UNE GRAINE A ÉCLOS ! UNE NOUVELLE CITROUILLE APPARAÎT !");
       }
       return;
     }
@@ -468,9 +517,10 @@ export class Enemy extends Entity {
         this.seedLayTimer -= deltaTime;
         if (this.seedLayTimer <= 0 && this.onSpawnEntity) {
           this.seedLayTimer = 7.5;
-          const seed = new PumpkinSeed(
+          const seed = new Enemy(
             this.x,
             this.y,
+            getEnemyType('pumpkin_seed'),
             this.player,
             this.onSpawnEntity,
             this.onNotify

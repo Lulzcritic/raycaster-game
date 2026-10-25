@@ -1,5 +1,6 @@
 import { COLORS, SCREEN_CONFIG, TEXTURE_CONFIG } from '../config/constants';
 import type { Entity } from '../entities/Entity';
+import { FrostingPuddle } from '../entities/FrostingPuddle';
 import type { Player } from '../entities/Player';
 import type { RayHit } from '../types';
 import type { GameMap } from '../world/GameMap';
@@ -25,6 +26,15 @@ export class Renderer {
   private readonly floorFallbackColor32: number;
   private focalLength: number;
   private lastFov = 0;
+
+  // Couleurs 32-bit et grille d'accélération spatiale pour les traces de glaçage au sol
+  private readonly frostingWhite32: number;
+  private readonly frostingCream32: number;
+  private readonly frostingOrange32: number;
+  private readonly frostingDarkOrange32: number;
+  private readonly frostingSprinkles32: number[];
+  private puddleGrid: (FrostingPuddle[] | null)[] = [];
+  private readonly touchedPuddleCells: number[] = [];
 
   constructor(canvas: HTMLCanvasElement, textureManager: TextureManager) {
     this.canvas = canvas;
@@ -68,6 +78,17 @@ export class Renderer {
 
     this.ceilingColor32 = this.colorToUint32(COLORS.CEILING);
     this.floorFallbackColor32 = this.colorToUint32(COLORS.FLOOR);
+
+    this.frostingWhite32 = this.colorToUint32('#ffffff');
+    this.frostingCream32 = this.colorToUint32('#fff7ed');
+    this.frostingOrange32 = this.colorToUint32('#f97316');
+    this.frostingDarkOrange32 = this.colorToUint32('#ea580c');
+    this.frostingSprinkles32 = [
+      this.colorToUint32('#ec4899'),
+      this.colorToUint32('#3b82f6'),
+      this.colorToUint32('#10b981'),
+      this.colorToUint32('#facc15'),
+    ];
   }
 
   public getRayHits(): readonly RayHit[] {
@@ -107,6 +128,44 @@ export class Renderer {
     const skyHeight = this.textureManager.skyboxHeight;
     const skyPixels = this.textureManager.getTexturePixels(map.skyTileId);
     const skyPeriod = skyWidth * 2;
+
+    // Détection des flaques de glaçage au sol à projeter à plat sur la texture du sol
+    const activePuddles: FrostingPuddle[] = [];
+    for (let e = 0; e < entities.length; e++) {
+      const ent = entities[e];
+      if (ent instanceof FrostingPuddle && ent.active) {
+        activePuddles.push(ent);
+      }
+    }
+    const hasPuddles = activePuddles.length > 0;
+
+    if (hasPuddles) {
+      const requiredSize = map.width * map.height;
+      if (this.puddleGrid.length < requiredSize) {
+        this.puddleGrid = new Array(requiredSize).fill(null);
+      }
+      for (let p = 0; p < activePuddles.length; p++) {
+        const puddle = activePuddles[p];
+        const minCX = Math.max(0, Math.floor(puddle.x - puddle.radius));
+        const maxCX = Math.min(map.width - 1, Math.floor(puddle.x + puddle.radius));
+        const minCY = Math.max(0, Math.floor(puddle.y - puddle.radius));
+        const maxCY = Math.min(map.height - 1, Math.floor(puddle.y + puddle.radius));
+
+        for (let cy = minCY; cy <= maxCY; cy++) {
+          const rowOffset = cy * map.width;
+          for (let cx = minCX; cx <= maxCX; cx++) {
+            const cellIdx = rowOffset + cx;
+            let list = this.puddleGrid[cellIdx];
+            if (!list) {
+              list = [];
+              this.puddleGrid[cellIdx] = list;
+              this.touchedPuddleCells.push(cellIdx);
+            }
+            list.push(puddle);
+          }
+        }
+      }
+    }
 
     // 1. Lancer de rayons, projection de la Skybox (1:1 sans étirement) et du sol
     for (let i = 0; i < width; i += 1) {
@@ -153,14 +212,31 @@ export class Renderer {
         const floorTileId = map.getFloorTile(floorX, floorY);
         const texPixels = this.textureManager.getTexturePixels(floorTileId);
 
-        if (texPixels) {
-          const texX = Math.floor((floorX - Math.floor(floorX)) * texSize);
-          const texY = Math.floor((floorY - Math.floor(floorY)) * texSize);
-          this.screenBuffer32[y * width + i] = texPixels[texY * texSize + texX];
-        } else {
-          this.screenBuffer32[y * width + i] = this.floorFallbackColor32;
+        let pixelColor = texPixels
+          ? texPixels[Math.floor((floorY - Math.floor(floorY)) * texSize) * texSize + Math.floor((floorX - Math.floor(floorX)) * texSize)]
+          : this.floorFallbackColor32;
+
+        // Application à plat du glaçage par-dessus la texture du sol
+        if (hasPuddles) {
+          const cellX = Math.floor(floorX);
+          const cellY = Math.floor(floorY);
+          if (cellX >= 0 && cellX < map.width && cellY >= 0 && cellY < map.height) {
+            const puddlesInCell = this.puddleGrid[cellY * map.width + cellX];
+            if (puddlesInCell) {
+              pixelColor = this.applyFrostingColor(floorX, floorY, puddlesInCell, pixelColor);
+            }
+          }
         }
+
+        this.screenBuffer32[y * width + i] = pixelColor;
       }
+    }
+
+    if (this.touchedPuddleCells.length > 0) {
+      for (let t = 0; t < this.touchedPuddleCells.length; t++) {
+        this.puddleGrid[this.touchedPuddleCells[t]] = null;
+      }
+      this.touchedPuddleCells.length = 0;
     }
 
     // 2. Affichage de la Skybox et du sol texturé sur le canvas
@@ -393,5 +469,86 @@ export class Renderer {
     tempCtx.fillRect(0, 0, 1, 1);
     const data = new Uint32Array(tempCtx.getImageData(0, 0, 1, 1).data.buffer);
     return data[0];
+  }
+
+  /**
+   * Projette le glaçage crémeux à plat par-dessus la texture du sol avec coulis d'orange et vermicelles
+   */
+  private applyFrostingColor(
+    floorX: number,
+    floorY: number,
+    puddles: FrostingPuddle[],
+    basePixel: number
+  ): number {
+    let resultColor = basePixel;
+
+    for (let p = 0; p < puddles.length; p++) {
+      const puddle = puddles[p];
+      const dx = floorX - puddle.x;
+      const dy = floorY - puddle.y;
+      const distSq = dx * dx + dy * dy;
+
+      if (distSq > puddle.radiusSq) {
+        continue;
+      }
+
+      const normDist = Math.sqrt(distSq) / puddle.radius;
+      // Ondulations organiques sur les contours de la trace de glaçage
+      const angle = Math.atan2(dy, dx);
+      const wobble =
+        Math.sin(angle * 5 + puddle.variant * 2) * 0.08 +
+        Math.cos(angle * 7) * 0.05;
+      const effectiveDist = normDist + wobble;
+
+      if (effectiveDist > 1.0) {
+        continue;
+      }
+
+      // Fondu en fin de vie durant les 1.5 dernières secondes
+      const lifeFade =
+        puddle.remainingLife < 1.5
+          ? Math.max(0, puddle.remainingLife / 1.5)
+          : 1.0;
+
+      // Dessin du motif de glaçage : coulis d'orange carotte et vermicelles de sucre
+      const swirl = Math.sin(dx * 18 + dy * 14 + puddle.variant * 2.3);
+      let frostingColor: number;
+
+      if (Math.abs(swirl) > 0.72) {
+        frostingColor = swirl > 0 ? this.frostingOrange32 : this.frostingDarkOrange32;
+      } else {
+        const sprinkleHash =
+          ((Math.sin(floorX * 47.1 + floorY * 73.9) * 43758.5453) % 1 + 1) % 1;
+        if (sprinkleHash > 0.94) {
+          const sprinkleIdx = Math.floor(sprinkleHash * 100) % this.frostingSprinkles32.length;
+          frostingColor = this.frostingSprinkles32[sprinkleIdx];
+        } else if (effectiveDist < 0.35) {
+          frostingColor = this.frostingWhite32;
+        } else {
+          frostingColor = this.frostingCream32;
+        }
+      }
+
+      let alpha = lifeFade;
+      if (effectiveDist > 0.78) {
+        alpha *= (1.0 - effectiveDist) / 0.22;
+      }
+
+      if (alpha >= 0.96) {
+        resultColor = frostingColor;
+      } else if (alpha > 0.04) {
+        resultColor = this.blendPixels(resultColor, frostingColor, alpha);
+      }
+    }
+
+    return resultColor;
+  }
+
+  private blendPixels(base: number, overlay: number, alpha: number): number {
+    const invAlpha = 1 - alpha;
+    const r = Math.round((base & 0xff) * invAlpha + (overlay & 0xff) * alpha);
+    const g = Math.round(((base >> 8) & 0xff) * invAlpha + ((overlay >> 8) & 0xff) * alpha);
+    const b = Math.round(((base >> 16) & 0xff) * invAlpha + ((overlay >> 16) & 0xff) * alpha);
+    return (0xff << 24) | (b << 16) | (g << 8) | r;
   }
 }

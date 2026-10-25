@@ -1,9 +1,10 @@
-import { DEFAULT_PLAYER_CONFIG, FIREBALL_CONFIG, KEYS } from '../config/constants';
+import { DEFAULT_PLAYER_CONFIG, FIREBALL_CONFIG, PURPLE_ORB_CONFIG, KEYS } from '../config/constants';
 import type { InputManager } from '../core/InputManager';
 import type { EquipmentItem, PlayerConfig } from '../types';
 import type { GameMap } from '../world/GameMap';
 import { Entity } from './Entity';
 import { Fireball } from './Fireball';
+import { PurpleOrb } from './PurpleOrb';
 import { Inventory } from './Inventory';
 
 export class Player extends Entity {
@@ -28,14 +29,16 @@ export class Player extends Entity {
   public damageFlashTimer = 0;
 
   private readonly input: InputManager;
-  private readonly onShoot?: (projectile: Fireball) => void;
+  private readonly onShoot?: (projectile: Entity) => void;
   private shootCooldown = 0;
+  private secondaryCooldown = 0;
+  private maxSecondaryCooldown: number = PURPLE_ORB_CONFIG.COOLDOWN;
   private bobTimer = 0;
 
   constructor(
     input: InputManager,
     config: Partial<PlayerConfig> = {},
-    onShoot?: (projectile: Fireball) => void
+    onShoot?: (projectile: Entity) => void
   ) {
     const fullConfig: PlayerConfig = { ...DEFAULT_PLAYER_CONFIG, ...config };
     super(fullConfig.x, fullConfig.y, fullConfig.angle, fullConfig.hitBox);
@@ -80,7 +83,18 @@ export class Player extends Entity {
   }
 
   public isCasting(): boolean {
-    return this.shootCooldown > FIREBALL_CONFIG.COOLDOWN * 0.35;
+    return (
+      this.shootCooldown > FIREBALL_CONFIG.COOLDOWN * 0.35 ||
+      this.secondaryCooldown > this.maxSecondaryCooldown - 0.25
+    );
+  }
+
+  public getSecondaryCooldown(): number {
+    return this.secondaryCooldown;
+  }
+
+  public getMaxSecondaryCooldown(): number {
+    return this.maxSecondaryCooldown;
   }
 
   public update(deltaTime: number, map: GameMap): void {
@@ -92,9 +106,14 @@ export class Player extends Entity {
       this.damageFlashTimer = Math.max(0, this.damageFlashTimer - deltaTime);
     }
 
-    // Gestion du temps de recharge du tir
+    // Gestion du temps de recharge du tir principal (Boule de feu)
     if (this.shootCooldown > 0) {
       this.shootCooldown = Math.max(0, this.shootCooldown - deltaTime);
+    }
+
+    // Gestion du temps de recharge du sort secondaire (Orbe violette)
+    if (this.secondaryCooldown > 0) {
+      this.secondaryCooldown = Math.max(0, this.secondaryCooldown - deltaTime);
     }
 
     // Rotation de la vision à la souris (gauche / droite)
@@ -116,6 +135,17 @@ export class Player extends Entity {
       this.input.isMouseLeftDown() || this.input.isKeyDown(KEYS.SHOOT);
     if (wantsToShoot && this.shootCooldown <= 0) {
       this.shootFireball(
+        bonusStats.castSpeed,
+        bonusStats.damage,
+        bonusStats.magicPower
+      );
+    }
+
+    // Tir d'orbe violette rebondissante (Clic droit)
+    const wantsToShootSecondary =
+      this.input.consumeMouseRightClick() || this.input.isMouseRightDown();
+    if (wantsToShootSecondary && this.secondaryCooldown <= 0) {
+      this.shootPurpleOrb(
         bonusStats.castSpeed,
         bonusStats.damage,
         bonusStats.magicPower
@@ -182,6 +212,21 @@ export class Player extends Entity {
     const totalDamage = 16 + bonusDamage + magicPower;
     const fireball = new Fireball(spawnX, spawnY, this.angle, totalDamage);
     this.onShoot?.(fireball);
+  }
+
+  private shootPurpleOrb(
+    castSpeedBonus = 0,
+    bonusDamage = 0,
+    magicPower = 0
+  ): void {
+    const cooldownFactor = Math.max(0.4, 1 - castSpeedBonus);
+    this.secondaryCooldown = PURPLE_ORB_CONFIG.COOLDOWN * cooldownFactor;
+    this.maxSecondaryCooldown = this.secondaryCooldown;
+    const spawnX = this.x + Math.cos(this.angle) * PURPLE_ORB_CONFIG.SPAWN_OFFSET;
+    const spawnY = this.y + Math.sin(this.angle) * PURPLE_ORB_CONFIG.SPAWN_OFFSET;
+    const totalDamage = PURPLE_ORB_CONFIG.DAMAGE + bonusDamage + Math.round(magicPower * 1.5);
+    const orb = new PurpleOrb(spawnX, spawnY, this.angle, totalDamage);
+    this.onShoot?.(orb);
   }
 
   private applyMovement(moveX: number, moveY: number, map: GameMap): void {

@@ -32,6 +32,7 @@ import { PumpkinSpriteManager } from '../graphics/PumpkinSpriteManager';
 import { Arrow } from '../entities/Arrow';
 import { BloodOrb } from '../entities/BloodOrb';
 import { BloodWaveSegment } from '../entities/BloodWaveSegment';
+import { PurpleOrb } from '../entities/PurpleOrb';
 import { WalletManager } from './WalletManager';
 import { InputManager } from './InputManager';
 
@@ -560,6 +561,42 @@ export class Game {
           enemy.takeDamage(fb.damage, fb.angle);
           fb.explode();
           break;
+        }
+      }
+    }
+
+    // Détection des collisions orbes violets rebondissants (Clic Droit) <-> ennemis vivants ET joueur (auto-dégâts)
+    const flyingPurpleOrbs = this.entities.filter(
+      (e): e is PurpleOrb => e instanceof PurpleOrb && e.isFlying()
+    );
+
+    for (const orb of flyingPurpleOrbs) {
+      let hitTarget = false;
+
+      // 1. Collision avec les ennemis vivants
+      for (const enemy of aliveEnemies) {
+        const dist = Math.hypot(orb.x - enemy.x, orb.y - enemy.y);
+        if (dist < orb.hitBox + enemy.hitBox) {
+          enemy.takeDamage(orb.damage, orb.angle);
+          orb.explode();
+          hitTarget = true;
+          break;
+        }
+      }
+
+      if (hitTarget) {
+        continue;
+      }
+
+      // 2. Collision avec le joueur (dégâts à soi-même après rebond ou délai initial)
+      if (orb.canDamageSelf()) {
+        const distToPlayer = Math.hypot(orb.x - this.player.x, orb.y - this.player.y);
+        if (distToPlayer < orb.hitBox + this.player.hitBox) {
+          this.player.takeDamage(orb.damage);
+          this.interactionPrompt.showNotification(
+            `VOTRE ORBE MAGIQUE VOUS A TOUCHÉ ! (-${orb.damage} PV)`
+          );
+          orb.explode();
         }
       }
     }

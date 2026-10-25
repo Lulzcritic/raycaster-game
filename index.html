@@ -30,6 +30,18 @@
         </div>
         <div id="hud-health-text" class="hud-health-text">PV 100 / 100</div>
       </div>
+      <div id="hud-spell-panel" class="hud-spell-panel">
+        <div class="hud-spell-slot" title="Sort Primaire : Boule de Feu [Clic G / Espace]">
+          <div class="hud-spell-badge fire-glow">🔥</div>
+          <span class="hud-spell-key">CLIC G</span>
+        </div>
+        <div id="hud-spell-secondary" class="hud-spell-slot" title="Sort Secondaire : Orbe Rebondissant [Clic Droit]">
+          <div class="hud-spell-badge purple-glow">🔮</div>
+          <div id="hud-spell-cooldown-overlay" class="hud-spell-cooldown-overlay hidden"></div>
+          <span id="hud-spell-cooldown-text" class="hud-spell-cooldown-text"></span>
+          <span class="hud-spell-key">CLIC D</span>
+        </div>
+      </div>
       <div id="hud-zone-panel" class="hud-zone-panel">
         <div id="hud-zone-title" class="hud-zone-title">ZONE 1 - QUARTIER DE DÉPART</div>
         <div id="hud-raid-timer" class="hud-raid-timer">⏱️ RAID 00:00</div>
@@ -93,7 +105,8 @@
             <p>W / S : AVANCER / RECULER</p>
             <p>A / D : GAUCHE / DROITE</p>
             <p>SOURIS : ORIENTER LA VUE</p>
-            <p>CLIC / ESPACE : BOULE DE FEU</p>
+            <p>CLIC G / ESPACE : BOULE DE FEU</p>
+            <p>CLIC DROIT : ORBE VIOLET REBONDISSANT</p>
             <p>F : INTERAGIR</p>
             <p>ECHAP : MENU PAUSE</p>
           </div>
@@ -188,7 +201,8 @@
                 <div class="control-item"><span class="control-key">W / S</span><span>Avancer / Reculer</span></div>
                 <div class="control-item"><span class="control-key">A / D</span><span>Strafe Gauche / Droite</span></div>
                 <div class="control-item"><span class="control-key">SOURIS</span><span>Orienter la vue</span></div>
-                <div class="control-item"><span class="control-key">CLIC / ESPACE</span><span>Boule de Feu</span></div>
+                <div class="control-item"><span class="control-key">CLIC G / ESPACE</span><span>Boule de Feu</span></div>
+                <div class="control-item"><span class="control-key">CLIC D</span><span>Orbe Violet Rebondissant</span></div>
                 <div class="control-item"><span class="control-key">F</span><span>Interagir (Coffres, Portes, Marchand)</span></div>
                 <div class="control-item"><span class="control-key">ÉCHAP</span><span>Menu Pause en jeu</span></div>
               </div>

@@ -23,6 +23,9 @@ export class HUDOverlay {
   private readonly coinPanel: HTMLElement | null;
   private readonly coinText: HTMLElement | null;
   private readonly coinIcon: HTMLImageElement | null;
+  private readonly spellSecondarySlot: HTMLElement | null;
+  private readonly spellCooldownOverlay: HTMLElement | null;
+  private readonly spellCooldownText: HTMLElement | null;
   private lastCoins = -1;
 
   private readonly extractionScreen: HTMLElement | null;
@@ -47,6 +50,9 @@ export class HUDOverlay {
     this.coinPanel = document.getElementById('hud-coin-panel');
     this.coinText = document.getElementById('hud-coin-text');
     this.coinIcon = document.getElementById('hud-coin-icon') as HTMLImageElement | null;
+    this.spellSecondarySlot = document.getElementById('hud-spell-secondary');
+    this.spellCooldownOverlay = document.getElementById('hud-spell-cooldown-overlay');
+    this.spellCooldownText = document.getElementById('hud-spell-cooldown-text');
 
     if (this.coinIcon) {
       this.coinIcon.src = CoinSpriteManager.getCoinUrl();
@@ -81,6 +87,11 @@ export class HUDOverlay {
     this.lastCoins = -1;
     this.extractionScreen?.classList.add('hidden');
     this.deathScreen?.classList.add('hidden');
+    this.spellCooldownOverlay?.classList.add('hidden');
+    if (this.spellCooldownText) {
+      this.spellCooldownText.textContent = '';
+    }
+    this.spellSecondarySlot?.classList.remove('on-cooldown');
   }
 
   public update(
@@ -188,6 +199,27 @@ export class HUDOverlay {
         this.coinPanel.classList.add('hud-coin-bump');
       }
       this.lastCoins = currentCoins;
+    }
+
+    // 4. Sort secondaire (Orbe violette rebondissante)
+    const secondaryCd = player.getSecondaryCooldown();
+    const maxCd = player.getMaxSecondaryCooldown();
+    if (secondaryCd > 0) {
+      if (this.spellCooldownOverlay) {
+        this.spellCooldownOverlay.classList.remove('hidden');
+        const ratio = Math.max(0, Math.min(1, secondaryCd / maxCd));
+        this.spellCooldownOverlay.style.height = `${Math.round(ratio * 100)}%`;
+      }
+      if (this.spellCooldownText) {
+        this.spellCooldownText.textContent = `${secondaryCd.toFixed(1)}s`;
+      }
+      this.spellSecondarySlot?.classList.add('on-cooldown');
+    } else {
+      this.spellCooldownOverlay?.classList.add('hidden');
+      if (this.spellCooldownText) {
+        this.spellCooldownText.textContent = '';
+      }
+      this.spellSecondarySlot?.classList.remove('on-cooldown');
     }
   }
 

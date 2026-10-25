@@ -4,6 +4,8 @@ export class InputManager {
   private readonly justPressedKeys = new Set<string>();
   private mouseDeltaX = 0;
   private mouseLeftDown = false;
+  private mouseRightDown = false;
+  private mouseRightJustPressed = false;
   private paused = false;
   private lastPointerUnlockTime = 0;
   private readonly onPauseChange?: (paused: boolean) => void;
@@ -14,6 +16,7 @@ export class InputManager {
   private readonly handleMouseMove: (e: MouseEvent) => void;
   private readonly handleMouseDown: (e: MouseEvent) => void;
   private readonly handleMouseUp: (e: MouseEvent) => void;
+  private readonly handleContextMenu: (e: MouseEvent) => void;
   private readonly handlePointerLockChange: () => void;
 
   constructor(canvas: HTMLCanvasElement, onPauseChange?: (paused: boolean) => void) {
@@ -68,13 +71,22 @@ export class InputManager {
 
       if (e.button === 0) {
         this.mouseLeftDown = true;
+      } else if (e.button === 2) {
+        this.mouseRightDown = true;
+        this.mouseRightJustPressed = true;
       }
     };
 
     this.handleMouseUp = (e: MouseEvent) => {
       if (e.button === 0) {
         this.mouseLeftDown = false;
+      } else if (e.button === 2) {
+        this.mouseRightDown = false;
       }
+    };
+
+    this.handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
     };
 
     this.handlePointerLockChange = () => {
@@ -91,6 +103,8 @@ export class InputManager {
     document.addEventListener('mouseup', this.handleMouseUp);
     document.addEventListener('pointerlockchange', this.handlePointerLockChange);
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
+    this.canvas.addEventListener('contextmenu', this.handleContextMenu);
+    window.addEventListener('contextmenu', this.handleContextMenu);
   }
 
   public setPaused(paused: boolean, notify = true): void {
@@ -102,6 +116,8 @@ export class InputManager {
     this.keyPressed.clear();
     this.justPressedKeys.clear();
     this.mouseLeftDown = false;
+    this.mouseRightDown = false;
+    this.mouseRightJustPressed = false;
     this.mouseDeltaX = 0;
 
     if (paused) {
@@ -150,6 +166,24 @@ export class InputManager {
     return !this.paused && this.mouseLeftDown;
   }
 
+  public isMouseRightDown(): boolean {
+    return !this.paused && this.mouseRightDown;
+  }
+
+  /**
+   * Renvoie true une seule fois lorsque le clic droit vient d'être pressé
+   */
+  public consumeMouseRightClick(): boolean {
+    if (this.paused) {
+      return false;
+    }
+    if (this.mouseRightJustPressed) {
+      this.mouseRightJustPressed = false;
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Récupère le déplacement horizontal de la souris depuis la dernière frame et le remet à zéro
    */
@@ -169,6 +203,8 @@ export class InputManager {
     document.removeEventListener('mouseup', this.handleMouseUp);
     document.removeEventListener('pointerlockchange', this.handlePointerLockChange);
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
+    this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
+    window.removeEventListener('contextmenu', this.handleContextMenu);
     this.keyPressed.clear();
   }
 }

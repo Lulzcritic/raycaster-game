@@ -104,6 +104,20 @@ export const FIREBALL_CONFIG = {
   EXPLOSION_DURATION: 0.22,
 } as const;
 
+export const PURPLE_ORB_CONFIG = {
+  SPEED: 5.0,
+  COOLDOWN: 2.2,
+  SPAWN_OFFSET: 0.35,
+  MAX_BOUNCES: 6,
+  DAMAGE: 32,
+  HITBOX: 0.14,
+  SCALE: 0.32,
+  EXPLOSION_SCALE: 0.54,
+  EXPLOSION_DURATION: 0.28,
+  SELF_DAMAGE_MIN_LIFETIME: 0.18,
+  MAX_LIFETIME: 10,
+} as const;
+
 export const DEFAULT_PLAYER_CONFIG: PlayerConfig = {
   x: 4,
   y: 3,

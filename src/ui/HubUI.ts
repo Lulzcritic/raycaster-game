@@ -132,7 +132,7 @@ export class HubUI {
 
     // Initialisation du fond d'écran
     if (this.hubElement) {
-      this.hubElement.style.backgroundImage = `linear-gradient(rgba(10, 6, 18, 0.45), rgba(8, 4, 14, 0.75)), url('${hubBgUrl}')`;
+      this.hubElement.style.backgroundImage = `linear-gradient(rgba(10, 6, 18, 0.2), rgba(8, 4, 14, 0.5)), url('${hubBgUrl}')`;
     }
 
     if (this.coinIcon) {

@@ -250,45 +250,41 @@
         </div>
       </nav>
 
-      <!-- Corps du Hub : Gauche (Avatar) & Droite (Contenu de l'onglet actif) -->
+      <!-- Corps du Hub : Scène Avatar à gauche (Fortnite style) & Interface active à droite -->
       <div class="hub-body">
-        <!-- Panneau latéral Gauche : Aperçu Avatar & Stats rapides -->
-        <aside class="hub-avatar-panel">
-          <div class="hub-avatar-card">
-            <div class="hub-avatar-header">
-              <span id="hub-avatar-title" class="hub-avatar-title">SEIGNEUR DES CRYPTES</span>
-              <div class="hub-skin-switcher">
-                <button id="hub-skin-prev" class="hub-skin-btn" type="button" title="Skin précédent">◄</button>
-                <span id="hub-skin-name" class="hub-skin-name">Lord Énigmatique</span>
-                <button id="hub-skin-next" class="hub-skin-btn" type="button" title="Skin suivant">►</button>
-              </div>
-            </div>
-
-            <div class="hub-avatar-pedestal">
-              <img id="hub-avatar-img" class="hub-avatar-img" alt="Avatar" />
-            </div>
-
-            <!-- Mini aperçu des 5 pièces d'équipement équipées -->
-            <div id="hub-avatar-gear-preview" class="hub-avatar-gear-preview"></div>
-
-            <!-- Synthèse des statistiques sous l'avatar -->
-            <div id="hub-avatar-stats" class="hub-avatar-stats"></div>
+        <!-- Scène du Héros (Fortnite style) : Mage sans fenêtre, debout en superposition directe sur le fond -->
+        <div class="hub-hero-stage">
+          <div class="hub-hero-pedestal">
+            <div class="hub-hero-glow"></div>
+            <img id="hub-avatar-img" class="hub-avatar-img" alt="Avatar" />
           </div>
-        </aside>
 
-        <!-- Zone de contenu centrale / droite (onglets dynamiques) -->
-        <main class="hub-content-panel">
+          <!-- Sélecteur de skin flottant -->
+          <div class="hub-skin-selector">
+            <button id="hub-skin-prev" class="hub-skin-btn" type="button" title="Skin précédent">◄</button>
+            <div class="hub-skin-meta">
+              <span id="hub-skin-name" class="hub-skin-name">Lord Énigmatique</span>
+              <span id="hub-avatar-title" class="hub-avatar-title">SEIGNEUR DES ARCANES</span>
+            </div>
+            <button id="hub-skin-next" class="hub-skin-btn" type="button" title="Skin suivant">►</button>
+          </div>
+        </div>
+
+        <!-- Interfaces flottantes directement sur le background (pas de fenêtre, pas de page défilable) -->
+        <div class="hub-views-container">
           <!-- Onglet JOUER -->
           <section id="hub-view-play" class="hub-view active">
-            <div class="hub-play-card">
-              <h2 class="hub-view-title">⚔️ EXPÉDITION DANS LES CRYPTES</h2>
-              <p class="hub-view-subtitle">Pénétrez dans la Citadelle oubliée, pillez les trésors et extrayez vos richesses vivant.</p>
+            <div class="hub-play-stage">
+              <div class="hub-play-header">
+                <h1 class="hub-view-title">⚔️ EXPÉDITION DANS LES CRYPTES</h1>
+                <p class="hub-view-subtitle">Pénétrez dans la Citadelle oubliée, pillez les trésors anciens et extrayez vivant vos richesses.</p>
+              </div>
 
               <div class="hub-dungeon-zones">
                 <div class="hub-zone-card zone-1">
                   <div class="hub-zone-badge">ZONE 1</div>
                   <h3>Quartier de Départ</h3>
-                  <p>Blobs de vase toxique et coffres anciens. Faible menace.</p>
+                  <p>Blobs toxiques et coffres rouillés. Faible menace.</p>
                 </div>
                 <div class="hub-zone-card zone-2">
                   <div class="hub-zone-badge">ZONE 2</div>
@@ -303,12 +299,14 @@
               </div>
 
               <div class="hub-play-warning">
-                ✦ <strong>RÈGLE D'EXTRACTION</strong> : Les pièces et objets ramassés ne sont définitivement sécurisés que si vous atteignez un portail d'extraction actif ! En cas de mort, le butin non extrait est perdu.
+                ✦ <strong>RÈGLE D'EXTRACTION</strong> : Les pièces et objets ne sont sécurisés que si vous atteignez un portail d'extraction actif ! En cas de mort, le butin récolté dans la crypte est dissous dans le néant.
               </div>
 
-              <button id="hub-launch-raid-btn" class="hub-launch-btn" type="button">
-                ⚔️ ENTRER DANS LA CRYPTE [LANCER LE RAID]
-              </button>
+              <div class="hub-play-action">
+                <button id="hub-launch-raid-btn" class="hub-launch-btn" type="button">
+                  ⚔️ ENTRER DANS LA CRYPTE [LANCER LE RAID]
+                </button>
+              </div>
             </div>
           </section>
 
@@ -350,12 +348,14 @@
           <!-- Onglet QUÊTES -->
           <section id="hub-view-quests" class="hub-view hidden">
             <div class="hub-quests-container">
-              <h2 class="hub-view-title">📜 REGISTRE DES CONTRATS & QUÊTES</h2>
-              <p class="hub-view-subtitle">Accomplissez des exploits lors de vos expéditions pour décrocher de généreuses primes en pièces d'or.</p>
+              <div class="hub-quests-header">
+                <h2 class="hub-view-title">📜 REGISTRE DES CONTRATS & QUÊTES</h2>
+                <p class="hub-view-subtitle">Accomplissez des exploits lors de vos expéditions pour décrocher des récompenses en pièces d'or.</p>
+              </div>
               <div id="hub-quests-list" class="hub-quests-list"></div>
             </div>
           </section>
-        </main>
+        </div>
       </div>
     </div>
 

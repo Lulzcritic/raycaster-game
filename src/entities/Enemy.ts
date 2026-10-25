@@ -183,6 +183,9 @@ export class Enemy extends Entity {
     rank: 'normal' | 'elite' | 'boss';
     name: string;
     isVisible: boolean;
+    typeId: string;
+    hatchRemaining?: number;
+    hatchRatio?: number;
   } {
     const isVisible =
       this.active &&
@@ -195,9 +198,13 @@ export class Enemy extends Entity {
     let name = this.type.name;
     if (this.type.id === 'goblin' && this.isFleeing) {
       name = `${this.type.name} [${Math.max(0, this.fleeTimer).toFixed(1)}s]`;
-    } else if (this.type.id === 'pumpkin_seed') {
-      name = `${this.type.name} [${Math.max(0, this.hatchTimer).toFixed(1)}s]`;
     }
+
+    const isSeed = this.type.id === 'pumpkin_seed';
+    const hatchRemaining = isSeed ? Math.max(0, this.hatchTimer) : undefined;
+    const hatchRatio = isSeed
+      ? Math.max(0, this.hatchTimer) / this.totalHatchTime
+      : undefined;
 
     return {
       percent: Math.max(0, Math.min(1, this.health / this.maxHealth)),
@@ -206,6 +213,9 @@ export class Enemy extends Entity {
       rank: this.type.rank,
       name,
       isVisible,
+      typeId: this.type.id,
+      hatchRemaining,
+      hatchRatio,
     };
   }
 

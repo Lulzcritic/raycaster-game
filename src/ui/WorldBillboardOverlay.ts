@@ -670,10 +670,49 @@ export class WorldBillboardOverlay {
       maxHealth: number;
       rank: 'normal' | 'elite' | 'boss';
       name: string;
+      typeId?: string;
+      hatchRemaining?: number;
+      hatchRatio?: number;
     }
   ): HTMLElement {
     const el = document.createElement('div');
-    el.className = `world-enemy-overhead rank-${hpInfo.rank}`;
+    el.className = `world-enemy-overhead rank-${hpInfo.rank}${hpInfo.typeId === 'pumpkin_seed' ? ' is-pumpkin-seed' : ''}`;
+
+    // Si c'est une graine de citrouille : timer circulaire de progression à l'envers au-dessus
+    if (hpInfo.typeId === 'pumpkin_seed') {
+      const hatchWidget = document.createElement('div');
+      hatchWidget.className = 'seed-hatch-widget';
+
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('viewBox', '0 0 36 36');
+      svg.setAttribute('class', 'seed-circular-svg');
+
+      const circleTrack = document.createElementNS(svgNS, 'circle');
+      circleTrack.setAttribute('class', 'seed-circle-track');
+      circleTrack.setAttribute('cx', '18');
+      circleTrack.setAttribute('cy', '18');
+      circleTrack.setAttribute('r', '14');
+      svg.appendChild(circleTrack);
+
+      const circleBar = document.createElementNS(svgNS, 'circle');
+      circleBar.setAttribute('class', 'seed-circle-bar');
+      circleBar.setAttribute('cx', '18');
+      circleBar.setAttribute('cy', '18');
+      circleBar.setAttribute('r', '14');
+      circleBar.setAttribute('stroke-dasharray', '88');
+      circleBar.setAttribute('stroke-dashoffset', '0');
+      svg.appendChild(circleBar);
+
+      hatchWidget.appendChild(svg);
+
+      const timeText = document.createElement('div');
+      timeText.className = 'seed-circular-text';
+      timeText.textContent = `${(hpInfo.hatchRemaining ?? 5.5).toFixed(1)}s`;
+      hatchWidget.appendChild(timeText);
+
+      el.appendChild(hatchWidget);
+    }
 
     // 1. En-tête Deadlock : Titre / Rang & Compteur de PV chiffré
     const headerEl = document.createElement('div');
@@ -730,6 +769,9 @@ export class WorldBillboardOverlay {
       health: number;
       maxHealth: number;
       rank: 'normal' | 'elite' | 'boss';
+      typeId?: string;
+      hatchRemaining?: number;
+      hatchRatio?: number;
     }
   ): void {
     const fill = el.querySelector<HTMLElement>('.deadlock-bar-fill');
@@ -753,6 +795,36 @@ export class WorldBillboardOverlay {
 
     if (ghost) {
       ghost.style.width = `${percent}%`;
+    }
+
+    // Mise à jour du cercle de progression à l'envers de la graine
+    if (hpInfo.typeId === 'pumpkin_seed' && hpInfo.hatchRatio !== undefined) {
+      const circleBar = el.querySelector<SVGCircleElement>('.seed-circle-bar');
+      const timeText = el.querySelector<HTMLElement>('.seed-circular-text');
+      const ratio = Math.max(0, Math.min(1, hpInfo.hatchRatio)); // 1.0 (plein) -> 0.0 (vide)
+
+      if (circleBar) {
+        // Le cercle se vide dans le sens horaire depuis 12h : dashoffset augmente de 0 à 88
+        const offset = 88 * (1 - ratio);
+        circleBar.setAttribute('stroke-dashoffset', offset.toFixed(1));
+
+        if (ratio <= 0.3) {
+          circleBar.style.stroke = '#ef4444';
+        } else if (ratio <= 0.6) {
+          circleBar.style.stroke = '#f97316';
+        } else {
+          circleBar.style.stroke = '#84cc16';
+        }
+      }
+
+      if (timeText && hpInfo.hatchRemaining !== undefined) {
+        timeText.textContent = `${hpInfo.hatchRemaining.toFixed(1)}s`;
+        if (ratio <= 0.3) {
+          timeText.classList.add('imminent');
+        } else {
+          timeText.classList.remove('imminent');
+        }
+      }
     }
   }
 

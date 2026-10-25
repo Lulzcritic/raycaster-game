@@ -13,10 +13,9 @@ export class PumpkinSpriteManager {
   private static readonly hurtFrames: HTMLCanvasElement[] = [];
   private static deadFrame: HTMLCanvasElement | null = null;
 
-  // Sprites de la Graine de Citrouille
+  // Sprites de la Graine de Citrouille avec timer circulaire de progression à l'envers
+  private static readonly seedStages: HTMLCanvasElement[] = [];
   private static seedNormalFrame: HTMLCanvasElement | null = null;
-  private static seedPulseFrame: HTMLCanvasElement | null = null;
-  private static seedCrackingFrame: HTMLCanvasElement | null = null;
   private static seedHurtFrame: HTMLCanvasElement | null = null;
   private static seedDeadFrame: HTMLCanvasElement | null = null;
 
@@ -154,17 +153,17 @@ export class PumpkinSpriteManager {
   }
 
   /**
-   * Retourne le sprite adapté de la Graine de Citrouille posée au sol
+   * Retourne le sprite adapté de la Graine de Citrouille posée au sol avec son timer circulaire
    * @param state État de la graine (idle, hurt, dead)
-   * @param animTimer Timer d'animation globale
+   * @param _animTimer Timer d'animation globale
    * @param hatchProgress Progression vers l'éclosion (0 à 1)
    */
   public static getSeedSprite(
     state: EnemyState,
-    animTimer: number,
+    _animTimer: number,
     hatchProgress: number
   ): HTMLCanvasElement | null {
-    if (!this.isInitialized || !this.seedNormalFrame) {
+    if (!this.isInitialized || this.seedStages.length === 0) {
       return this.getFallbackCanvas();
     }
 
@@ -176,53 +175,59 @@ export class PumpkinSpriteManager {
       return this.seedHurtFrame ?? this.seedNormalFrame;
     }
 
-    // Lorsque la graine est sur le point d'éclore (progression > 0.68) : elle tremble et se fissure
-    if (hatchProgress > 0.68) {
-      return this.seedCrackingFrame ?? this.seedPulseFrame ?? this.seedNormalFrame;
-    }
-
-    // Pulsation lente de la graine
-    const isPulsing = Math.sin(animTimer * 5.0) > 0;
-    return isPulsing ? this.seedPulseFrame : this.seedNormalFrame;
+    // Le compte à rebours circulaire progresse de l'étape 0 (100% plein) à 7 (vide / éclosion imminente)
+    const stageIdx = Math.max(0, Math.min(7, Math.floor(hatchProgress * 7.99)));
+    return this.seedStages[stageIdx] ?? this.seedNormalFrame;
   }
 
   /**
    * Crée les sprites pixel-art de la graine de citrouille sur toiles 64x64 ancrées au sol
+   * avec les 8 étapes du cercle de progression à l'envers
    */
   private static createSeedSprites(): void {
     const size = 64;
 
-    this.seedNormalFrame = this.renderSeedCanvas(size, false, false);
-    this.seedPulseFrame = this.renderSeedCanvas(size, true, false);
-    this.seedCrackingFrame = this.renderSeedCanvas(size, true, true);
+    this.seedStages.length = 0;
+    for (let i = 0; i < 8; i++) {
+      const remainingRatio = 1 - i / 7; // de 1.0 (plein) à 0.0 (vide)
+      const pulse = i % 2 === 1;
+      const cracking = i >= 5;
+      const stageCanvas = this.renderSeedCanvas(size, pulse, cracking, remainingRatio);
+      this.seedStages.push(stageCanvas);
+    }
+
+    this.seedNormalFrame = this.seedStages[0] ?? null;
 
     // Frame de dégât reçu (flash blanc/vert)
-    const hurtCanvas = document.createElement('canvas');
-    hurtCanvas.width = size;
-    hurtCanvas.height = size;
-    const hCtx = hurtCanvas.getContext('2d')!;
-    hCtx.drawImage(this.seedNormalFrame, 0, 0);
-    hCtx.globalCompositeOperation = 'source-atop';
-    hCtx.fillStyle = 'rgba(255, 255, 220, 0.92)';
-    hCtx.fillRect(0, 0, size, size);
-    this.seedHurtFrame = hurtCanvas;
+    if (this.seedNormalFrame) {
+      const hurtCanvas = document.createElement('canvas');
+      hurtCanvas.width = size;
+      hurtCanvas.height = size;
+      const hCtx = hurtCanvas.getContext('2d')!;
+      hCtx.drawImage(this.seedNormalFrame, 0, 0);
+      hCtx.globalCompositeOperation = 'source-atop';
+      hCtx.fillStyle = 'rgba(255, 255, 220, 0.92)';
+      hCtx.fillRect(0, 0, size, size);
+      this.seedHurtFrame = hurtCanvas;
 
-    // Frame d'élimination : graine écrasée en éclats
-    const deadCanvas = document.createElement('canvas');
-    deadCanvas.width = size;
-    deadCanvas.height = size;
-    const dCtx = deadCanvas.getContext('2d')!;
-    dCtx.drawImage(this.seedNormalFrame, 0, size * 0.45, size, size * 0.55);
-    dCtx.globalCompositeOperation = 'source-atop';
-    dCtx.fillStyle = 'rgba(30, 40, 10, 0.65)';
-    dCtx.fillRect(0, 0, size, size);
-    this.seedDeadFrame = deadCanvas;
+      // Frame d'élimination : graine écrasée en éclats
+      const deadCanvas = document.createElement('canvas');
+      deadCanvas.width = size;
+      deadCanvas.height = size;
+      const dCtx = deadCanvas.getContext('2d')!;
+      dCtx.drawImage(this.seedNormalFrame, 0, size * 0.45, size, size * 0.55);
+      dCtx.globalCompositeOperation = 'source-atop';
+      dCtx.fillStyle = 'rgba(30, 40, 10, 0.65)';
+      dCtx.fillRect(0, 0, size, size);
+      this.seedDeadFrame = deadCanvas;
+    }
   }
 
   private static renderSeedCanvas(
     size: number,
     pulse: boolean,
-    cracking: boolean
+    cracking: boolean,
+    remainingRatio: number
   ): HTMLCanvasElement {
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -278,6 +283,45 @@ export class PumpkinSpriteManager {
       ctx.fillRect(cx + 8, baseY - 20, 2, 2);
       ctx.fillRect(cx + 6, baseY - 30, 2, 2);
     }
+
+    // 4. Petit timer circulaire de progression à l'envers au-dessus de la graine
+    const timerY = 11;
+
+    // Fond circulaire sombre
+    ctx.fillStyle = '#020617';
+    ctx.beginPath();
+    ctx.arc(cx, timerY, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bordure fine
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Arc de progression à l'envers (démarre plein à 12h, se vide dans le sens horaire)
+    if (remainingRatio > 0.04) {
+      const ringColor =
+        remainingRatio <= 0.3 ? '#ef4444' : remainingRatio <= 0.6 ? '#f97316' : '#84cc16';
+      ctx.fillStyle = ringColor;
+      ctx.beginPath();
+      ctx.moveTo(cx, timerY);
+      ctx.arc(
+        cx,
+        timerY,
+        5.5,
+        -Math.PI / 2,
+        -Math.PI / 2 + remainingRatio * Math.PI * 2,
+        false
+      );
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Cœur central du cadran
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, timerY, 2.5, 0, Math.PI * 2);
+    ctx.fill();
 
     return canvas;
   }

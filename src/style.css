@@ -728,6 +728,68 @@ body {
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.9));
 }
 
+/* =========================================================================
+   CERCLE DE PROGRESSION À L'ENVERS - ÉCLOSION GRAINE DE CITROUILLE
+   ========================================================================= */
+.seed-hatch-widget {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
+}
+
+.seed-circular-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg); /* Démarre à 12h */
+}
+
+.seed-circle-track {
+  fill: rgba(13, 11, 18, 0.9);
+  stroke: rgba(0, 0, 0, 0.95);
+  stroke-width: 5;
+}
+
+.seed-circle-bar {
+  fill: none;
+  stroke: #84cc16;
+  stroke-width: 4;
+  stroke-linecap: square;
+  transition: stroke-dashoffset 0.1s linear, stroke 0.25s ease;
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.seed-circular-text {
+  position: absolute;
+  font-family: var(--font-medieval);
+  font-size: 13px;
+  font-weight: bold;
+  color: #fef08a;
+  text-shadow: 2px 2px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+.seed-circular-text.imminent {
+  color: #ff4444;
+  animation: seed-timer-pulse 0.35s infinite alternate;
+}
+
+@keyframes seed-timer-pulse {
+  from {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  to {
+    transform: scale(1.18);
+    filter: brightness(1.5);
+  }
+}
+
 .deadlock-mob-header {
   display: flex;
   justify-content: space-between;

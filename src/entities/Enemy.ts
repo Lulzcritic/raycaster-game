@@ -3,9 +3,15 @@ import { WalletManager } from '../core/WalletManager';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
+import {
+  BloodQueenSpriteManager,
+  type BloodQueenAttackKind,
+} from '../graphics/BloodQueenSpriteManager';
 import type { EnemyTypeDefinition } from '../types/enemy';
 import type { GameMap } from '../world/GameMap';
 import { Arrow } from './Arrow';
+import { BloodOrb } from './BloodOrb';
+import { BloodWaveSegment } from './BloodWaveSegment';
 import { DroppedCoin } from './DroppedCoin';
 import { DroppedItemOrb } from './DroppedItemOrb';
 import { Entity } from './Entity';
@@ -32,6 +38,11 @@ export class Enemy extends Entity {
   private postAttackTimer = 0;
   private isMoving = false;
 
+  // Variables propres à la Reine de Sang (cycle d'attaques et onde de choc à 360°)
+  private bloodQueenAttackKind: BloodQueenAttackKind = 'normal';
+  private normalAttacksCount = 0;
+  private waveCooldownTimer = 0;
+
   // Variables propres au Gobelin au Trésor (fuite, timer de disparition & traînée de pièces)
   private isFleeing = false;
   private fleeTimer = 8.0;
@@ -53,7 +64,10 @@ export class Enemy extends Entity {
     this.health = type.stats.maxHealth;
     this.maxHealth = type.stats.maxHealth;
     this.sprites =
-      type.id === 'mimic' || type.id === 'goblin' || type.id === 'skeleton_archer'
+      type.id === 'mimic' ||
+      type.id === 'goblin' ||
+      type.id === 'skeleton_archer' ||
+      type.id === 'blood_queen'
         ? {}
         : Enemy.generateEnemySprites(type);
   }
@@ -67,6 +81,9 @@ export class Enemy extends Entity {
   }
 
   public override getElevation(): number {
+    if (this.type.id === 'blood_queen') {
+      return this.state === 'dead' ? 0 : 0.08 + Math.sin(this.animTimer * 2.8) * 0.04;
+    }
     return this.currentElevation;
   }
 
@@ -97,6 +114,14 @@ export class Enemy extends Entity {
         this.type.stats.attackWindup ?? 0.65,
         this.postAttackTimer,
         this.isMoving
+      );
+    }
+    if (this.type.id === 'blood_queen') {
+      return BloodQueenSpriteManager.getSprite(
+        this.state,
+        this.animTimer,
+        this.bloodQueenAttackKind,
+        this.postAttackTimer
       );
     }
 
@@ -301,6 +326,13 @@ export class Enemy extends Entity {
 
     if (this.postAttackTimer > 0) {
       this.postAttackTimer = Math.max(0, this.postAttackTimer - deltaTime);
+      if (this.postAttackTimer <= 0 && this.type.id === 'blood_queen') {
+        this.bloodQueenAttackKind = 'normal';
+      }
+    }
+
+    if (this.waveCooldownTimer > 0) {
+      this.waveCooldownTimer = Math.max(0, this.waveCooldownTimer - deltaTime);
     }
 
     if (this.attackCooldownTimer > 0) {
@@ -405,7 +437,33 @@ export class Enemy extends Entity {
         distanceToPlayer <= this.type.stats.attackRange &&
         this.attackCooldownTimer <= 0
       ) {
-        if (this.type.attackType === 'ranged') {
+        if (this.type.id === 'blood_queen') {
+          // Cycle de combat de la Reine de Sang (Boss Zone 3) :
+          // L'Attaque 2 (Onde de sang) se charge périodiquement après plusieurs orbes
+          const shouldCastWave =
+            this.normalAttacksCount >= 3 ||
+            (this.normalAttacksCount >= 2 && this.waveCooldownTimer <= 0);
+
+          if (shouldCastWave) {
+            this.bloodQueenAttackKind = 'wave_charge';
+            this.state = 'attacking';
+            this.stateTimer = 2.4; // Temps de chargement
+            this.isMoving = false;
+            this.onNotify?.(
+              'LA REINE DE SANG CANALISE UNE ONDE DE SANG ! CACHEZ-VOUS DERRIÈRE UN PILIER !'
+            );
+            return;
+          }
+
+          // Attaque 1 normale : tir d'un orbe de sang individuel
+          if (this.hasLineOfSight(map)) {
+            this.bloodQueenAttackKind = 'normal';
+            this.state = 'attacking';
+            this.stateTimer = this.type.stats.attackWindup ?? 0.45;
+            this.isMoving = false;
+            return;
+          }
+        } else if (this.type.attackType === 'ranged') {
           // Attaque à distance UNIQUEMENT quand le joueur est dans la ligne de vue
           if (this.hasLineOfSight(map)) {
             this.state = 'attacking';
@@ -556,6 +614,52 @@ export class Enemy extends Entity {
   }
 
   private executeAttack(): void {
+    if (this.type.id === 'blood_queen') {
+      if (this.bloodQueenAttackKind === 'wave_charge') {
+        // Déclenchement de l'Attaque 2 : Onde de sang déferlant tout autour d'elle (360°)
+        this.bloodQueenAttackKind = 'wave_release';
+        const waveId = Date.now();
+        if (this.onSpawnEntity) {
+          const segmentCount = 32;
+          for (let i = 0; i < segmentCount; i++) {
+            const angle = (i * 2 * Math.PI) / segmentCount;
+            const seg = new BloodWaveSegment(
+              this.x + Math.cos(angle) * 0.4,
+              this.y + Math.sin(angle) * 0.4,
+              angle,
+              42,
+              waveId
+            );
+            this.onSpawnEntity(seg);
+          }
+        }
+        this.postAttackTimer = 0.55; // Maintient la pose attack2.png pendant la vague
+        this.normalAttacksCount = 0;
+        this.waveCooldownTimer = 9.0;
+        this.attackCooldownTimer = 2.4;
+        this.onNotify?.("L'ONDE DE SANG SE DÉCHAÎNE TOUT AUTOUR D'ELLE !");
+        return;
+      }
+
+      // Attaque 1 : Tir d'orbe de sang individuel ciblé sur le joueur
+      const dx = this.player.x - this.x;
+      const dy = this.player.y - this.y;
+      const angleToPlayer = Math.atan2(dy, dx);
+      if (this.onSpawnEntity) {
+        const orb = new BloodOrb(
+          this.x + Math.cos(angleToPlayer) * 0.35,
+          this.y + Math.sin(angleToPlayer) * 0.35,
+          angleToPlayer,
+          this.type.stats.damage
+        );
+        this.onSpawnEntity(orb);
+      }
+      this.normalAttacksCount++;
+      this.postAttackTimer = 0.24;
+      this.attackCooldownTimer = this.type.stats.attackCooldown;
+      return;
+    }
+
     if (this.type.attackType === 'ranged') {
       const dx = this.player.x - this.x;
       const dy = this.player.y - this.y;

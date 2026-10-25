@@ -23,8 +23,8 @@ export const LEVEL_1: LevelData = {
     { typeId: 'skeleton_archer', x: 5.5, y: 8.2 },
     // Gobelin au trésor en vadrouille dans l'allée centrale
     { typeId: 'goblin', x: 4.5, y: 6.5 },
-    // Boss colossal "Roi Gélatineux Ancien" défendant la crypte secrète
-    { typeId: 'blob_boss', x: 7.2, y: 1.5 },
+    // Boss final Reine de Sang défendant la crypte secrète
+    { typeId: 'blood_queen', x: 7.2, y: 1.5 },
   ],
   grid: [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],

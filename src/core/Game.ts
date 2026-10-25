@@ -27,7 +27,10 @@ import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
+import { BloodQueenSpriteManager } from '../graphics/BloodQueenSpriteManager';
 import { Arrow } from '../entities/Arrow';
+import { BloodOrb } from '../entities/BloodOrb';
+import { BloodWaveSegment } from '../entities/BloodWaveSegment';
 import { WalletManager } from './WalletManager';
 import { InputManager } from './InputManager';
 
@@ -53,6 +56,7 @@ export class Game {
   private raidTimer = 0;
   private isExtracted = false;
   private lostHomonculusOnExtract = false;
+  private lastHitWaveId = -1;
 
   constructor(canvas: HTMLCanvasElement, initialLevel?: LevelData) {
     const startLevel = initialLevel ?? MapGenerator.generate();
@@ -173,6 +177,7 @@ export class Game {
       CoinSpriteManager.preloadAll(),
       GoblinSpriteManager.preloadAll(),
       SkeletonSpriteManager.preloadAll(),
+      BloodQueenSpriteManager.preloadAll(),
     ]);
   }
 
@@ -524,9 +529,11 @@ export class Game {
       entity.update(deltaTime, this.map);
     }
 
-    // Si le Boss du Sanctuaire est vaincu, activation immédiate du portail royal
+    // Si le Boss du Sanctuaire est vaincu (Reine de Sang ou Blob Boss), activation immédiate du portail royal
     const boss = this.entities.find(
-      (e): e is Enemy => e instanceof Enemy && e.type.id === 'blob_boss'
+      (e): e is Enemy =>
+        e instanceof Enemy &&
+        (e.type.id === 'blob_boss' || e.type.id === 'blood_queen')
     );
     if (boss && !boss.isAlive()) {
       for (const ent of this.entities) {
@@ -564,6 +571,37 @@ export class Game {
       if (dist < arrow.hitBox + this.player.hitBox) {
         this.player.takeDamage(arrow.damage);
         arrow.hitTarget();
+      }
+    }
+
+    // Détection des collisions orbes de sang (Blood Queen - Attaque 1) <-> joueur
+    const flyingBloodOrbs = this.entities.filter(
+      (e): e is BloodOrb => e instanceof BloodOrb && e.isFlying()
+    );
+    for (const orb of flyingBloodOrbs) {
+      const dist = Math.hypot(orb.x - this.player.x, orb.y - this.player.y);
+      if (dist < orb.hitBox + this.player.hitBox) {
+        this.player.takeDamage(orb.damage);
+        orb.hitTarget();
+      }
+    }
+
+    // Détection des collisions ondes de sang à 360° (Blood Queen - Attaque 2) <-> joueur
+    // Seuls les murs/piliers arrêtent les segments d'onde ; si le joueur est touché, un seul impact par vague est comptabilisé
+    const activeWaveSegments = this.entities.filter(
+      (e): e is BloodWaveSegment => e instanceof BloodWaveSegment && e.isFlying()
+    );
+    for (const seg of activeWaveSegments) {
+      const dist = Math.hypot(seg.x - this.player.x, seg.y - this.player.y);
+      if (dist < seg.hitBox + this.player.hitBox) {
+        if (this.lastHitWaveId !== seg.waveId) {
+          this.lastHitWaveId = seg.waveId;
+          this.player.takeDamage(seg.damage);
+          this.interactionPrompt.showNotification(
+            `L'ONDE DE SANG VOUS A BALAYÉ ! (-${seg.damage} PV)`
+          );
+        }
+        seg.hitTarget();
       }
     }
 

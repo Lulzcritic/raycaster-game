@@ -149,9 +149,9 @@ export class MapGenerator {
       grid[py][px] = TILE_TYPE.WALL_1;
     }
 
-    // Boss colossal du Sanctuaire et Portail d'extraction Royal
+    // Boss final de la Zone 3 : Reine de Sang Écarlate et Portail d'extraction Royal
     enemies.push({
-      typeId: 'blob_boss',
+      typeId: 'blood_queen',
       x: center + 0.5,
       y: center + 1.5,
     });

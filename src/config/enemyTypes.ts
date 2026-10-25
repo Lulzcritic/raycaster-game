@@ -174,6 +174,35 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
     description: 'Un archer squelettique redoutable gardant les couloirs de la zone 2. Il décoche des flèches dès qu’il aperçoit sa cible et recule pour garder ses distances.',
     coinDrop: { min: 5, max: 9 },
   },
+
+  blood_queen: {
+    id: 'blood_queen',
+    name: 'Reine de Sang Écarlate',
+    rank: 'boss',
+    attackType: 'ranged',
+    movementPattern: 'kite',
+    stats: {
+      maxHealth: 260,
+      damage: 18,
+      defense: 4,
+      moveSpeed: 0.9,
+      aggroRadius: 14.0,
+      attackRange: 12.0,
+      attackCooldown: 2.0,
+      attackWindup: 0.45,
+    },
+    scale: 0.88,
+    hitBox: 0.42,
+    colorTheme: {
+      primary: '#e11d48',
+      secondary: '#881337',
+      outline: '#4c0519',
+      eyeColor: '#ffe4e6',
+      glowColor: 'rgba(225, 29, 72, 0.65)',
+    },
+    description: 'La souveraine ancestrale de la crypte et boss final de la Zone 3. Elle tire des orbes de sang et déchaîne une onde de choc écarlate dévastatrice à 360° qui ne peut être évitée qu’en se cachant derrière un mur ou un pilier.',
+    coinDrop: { min: 25, max: 40 },
+  },
 };
 
 export function getEnemyType(id: string): EnemyTypeDefinition {

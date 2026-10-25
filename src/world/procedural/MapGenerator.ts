@@ -353,6 +353,16 @@ export class MapGenerator {
       enemies.push({ typeId: 'blob', x: pat.x, y: pat.y });
     }
 
+    // Citrouilles ensorcelées hantant les couloirs de la Zone 2
+    const pumpkinSpots = [
+      { x: 44.5, y: 25.5 },
+      { x: 20.5, y: 25.5 },
+      { x: 32.5, y: 44.5 },
+    ];
+    for (const pspot of pumpkinSpots) {
+      enemies.push({ typeId: 'pumpkin', x: pspot.x, y: pspot.y });
+    }
+
     // Gobelins au Trésor en vadrouille dans les couloirs de la Zone 2
     const goblinSpots = [
       { x: 32.5, y: 46.5 },

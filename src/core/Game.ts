@@ -28,6 +28,7 @@ import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
 import { BloodQueenSpriteManager } from '../graphics/BloodQueenSpriteManager';
+import { PumpkinSpriteManager } from '../graphics/PumpkinSpriteManager';
 import { Arrow } from '../entities/Arrow';
 import { BloodOrb } from '../entities/BloodOrb';
 import { BloodWaveSegment } from '../entities/BloodWaveSegment';
@@ -178,6 +179,7 @@ export class Game {
       GoblinSpriteManager.preloadAll(),
       SkeletonSpriteManager.preloadAll(),
       BloodQueenSpriteManager.preloadAll(),
+      PumpkinSpriteManager.preloadAll(),
     ]);
   }
 

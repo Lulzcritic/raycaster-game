@@ -7,6 +7,7 @@ import {
   BloodQueenSpriteManager,
   type BloodQueenAttackKind,
 } from '../graphics/BloodQueenSpriteManager';
+import { PumpkinSpriteManager } from '../graphics/PumpkinSpriteManager';
 import type { EnemyTypeDefinition } from '../types/enemy';
 import type { GameMap } from '../world/GameMap';
 import { Arrow } from './Arrow';
@@ -16,6 +17,7 @@ import { DroppedCoin } from './DroppedCoin';
 import { DroppedItemOrb } from './DroppedItemOrb';
 import { Entity } from './Entity';
 import type { Player } from './Player';
+import { PumpkinSeed } from './PumpkinSeed';
 
 export type EnemyState = 'idle' | 'aggro' | 'attacking' | 'hurt' | 'dead';
 
@@ -25,16 +27,16 @@ export class Enemy extends Entity {
   public maxHealth: number;
   public state: EnemyState = 'idle';
 
-  private readonly player: Player;
-  private readonly onSpawnEntity?: (entity: Entity) => void;
-  private readonly onNotify?: (message: string) => void;
+  protected readonly player: Player;
+  protected readonly onSpawnEntity?: (entity: Entity) => void;
+  protected readonly onNotify?: (message: string) => void;
   private readonly sprites: Record<string, HTMLCanvasElement>;
 
-  private stateTimer = 0;
+  protected stateTimer = 0;
   private attackCooldownTimer = 0;
   private hopTimer = 0;
   private currentElevation = 0;
-  private animTimer = 0;
+  protected animTimer = 0;
   private postAttackTimer = 0;
   private isMoving = false;
 
@@ -47,6 +49,9 @@ export class Enemy extends Entity {
   private isFleeing = false;
   private fleeTimer = 8.0;
   private coinTrailCooldown = 0.85;
+
+  // Variables propres à la Citrouille (ponte de graines régulières)
+  private seedLayTimer = 4.0;
 
   constructor(
     x: number,
@@ -67,7 +72,9 @@ export class Enemy extends Entity {
       type.id === 'mimic' ||
       type.id === 'goblin' ||
       type.id === 'skeleton_archer' ||
-      type.id === 'blood_queen'
+      type.id === 'blood_queen' ||
+      type.id === 'pumpkin' ||
+      type.id === 'pumpkin_seed'
         ? {}
         : Enemy.generateEnemySprites(type);
   }
@@ -124,6 +131,20 @@ export class Enemy extends Entity {
         this.postAttackTimer
       );
     }
+    if (this.type.id === 'pumpkin') {
+      return PumpkinSpriteManager.getPumpkinSprite(
+        this.state,
+        this.animTimer,
+        this.isMoving
+      );
+    }
+    if (this.type.id === 'pumpkin_seed') {
+      return PumpkinSpriteManager.getSeedSprite(
+        this.state,
+        this.animTimer,
+        0
+      );
+    }
 
     if (this.state === 'dead') {
       return this.sprites.dead;
@@ -162,12 +183,18 @@ export class Enemy extends Entity {
       this.health > 0 &&
       (this.health < this.maxHealth ||
         this.state === 'aggro' ||
-        this.type.rank !== 'normal');
+        this.type.rank !== 'normal' ||
+        this.type.id === 'pumpkin_seed');
 
-    const name =
-      this.type.id === 'goblin' && this.isFleeing
-        ? `${this.type.name} [${Math.max(0, this.fleeTimer).toFixed(1)}s]`
-        : this.type.name;
+    let name = this.type.name;
+    if (this.type.id === 'goblin' && this.isFleeing) {
+      name = `${this.type.name} [${Math.max(0, this.fleeTimer).toFixed(1)}s]`;
+    } else if (this.type.id === 'pumpkin_seed') {
+      const remaining = (this as any).hatchTimer !== undefined
+        ? Math.max(0, (this as any).hatchTimer).toFixed(1)
+        : '5.0';
+      name = `${this.type.name} [${remaining}s]`;
+    }
 
     return {
       percent: Math.max(0, Math.min(1, this.health / this.maxHealth)),
@@ -217,7 +244,7 @@ export class Enemy extends Entity {
 
   private lastMap?: GameMap;
 
-  private die(): void {
+  protected die(): void {
     this.state = 'dead';
     this.stateTimer = 0.42;
     this.currentElevation = 0;
@@ -381,6 +408,10 @@ export class Enemy extends Entity {
         if (distanceToPlayer <= 2.2 || this.hasLineOfSight(map)) {
           this.state = 'aggro';
           this.hopTimer = 0;
+          if (this.type.id === 'pumpkin') {
+            this.seedLayTimer = 3.5; // Première graine pondue après 3.5 secondes
+            this.onNotify?.("ATTENTION : UNE CITROUILLE ENSORCELÉE VOUS TRAQUE !");
+          }
           if (this.type.movementPattern === 'flee' && !this.isFleeing) {
             this.isFleeing = true;
             this.fleeTimer = 8.0;
@@ -430,6 +461,23 @@ export class Enemy extends Entity {
         // Fuite à l'opposé du joueur avec navigation
         this.updateFleeMovement(deltaTime, map, dx, dy);
         return;
+      }
+
+      // Ponte régulière de graines par la Citrouille enragée
+      if (this.type.id === 'pumpkin') {
+        this.seedLayTimer -= deltaTime;
+        if (this.seedLayTimer <= 0 && this.onSpawnEntity) {
+          this.seedLayTimer = 7.5;
+          const seed = new PumpkinSeed(
+            this.x,
+            this.y,
+            this.player,
+            this.onSpawnEntity,
+            this.onNotify
+          );
+          this.onSpawnEntity(seed);
+          this.onNotify?.("LA CITROUILLE A PONDU UNE GRAINE ! DÉTRUISEZ-LA VITE !");
+        }
       }
 
       // Déclenchement de l'attaque si à portée
@@ -694,6 +742,7 @@ export class Enemy extends Entity {
       this.y -= Math.sin(angle) * 0.12;
     }
 
+    this.postAttackTimer = 0.22;
     this.attackCooldownTimer = this.type.stats.attackCooldown;
   }
 

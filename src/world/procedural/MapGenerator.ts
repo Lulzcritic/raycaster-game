@@ -327,7 +327,7 @@ export class MapGenerator {
     carveOrthogonal(21, 26, 21, 23);
     carveOrthogonal(21, 23, 19, 23);
 
-    // Monstres d'élite gardant les Nexus
+    // Monstres d'élite gardant les Nexus de la Zone 2 (Squelettes Archers remplaçant le blob violet)
     const eliteSpots = [
       { x: 44.5, y: 31.5 },
       { x: 39.5, y: 43.5 },
@@ -337,7 +337,7 @@ export class MapGenerator {
       { x: 39.5, y: 21.5 },
     ];
     for (const espot of eliteSpots) {
-      enemies.push({ typeId: 'blob_elite', x: espot.x, y: espot.y });
+      enemies.push({ typeId: 'skeleton_archer', x: espot.x, y: espot.y });
     }
 
     // Monstres normaux en patrouille dans Zone 2

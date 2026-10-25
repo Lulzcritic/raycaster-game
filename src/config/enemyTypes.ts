@@ -145,6 +145,35 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
     description: 'Un pillard cupide portant un sac débordant de pièces d’or. Dès qu’il aperçoit le joueur, il s’enfuit dans la direction opposée en semant des pièces, et disparaît au bout de 8 secondes s’il n’est pas éliminé.',
     coinDrop: { min: 10, max: 16 },
   },
+
+  skeleton_archer: {
+    id: 'skeleton_archer',
+    name: 'Squelette Archer des Ombres',
+    rank: 'elite',
+    attackType: 'ranged',
+    movementPattern: 'kite',
+    stats: {
+      maxHealth: 60,
+      damage: 14,
+      defense: 2,
+      moveSpeed: 0.95,
+      aggroRadius: 8.5,
+      attackRange: 8.5,
+      attackCooldown: 2.2,
+      attackWindup: 0.65,
+    },
+    scale: 0.52,
+    hitBox: 0.32,
+    colorTheme: {
+      primary: '#cbd5e1',
+      secondary: '#64748b',
+      outline: '#1e293b',
+      eyeColor: '#38bdf8',
+      glowColor: 'rgba(56, 189, 248, 0.5)',
+    },
+    description: 'Un archer squelettique redoutable gardant les couloirs de la zone 2. Il décoche des flèches dès qu’il aperçoit sa cible et recule pour garder ses distances.',
+    coinDrop: { min: 5, max: 9 },
+  },
 };
 
 export function getEnemyType(id: string): EnemyTypeDefinition {

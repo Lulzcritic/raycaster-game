@@ -2,8 +2,10 @@ import { ItemDatabase } from '../config/ItemDatabase';
 import { WalletManager } from '../core/WalletManager';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
+import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
 import type { EnemyTypeDefinition } from '../types/enemy';
 import type { GameMap } from '../world/GameMap';
+import { Arrow } from './Arrow';
 import { DroppedCoin } from './DroppedCoin';
 import { DroppedItemOrb } from './DroppedItemOrb';
 import { Entity } from './Entity';
@@ -27,6 +29,8 @@ export class Enemy extends Entity {
   private hopTimer = 0;
   private currentElevation = 0;
   private animTimer = 0;
+  private postAttackTimer = 0;
+  private isMoving = false;
 
   // Variables propres au Gobelin au Trésor (fuite, timer de disparition & traînée de pièces)
   private isFleeing = false;
@@ -49,7 +53,7 @@ export class Enemy extends Entity {
     this.health = type.stats.maxHealth;
     this.maxHealth = type.stats.maxHealth;
     this.sprites =
-      type.id === 'mimic' || type.id === 'goblin'
+      type.id === 'mimic' || type.id === 'goblin' || type.id === 'skeleton_archer'
         ? {}
         : Enemy.generateEnemySprites(type);
   }
@@ -83,6 +87,16 @@ export class Enemy extends Entity {
         this.state,
         this.animTimer,
         this.stateTimer
+      );
+    }
+    if (this.type.id === 'skeleton_archer') {
+      return SkeletonSpriteManager.getSprite(
+        this.state,
+        this.animTimer,
+        this.stateTimer,
+        this.type.stats.attackWindup ?? 0.65,
+        this.postAttackTimer,
+        this.isMoving
       );
     }
 
@@ -285,12 +299,17 @@ export class Enemy extends Entity {
     this.lastMap = map;
     this.animTimer += deltaTime;
 
+    if (this.postAttackTimer > 0) {
+      this.postAttackTimer = Math.max(0, this.postAttackTimer - deltaTime);
+    }
+
     if (this.attackCooldownTimer > 0) {
       this.attackCooldownTimer = Math.max(0, this.attackCooldownTimer - deltaTime);
     }
 
     // Gestion de l'état mort (animation de flaque bouillonnante puis disparition)
     if (this.state === 'dead') {
+      this.isMoving = false;
       this.stateTimer -= deltaTime;
       if (this.stateTimer <= 0) {
         this.active = false;
@@ -300,6 +319,7 @@ export class Enemy extends Entity {
 
     // Gestion de l'état étourdi / touché
     if (this.state === 'hurt') {
+      this.isMoving = false;
       this.stateTimer -= deltaTime;
       if (this.stateTimer <= 0) {
         this.state = 'aggro';
@@ -309,6 +329,7 @@ export class Enemy extends Entity {
 
     // Gestion de l'état d'attaque
     if (this.state === 'attacking') {
+      this.isMoving = false;
       this.stateTimer -= deltaTime;
       if (this.stateTimer <= 0) {
         // Exécution du coup
@@ -384,9 +405,20 @@ export class Enemy extends Entity {
         distanceToPlayer <= this.type.stats.attackRange &&
         this.attackCooldownTimer <= 0
       ) {
-        this.state = 'attacking';
-        this.stateTimer = this.type.stats.attackWindup ?? 0.2;
-        return;
+        if (this.type.attackType === 'ranged') {
+          // Attaque à distance UNIQUEMENT quand le joueur est dans la ligne de vue
+          if (this.hasLineOfSight(map)) {
+            this.state = 'attacking';
+            this.stateTimer = this.type.stats.attackWindup ?? 0.65;
+            this.isMoving = false;
+            return;
+          }
+        } else {
+          this.state = 'attacking';
+          this.stateTimer = this.type.stats.attackWindup ?? 0.2;
+          this.isMoving = false;
+          return;
+        }
       }
 
       // Mouvement vers le joueur selon le pattern
@@ -453,9 +485,47 @@ export class Enemy extends Entity {
           const moveX = Math.cos(angleToPlayer) * leapSpeed * deltaTime;
           const moveY = Math.sin(angleToPlayer) * leapSpeed * deltaTime;
           this.moveWithCollision(moveX, moveY, map);
+          this.isMoving = true;
         }
       } else {
         this.currentElevation = 0;
+        this.isMoving = false;
+      }
+    } else if (
+      this.type.attackType === 'ranged' ||
+      this.type.movementPattern === 'kite'
+    ) {
+      this.currentElevation = 0;
+      // Comportement tactique de l'archer à distance :
+      // 1. Si le joueur est trop proche (< 2.4 blocs), recule pour maintenir sa distance de tir
+      if (distanceToPlayer < 2.4) {
+        const retreatAngle = angleToPlayer + Math.PI;
+        const speed = this.type.stats.moveSpeed * 1.05;
+        let moveAngle = retreatAngle;
+        const testOffsets = [0, 0.4, -0.4, 0.8, -0.8];
+        for (const offset of testOffsets) {
+          const cand = retreatAngle + offset;
+          const tx = this.x + Math.cos(cand) * (this.hitBox + 0.25);
+          const ty = this.y + Math.sin(cand) * (this.hitBox + 0.25);
+          if (map.isWalkable(tx, ty)) {
+            moveAngle = cand;
+            break;
+          }
+        }
+        const moveX = Math.cos(moveAngle) * speed * deltaTime;
+        const moveY = Math.sin(moveAngle) * speed * deltaTime;
+        this.moveWithCollision(moveX, moveY, map);
+        this.isMoving = true;
+      } else if (distanceToPlayer > 6.5 || !this.hasLineOfSight(map)) {
+        // 2. Si le joueur est trop loin ou masqué par un mur/pilier, avance vers lui pour obtenir la vue
+        const speed = this.type.stats.moveSpeed;
+        const moveX = Math.cos(angleToPlayer) * speed * deltaTime;
+        const moveY = Math.sin(angleToPlayer) * speed * deltaTime;
+        this.moveWithCollision(moveX, moveY, map);
+        this.isMoving = true;
+      } else {
+        // 3. Portée optimale (2.4 à 6.5 blocs) avec ligne de mire : posture fixe pour armer l'arc
+        this.isMoving = false;
       }
     } else {
       // Pattern continu (chase classique)
@@ -465,6 +535,9 @@ export class Enemy extends Entity {
         const moveX = Math.cos(angleToPlayer) * speed * deltaTime;
         const moveY = Math.sin(angleToPlayer) * speed * deltaTime;
         this.moveWithCollision(moveX, moveY, map);
+        this.isMoving = true;
+      } else {
+        this.isMoving = false;
       }
     }
   }
@@ -483,6 +556,27 @@ export class Enemy extends Entity {
   }
 
   private executeAttack(): void {
+    if (this.type.attackType === 'ranged') {
+      const dx = this.player.x - this.x;
+      const dy = this.player.y - this.y;
+      const angleToPlayer = Math.atan2(dy, dx);
+
+      if (this.onSpawnEntity) {
+        const arrow = new Arrow(
+          this.x,
+          this.y,
+          angleToPlayer,
+          this.type.stats.damage,
+          this.player
+        );
+        this.onSpawnEntity(arrow);
+      }
+
+      this.postAttackTimer = 0.24; // Pose de décoche (attack3) maintenue
+      this.attackCooldownTimer = this.type.stats.attackCooldown;
+      return;
+    }
+
     const dx = this.player.x - this.x;
     const dy = this.player.y - this.y;
     const dist = Math.hypot(dx, dy);

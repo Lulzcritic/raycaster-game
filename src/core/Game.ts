@@ -26,6 +26,8 @@ import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
+import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
+import { Arrow } from '../entities/Arrow';
 import { WalletManager } from './WalletManager';
 import { InputManager } from './InputManager';
 
@@ -170,6 +172,7 @@ export class Game {
       MimicSpriteManager.preloadAll(),
       CoinSpriteManager.preloadAll(),
       GoblinSpriteManager.preloadAll(),
+      SkeletonSpriteManager.preloadAll(),
     ]);
   }
 
@@ -549,6 +552,18 @@ export class Game {
           fb.explode();
           break;
         }
+      }
+    }
+
+    // Détection des collisions flèches ennemies (Squelette Archer) <-> joueur
+    const flyingArrows = this.entities.filter(
+      (e): e is Arrow => e instanceof Arrow && e.isFlying()
+    );
+    for (const arrow of flyingArrows) {
+      const dist = Math.hypot(arrow.x - this.player.x, arrow.y - this.player.y);
+      if (dist < arrow.hitBox + this.player.hitBox) {
+        this.player.takeDamage(arrow.damage);
+        arrow.hitTarget();
       }
     }
 

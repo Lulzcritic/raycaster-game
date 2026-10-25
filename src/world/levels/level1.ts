@@ -19,8 +19,8 @@ export const LEVEL_1: LevelData = {
     { typeId: 'blob', x: 2.5, y: 5.5 },
     // Blob normal dans le couloir est
     { typeId: 'blob', x: 7.5, y: 5.5 },
-    // Blob d'élite toxique montant la garde devant la clé
-    { typeId: 'blob_elite', x: 5.5, y: 8.2 },
+    // Squelette archer d'élite montant la garde devant la clé (remplace blob_elite)
+    { typeId: 'skeleton_archer', x: 5.5, y: 8.2 },
     // Gobelin au trésor en vadrouille dans l'allée centrale
     { typeId: 'goblin', x: 4.5, y: 6.5 },
     // Boss colossal "Roi Gélatineux Ancien" défendant la crypte secrète

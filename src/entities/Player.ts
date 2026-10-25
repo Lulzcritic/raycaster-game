@@ -1,11 +1,12 @@
 import { DEFAULT_PLAYER_CONFIG, FIREBALL_CONFIG, PURPLE_ORB_CONFIG, KEYS } from '../config/constants';
 import type { InputManager } from '../core/InputManager';
-import type { EquipmentItem, PlayerConfig } from '../types';
+import type { EquipmentItem, ItemStats, PlayerConfig } from '../types';
 import type { GameMap } from '../world/GameMap';
 import { Entity } from './Entity';
 import { Fireball } from './Fireball';
 import { PurpleOrb } from './PurpleOrb';
 import { Inventory } from './Inventory';
+import { UpgradeManager } from '../core/UpgradeManager';
 
 export class Player extends Entity {
   public readonly inventory = new Inventory();
@@ -58,13 +59,19 @@ export class Player extends Entity {
     this.mouseSensitivity = fullConfig.mouseSensitivity;
     this.bobFrequency = fullConfig.bobFrequency;
     this.bobAmplitude = fullConfig.bobAmplitude;
+
+    this.maxHealth = 100 + this.getEffectiveStats().maxHealth;
+    this.health = this.maxHealth;
   }
 
   /**
    * Ramasse un objet et le place automatiquement dans le slot d'inventaire correspondant à sa catégorie
    */
   public pickupItem(item: EquipmentItem): EquipmentItem | null {
-    return this.inventory.equip(item);
+    const prev = this.inventory.equip(item);
+    this.maxHealth = 100 + this.getEffectiveStats().maxHealth;
+    this.health = Math.min(this.health, this.maxHealth);
+    return prev;
   }
 
   public hasKey(keyId?: string): boolean {
@@ -75,8 +82,23 @@ export class Player extends Entity {
     return this.inventory.useKey(keyId);
   }
 
+  public getEffectiveStats(): Required<ItemStats> {
+    const gear = this.inventory.getTotalStats();
+    const upg = UpgradeManager.getStats();
+    return {
+      damage: gear.damage + upg.damage,
+      defense: gear.defense + upg.defense,
+      magicPower: gear.magicPower + upg.magicPower,
+      maxHealth: gear.maxHealth + upg.maxHealth,
+      moveSpeed: gear.moveSpeed + upg.moveSpeed,
+      castSpeed: gear.castSpeed + upg.castSpeed,
+      stealth: gear.stealth + upg.stealth,
+      charisma: gear.charisma + upg.charisma,
+    };
+  }
+
   public takeDamage(amount: number): void {
-    const defense = this.inventory.getTotalStats().defense;
+    const defense = this.getEffectiveStats().defense;
     const effective = Math.max(1, amount - defense);
     this.health = Math.max(0, this.health - effective);
     this.damageFlashTimer = 0.28;
@@ -111,7 +133,7 @@ export class Player extends Entity {
   }
 
   public update(deltaTime: number, map: GameMap): void {
-    const bonusStats = this.inventory.getTotalStats();
+    const bonusStats = this.getEffectiveStats();
     this.maxHealth = 100 + bonusStats.maxHealth;
     this.health = Math.min(this.health, this.maxHealth);
 

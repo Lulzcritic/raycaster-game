@@ -1,6 +1,7 @@
 import { TILE_TYPE } from '../config/constants';
 import { ENEMY_TYPES } from '../config/enemyTypes';
 import { ItemDatabase } from '../config/ItemDatabase';
+import { QuestManager } from '../core/QuestManager';
 import type { TextureManager } from '../graphics/TextureManager';
 import type { EquipmentItem } from '../types';
 import { findSpacedDropPositions } from '../utils/dropSpread';
@@ -158,6 +159,7 @@ export class BillboardSprite extends Entity {
     }
 
     this.isOpened = true;
+    QuestManager.onChestOpened();
 
     // Un coffre a 1 chance sur 4 de se transformer en Mimic s'il ne contient pas de clé essentielle
     const hasKey = this.lootItems.some((item) => item.slot === 'key');

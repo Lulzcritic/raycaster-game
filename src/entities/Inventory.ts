@@ -1,4 +1,5 @@
 import type { EquipmentItem, EquipmentSlot, ItemStats } from '../types';
+import { ItemDatabase } from '../config/ItemDatabase';
 
 export const EQUIPMENT_SLOTS: readonly EquipmentSlot[] = [
   'hat',
@@ -10,6 +11,8 @@ export const EQUIPMENT_SLOTS: readonly EquipmentSlot[] = [
 ] as const;
 
 export class Inventory {
+  private static readonly STORAGE_KEY = 'raycaster_player_equipped';
+
   private readonly slots = new Map<EquipmentSlot, EquipmentItem | null>([
     ['hat', null],
     ['weapon', null],
@@ -19,12 +22,17 @@ export class Inventory {
     ['offhand', null],
   ]);
 
+  constructor() {
+    this.loadFromStorage();
+  }
+
   /**
    * Équipe un objet dans le slot correspondant à sa catégorie et retourne l'ancien objet s'il y en avait un
    */
   public equip(item: EquipmentItem): EquipmentItem | null {
     const previousItem = this.slots.get(item.slot) ?? null;
     this.slots.set(item.slot, item);
+    this.saveToStorage();
     return previousItem;
   }
 
@@ -34,7 +42,21 @@ export class Inventory {
   public unequip(slot: EquipmentSlot): EquipmentItem | null {
     const item = this.slots.get(slot) ?? null;
     this.slots.set(slot, null);
+    this.saveToStorage();
     return item;
+  }
+
+  /**
+   * Récupère tous les objets actuellement équipés
+   */
+  public getAllEquipped(): EquipmentItem[] {
+    const list: EquipmentItem[] = [];
+    for (const item of this.slots.values()) {
+      if (item) {
+        list.push(item);
+      }
+    }
+    return list;
   }
 
   /**
@@ -68,6 +90,7 @@ export class Inventory {
       return false;
     }
     this.slots.set('key', null);
+    this.saveToStorage();
     return true;
   }
 
@@ -106,6 +129,39 @@ export class Inventory {
   public clear(): void {
     for (const slot of EQUIPMENT_SLOTS) {
       this.slots.set(slot, null);
+    }
+    this.saveToStorage();
+  }
+
+  public saveToStorage(): void {
+    try {
+      const equipped: Record<string, string> = {};
+      for (const [slot, item] of this.slots.entries()) {
+        if (item && slot !== 'key' && slot !== 'offhand') {
+          equipped[slot] = item.id;
+        }
+      }
+      localStorage.setItem(Inventory.STORAGE_KEY, JSON.stringify(equipped));
+    } catch {
+      // Ignore storage restrictions
+    }
+  }
+
+  public loadFromStorage(): void {
+    try {
+      const saved = localStorage.getItem(Inventory.STORAGE_KEY);
+      if (!saved) {
+        return;
+      }
+      const parsed: Record<string, string> = JSON.parse(saved);
+      for (const [slot, itemId] of Object.entries(parsed)) {
+        const item = ItemDatabase.getItemById(itemId);
+        if (item && item.slot === slot) {
+          this.slots.set(slot as EquipmentSlot, item);
+        }
+      }
+    } catch {
+      // Ignore storage restrictions
     }
   }
 }

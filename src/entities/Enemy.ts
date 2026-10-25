@@ -1,6 +1,7 @@
 import { getEnemyType } from '../config/enemyTypes';
 import { ItemDatabase } from '../config/ItemDatabase';
 import { WalletManager } from '../core/WalletManager';
+import { QuestManager } from '../core/QuestManager';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
@@ -285,6 +286,8 @@ export class Enemy extends Entity {
     this.state = 'dead';
     this.stateTimer = 0.42;
     this.currentElevation = 0;
+
+    QuestManager.onEnemyKilled(this.type.id);
 
     // Graine de Citrouille écrasée par le joueur avant son éclosion
     if (this.type.id === 'pumpkin_seed') {

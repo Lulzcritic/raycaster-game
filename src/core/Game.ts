@@ -14,6 +14,7 @@ import type { EquipmentItem, LevelData, TextureDefinition } from '../types';
 import { InteractionPrompt } from '../ui/InteractionPrompt';
 import { PauseMenu } from '../ui/PauseMenu';
 import { MainMenu } from '../ui/MainMenu';
+import { HubUI } from '../ui/HubUI';
 import { WorldBillboardOverlay } from '../ui/WorldBillboardOverlay';
 import { HUDOverlay } from '../ui/HUDOverlay';
 import { PlayerHandOverlay } from '../ui/PlayerHandOverlay';
@@ -36,6 +37,9 @@ import { BloodWaveSegment } from '../entities/BloodWaveSegment';
 import { PurpleOrb } from '../entities/PurpleOrb';
 import { FrostingPuddle } from '../entities/FrostingPuddle';
 import { WalletManager } from './WalletManager';
+import { QuestManager } from './QuestManager';
+import { UpgradeManager } from './UpgradeManager';
+import { StashManager } from './StashManager';
 import { InputManager } from './InputManager';
 
 export class Game {
@@ -44,6 +48,7 @@ export class Game {
   private readonly renderer: Renderer;
   private readonly pauseMenu: PauseMenu;
   private readonly mainMenu: MainMenu;
+  private readonly hubUI: HubUI;
   private readonly merchantUI: MerchantUI;
   private readonly interactionPrompt: InteractionPrompt;
   private readonly worldBillboardOverlay: WorldBillboardOverlay;
@@ -55,6 +60,7 @@ export class Game {
   private entities: Entity[] = [];
   private isPaused = false;
   private isInMainMenu = true;
+  private isInHub = false;
   private lastTime = 0;
   private animationFrameId: number | null = null;
   private raidTimer = 0;
@@ -71,12 +77,12 @@ export class Game {
 
     this.interactionPrompt = new InteractionPrompt();
     this.worldBillboardOverlay = new WorldBillboardOverlay();
-    this.hudOverlay = new HUDOverlay(() => this.startNewExtractionMatch());
+    this.hudOverlay = new HUDOverlay(() => this.returnToHub());
     this.playerHandOverlay = new PlayerHandOverlay();
     this.merchantUI = new MerchantUI();
     this.mainMenu = new MainMenu(
       () => {
-        this.startGameFromMenu();
+        this.openHub();
       },
       (fovDegrees) => {
         this.player.fov = (fovDegrees * Math.PI) / 180;
@@ -105,11 +111,14 @@ export class Game {
       initialFovDeg,
       () => {
         this.returnToMainMenu();
+      },
+      () => {
+        this.returnToHub();
       }
     );
 
     this.input = new InputManager(canvas, (paused) => {
-      if (this.isInMainMenu) {
+      if (this.isInMainMenu || this.isInHub) {
         return;
       }
       if (this.merchantUI.isOpen()) {
@@ -130,7 +139,7 @@ export class Game {
       }
     });
 
-    this.input.canTogglePause = () => !this.isInMainMenu;
+    this.input.canTogglePause = () => !this.isInMainMenu && !this.isInHub;
     this.input.onEscapeWhileBlocked = () => {
       if (this.isInMainMenu && this.mainMenu.isInSettings()) {
         this.mainMenu.showMain();
@@ -157,6 +166,16 @@ export class Game {
       }
     );
 
+    this.hubUI = new HubUI(
+      () => {
+        this.startRaidFromHub();
+      },
+      () => {
+        this.returnToMainMenu();
+      }
+    );
+    this.hubUI.setPlayer(this.player);
+
     this.spawnLevelSprites(startLevel);
 
     // Initialisation dans l'état Menu Principal (jeu en pause, HUD masqué)
@@ -174,6 +193,9 @@ export class Game {
 
   public async init(): Promise<void> {
     WalletManager.init();
+    UpgradeManager.init();
+    QuestManager.init();
+    StashManager.init();
     await Promise.all([
       this.textures.loadAllTextures(),
       ItemSpriteManager.preloadAll(),
@@ -196,6 +218,7 @@ export class Game {
     this.player.x = level.playerSpawn.x;
     this.player.y = level.playerSpawn.y;
     this.player.angle = level.playerSpawn.angle;
+    this.player.maxHealth = 100 + this.player.getEffectiveStats().maxHealth;
     this.player.health = this.player.maxHealth;
     this.entities = [];
     this.interactionPrompt.clear();
@@ -452,17 +475,48 @@ export class Game {
 
   public startNewExtractionMatch(): void {
     WalletManager.resetSessionCoins();
-    this.player.inventory.unequip('offhand');
+    if (this.player.inventory.getItem('offhand')?.id === 'offhand_homonculus') {
+      this.player.inventory.unequip('offhand');
+    }
     this.player.inventory.unequip('key');
     const newMap = MapGenerator.generate();
     this.loadLevel(newMap);
     this.interactionPrompt.showNotification('NOUVELLE EXPÉDITION DÉMARRÉE !');
   }
 
-  public startGameFromMenu(): void {
-    WalletManager.resetSessionCoins();
+  public openHub(tab: 'play' | 'equipment' | 'shop' | 'quests' = 'play'): void {
     this.isInMainMenu = false;
+    this.isInHub = true;
+    this.isPaused = true;
+    this.input.setPaused(true, false);
     this.mainMenu.hide();
+    this.pauseMenu.hide();
+    this.merchantUI.close();
+    this.interactionPrompt.clear();
+    this.worldBillboardOverlay.setVisible(false);
+    this.hudOverlay.setVisible(false);
+    this.hudOverlay.reset();
+    this.playerHandOverlay.setVisible(false);
+    this.hubUI.setPlayer(this.player);
+    this.hubUI.show(tab);
+  }
+
+  public returnToHub(): void {
+    if (!this.player.isAlive()) {
+      this.player.inventory.clear();
+    } else if (this.isExtracted) {
+      QuestManager.onExtraction(WalletManager.getSessionCoins());
+    }
+
+    this.openHub('play');
+  }
+
+  public startRaidFromHub(): void {
+    WalletManager.resetSessionCoins();
+    this.isInHub = false;
+    this.hubUI.hide();
+    this.startNewExtractionMatch();
+    this.isInMainMenu = false;
     this.isPaused = false;
     this.worldBillboardOverlay.setVisible(true);
     this.hudOverlay.setVisible(true);
@@ -470,8 +524,14 @@ export class Game {
     this.input.setPaused(false);
   }
 
+  public startGameFromMenu(): void {
+    this.openHub();
+  }
+
   public returnToMainMenu(): void {
     this.isInMainMenu = true;
+    this.isInHub = false;
+    this.hubUI.hide();
     this.pauseMenu.hide();
     this.merchantUI.close();
     this.interactionPrompt.clear();
@@ -502,7 +562,7 @@ export class Game {
     const dt = (time - this.lastTime) / 1000;
     this.lastTime = time;
 
-    if (!this.isPaused && !this.isInMainMenu) {
+    if (!this.isPaused && !this.isInMainMenu && !this.isInHub) {
       this.update(dt);
     }
     this.render();
@@ -512,16 +572,13 @@ export class Game {
 
   private update(deltaTime: number): void {
     if (!this.player.isAlive() || this.isExtracted) {
-      // Si le joueur est mort ou s'est extrait, touches R ou Espace pour relancer un raid
+      // Si le joueur est mort ou s'est extrait, touches R ou Espace pour retourner au campement
       if (
         this.input.consumeKeyPress('r') ||
         this.input.consumeKeyPress(' ') ||
         this.input.consumeKeyPress(KEYS.SHOOT)
       ) {
-        if (!this.player.isAlive()) {
-          this.player.inventory.clear();
-        }
-        this.startNewExtractionMatch();
+        this.returnToHub();
       }
       return;
     }
@@ -721,7 +778,7 @@ export class Game {
 
   private render(): void {
     this.renderer.render(this.player, this.map, this.entities);
-    if (!this.isInMainMenu) {
+    if (!this.isInMainMenu && !this.isInHub) {
       this.playerHandOverlay.update(this.player, this.renderer, this.isExtracted);
       this.worldBillboardOverlay.update(this.entities, this.player, this.renderer);
       this.hudOverlay.update(

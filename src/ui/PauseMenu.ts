@@ -3,6 +3,7 @@ export class PauseMenu {
   private readonly mainView: HTMLElement | null;
   private readonly settingsView: HTMLElement | null;
   private readonly resumeButton: HTMLButtonElement | null;
+  private readonly hubButton: HTMLButtonElement | null;
   private readonly settingsButton: HTMLButtonElement | null;
   private readonly settingsBackBtn: HTMLButtonElement | null;
   private readonly settingsResumeBtn: HTMLButtonElement | null;
@@ -13,17 +14,20 @@ export class PauseMenu {
   private onResumeCallback?: () => void;
   private onFovChangeCallback?: (fovDegrees: number) => void;
   private onMainMenuCallback?: () => void;
+  private onReturnToHubCallback?: () => void;
 
   constructor(
     onResume?: () => void,
     onFovChange?: (fovDegrees: number) => void,
     initialFovDegrees = 75,
-    onMainMenu?: () => void
+    onMainMenu?: () => void,
+    onReturnToHub?: () => void
   ) {
     this.menuElement = document.getElementById('pause-menu');
     this.mainView = document.getElementById('pause-main-view');
     this.settingsView = document.getElementById('pause-settings-view');
     this.resumeButton = document.getElementById('resume-btn') as HTMLButtonElement | null;
+    this.hubButton = document.getElementById('pause-hub-btn') as HTMLButtonElement | null;
     this.settingsButton = document.getElementById('settings-btn') as HTMLButtonElement | null;
     this.settingsBackBtn = document.getElementById('settings-back-btn') as HTMLButtonElement | null;
     this.settingsResumeBtn = document.getElementById('settings-resume-btn') as HTMLButtonElement | null;
@@ -34,10 +38,12 @@ export class PauseMenu {
     this.onResumeCallback = onResume;
     this.onFovChangeCallback = onFovChange;
     this.onMainMenuCallback = onMainMenu;
+    this.onReturnToHubCallback = onReturnToHub;
 
     this.setFov(initialFovDegrees);
 
     this.resumeButton?.addEventListener('click', this.handleResumeClick);
+    this.hubButton?.addEventListener('click', this.handleHubClick);
     this.settingsButton?.addEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.addEventListener('click', this.handleBackClick);
     this.settingsResumeBtn?.addEventListener('click', this.handleResumeClick);
@@ -47,6 +53,10 @@ export class PauseMenu {
 
   private readonly handleResumeClick = (): void => {
     this.onResumeCallback?.();
+  };
+
+  private readonly handleHubClick = (): void => {
+    this.onReturnToHubCallback?.();
   };
 
   private readonly handleMainMenuClick = (): void => {
@@ -104,6 +114,7 @@ export class PauseMenu {
 
   public destroy(): void {
     this.resumeButton?.removeEventListener('click', this.handleResumeClick);
+    this.hubButton?.removeEventListener('click', this.handleHubClick);
     this.settingsButton?.removeEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.removeEventListener('click', this.handleBackClick);
     this.settingsResumeBtn?.removeEventListener('click', this.handleResumeClick);

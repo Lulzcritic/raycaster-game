@@ -204,6 +204,35 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDefinition> = {
     coinDrop: { min: 25, max: 40 },
   },
 
+  carrot_cake_king: {
+    id: 'carrot_cake_king',
+    name: 'Roi Gâteau à la Carotte',
+    rank: 'boss',
+    attackType: 'melee',
+    movementPattern: 'chase',
+    stats: {
+      maxHealth: 290,
+      damage: 26,
+      defense: 4,
+      moveSpeed: 1.05,
+      aggroRadius: 14.0,
+      attackRange: 0.88,
+      attackCooldown: 1.4,
+      attackWindup: 0.25,
+    },
+    scale: 0.92,
+    hitBox: 0.48,
+    colorTheme: {
+      primary: '#f97316',
+      secondary: '#fdba74',
+      outline: '#7c2d12',
+      eyeColor: '#ffffff',
+      glowColor: 'rgba(249, 115, 22, 0.65)',
+    },
+    description: 'Le tyran sucré et redouté des cryptes. Il glisse en ligne droite à toute vitesse en laissant une traînée de glaçage collant qui ralentit quiconque marche dessus, puis assène un redoutable coup de corps à corps.',
+    coinDrop: { min: 25, max: 40 },
+  },
+
   pumpkin: {
     id: 'pumpkin',
     name: 'Citrouille Ensorcelée',

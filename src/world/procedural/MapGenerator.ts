@@ -149,9 +149,10 @@ export class MapGenerator {
       grid[py][px] = TILE_TYPE.WALL_1;
     }
 
-    // Boss final de la Zone 3 : Reine de Sang Écarlate et Portail d'extraction Royal
+    // Boss final de la Zone 3 : Choix entre le Roi Gâteau à la Carotte et la Reine de Sang
+    const bossTypeId = Math.random() < 0.6 ? 'carrot_cake_king' : 'blood_queen';
     enemies.push({
-      typeId: 'blood_queen',
+      typeId: bossTypeId,
       x: center + 0.5,
       y: center + 1.5,
     });

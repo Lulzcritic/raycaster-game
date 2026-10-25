@@ -8,6 +8,10 @@ import {
   BloodQueenSpriteManager,
   type BloodQueenAttackKind,
 } from '../graphics/BloodQueenSpriteManager';
+import {
+  CakeKingSpriteManager,
+  type CakeKingAttackKind,
+} from '../graphics/CakeKingSpriteManager';
 import { PumpkinSpriteManager } from '../graphics/PumpkinSpriteManager';
 import type { EnemyTypeDefinition } from '../types/enemy';
 import type { GameMap } from '../world/GameMap';
@@ -17,6 +21,7 @@ import { BloodWaveSegment } from './BloodWaveSegment';
 import { DroppedCoin } from './DroppedCoin';
 import { DroppedItemOrb } from './DroppedItemOrb';
 import { Entity } from './Entity';
+import { FrostingPuddle } from './FrostingPuddle';
 import type { Player } from './Player';
 
 export type EnemyState = 'idle' | 'aggro' | 'attacking' | 'hurt' | 'dead';
@@ -44,6 +49,14 @@ export class Enemy extends Entity {
   private bloodQueenAttackKind: BloodQueenAttackKind = 'normal';
   private normalAttacksCount = 0;
   private waveCooldownTimer = 0;
+
+  // Variables propres au Carrot Cake King (glissade, traînée de glaçage & frappe au corps à corps)
+  private isCakeKingSliding = false;
+  private cakeKingAttackKind: CakeKingAttackKind = 'none';
+  private cakeKingSlideCooldown = 2.5;
+  private cakeKingSlideAngle = 0;
+  private cakeKingFrostingDropTimer = 0;
+  private cakeKingSlideDuration = 0;
 
   // Variables propres au Gobelin au Trésor (fuite, timer de disparition & traînée de pièces)
   private isFleeing = false;
@@ -78,6 +91,7 @@ export class Enemy extends Entity {
       type.id === 'goblin' ||
       type.id === 'skeleton_archer' ||
       type.id === 'blood_queen' ||
+      type.id === 'carrot_cake_king' ||
       type.id === 'pumpkin' ||
       type.id === 'pumpkin_seed'
         ? {}
@@ -134,6 +148,16 @@ export class Enemy extends Entity {
         this.animTimer,
         this.bloodQueenAttackKind,
         this.postAttackTimer
+      );
+    }
+    if (this.type.id === 'carrot_cake_king') {
+      return CakeKingSpriteManager.getSprite(
+        this.state,
+        this.animTimer,
+        this.isCakeKingSliding,
+        this.cakeKingAttackKind,
+        this.postAttackTimer,
+        this.isMoving
       );
     }
     if (this.type.id === 'pumpkin') {
@@ -397,6 +421,10 @@ export class Enemy extends Entity {
       this.waveCooldownTimer = Math.max(0, this.waveCooldownTimer - deltaTime);
     }
 
+    if (this.cakeKingSlideCooldown > 0) {
+      this.cakeKingSlideCooldown = Math.max(0, this.cakeKingSlideCooldown - deltaTime);
+    }
+
     if (this.attackCooldownTimer > 0) {
       this.attackCooldownTimer = Math.max(0, this.attackCooldownTimer - deltaTime);
     }
@@ -471,6 +499,10 @@ export class Enemy extends Entity {
             this.seedLayTimer = 3.5; // Première graine pondue après 3.5 secondes
             this.onNotify?.("ATTENTION : UNE CITROUILLE ENSORCELÉE VOUS TRAQUE !");
           }
+          if (this.type.id === 'carrot_cake_king') {
+            this.cakeKingSlideCooldown = 2.0;
+            this.onNotify?.("ATTENTION : LE ROI GÂTEAU À LA CAROTTE S'ÉVEILLE !");
+          }
           if (this.type.movementPattern === 'flee' && !this.isFleeing) {
             this.isFleeing = true;
             this.fleeTimer = 8.0;
@@ -537,6 +569,79 @@ export class Enemy extends Entity {
           );
           this.onSpawnEntity(seed);
           this.onNotify?.("LA CITROUILLE A PONDU UNE GRAINE ! DÉTRUISEZ-LA VITE !");
+        }
+      }
+
+      // Gestion spécifique au Carrot Cake King (Attaque 1 : Glissade avec traînée de glaçage)
+      if (this.type.id === 'carrot_cake_king') {
+        if (this.isCakeKingSliding) {
+          this.isMoving = true;
+          this.cakeKingSlideDuration += deltaTime;
+          this.cakeKingFrostingDropTimer += deltaTime;
+
+          // Dépôt régulier de flaques de glaçage sous sa course
+          if (this.cakeKingFrostingDropTimer >= 0.12 && this.onSpawnEntity) {
+            this.cakeKingFrostingDropTimer = 0;
+            const puddle = new FrostingPuddle(this.x, this.y, 8.5);
+            this.onSpawnEntity(puddle);
+          }
+
+          const slideSpeed = 3.6;
+          const moveX = Math.cos(this.cakeKingSlideAngle) * slideSpeed * deltaTime;
+          const moveY = Math.sin(this.cakeKingSlideAngle) * slideSpeed * deltaTime;
+          const prevX = this.x;
+          const prevY = this.y;
+          this.moveWithCollision(moveX, moveY, map);
+
+          const currentDist = Math.hypot(this.player.x - this.x, this.player.y - this.y);
+          const hitObstacle = Math.hypot(this.x - prevX, this.y - prevY) < 0.0005;
+
+          // Fin de la glissade : arrivée au corps à corps du joueur ou choc contre un mur
+          if (
+            currentDist <= this.type.stats.attackRange * 1.05 ||
+            hitObstacle ||
+            this.cakeKingSlideDuration >= 2.8
+          ) {
+            this.isCakeKingSliding = false;
+            this.cakeKingSlideCooldown = 5.5;
+
+            // Dès son arrivée au corps à corps, enchaîne directement avec l'Attaque 2 (coup de corps à corps)
+            if (currentDist <= this.type.stats.attackRange * 1.4) {
+              this.state = 'attacking';
+              this.cakeKingAttackKind = 'melee';
+              this.stateTimer = this.type.stats.attackWindup ?? 0.22;
+              this.isMoving = false;
+            }
+            return;
+          }
+          return;
+        }
+
+        // Déclenchement de l'Attaque 1 (Glissade) si à distance avec ligne de vue
+        if (
+          this.cakeKingSlideCooldown <= 0 &&
+          distanceToPlayer >= 1.6 &&
+          this.hasLineOfSight(map)
+        ) {
+          this.isCakeKingSliding = true;
+          this.cakeKingAttackKind = 'slide';
+          this.cakeKingSlideAngle = Math.atan2(dy, dx);
+          this.cakeKingSlideDuration = 0;
+          this.cakeKingFrostingDropTimer = 0;
+          this.onNotify?.("LE ROI GÂTEAU GLISSE À PLEINE VITESSE VERS VOUS !");
+          return;
+        }
+
+        // Déclenchement de l'Attaque 2 (Coup de corps à corps) si à portée
+        if (
+          distanceToPlayer <= this.type.stats.attackRange &&
+          this.attackCooldownTimer <= 0
+        ) {
+          this.state = 'attacking';
+          this.cakeKingAttackKind = 'melee';
+          this.stateTimer = this.type.stats.attackWindup ?? 0.25;
+          this.isMoving = false;
+          return;
         }
       }
 
@@ -764,6 +869,24 @@ export class Enemy extends Entity {
       }
       this.normalAttacksCount++;
       this.postAttackTimer = 0.24;
+      this.attackCooldownTimer = this.type.stats.attackCooldown;
+      return;
+    }
+
+    if (this.type.id === 'carrot_cake_king') {
+      const dx = this.player.x - this.x;
+      const dy = this.player.y - this.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist <= this.type.stats.attackRange * 1.4) {
+        this.player.takeDamage(this.type.stats.damage);
+        this.onNotify?.(`LE ROI GÂTEAU VOUS ASSÈNE UN COUP DE CORPS À CORPS ! (-${this.type.stats.damage} PV)`);
+        const angle = Math.atan2(dy, dx);
+        this.x -= Math.cos(angle) * 0.12;
+        this.y -= Math.sin(angle) * 0.12;
+      }
+
+      this.postAttackTimer = 0.35; // Maintient la pose de frappe attack2.png
       this.attackCooldownTimer = this.type.stats.attackCooldown;
       return;
     }

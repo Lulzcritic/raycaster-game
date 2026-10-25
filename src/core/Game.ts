@@ -29,10 +29,12 @@ import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
 import { BloodQueenSpriteManager } from '../graphics/BloodQueenSpriteManager';
 import { PumpkinSpriteManager } from '../graphics/PumpkinSpriteManager';
+import { CakeKingSpriteManager } from '../graphics/CakeKingSpriteManager';
 import { Arrow } from '../entities/Arrow';
 import { BloodOrb } from '../entities/BloodOrb';
 import { BloodWaveSegment } from '../entities/BloodWaveSegment';
 import { PurpleOrb } from '../entities/PurpleOrb';
+import { FrostingPuddle } from '../entities/FrostingPuddle';
 import { WalletManager } from './WalletManager';
 import { InputManager } from './InputManager';
 
@@ -181,6 +183,7 @@ export class Game {
       SkeletonSpriteManager.preloadAll(),
       BloodQueenSpriteManager.preloadAll(),
       PumpkinSpriteManager.preloadAll(),
+      CakeKingSpriteManager.preloadAll(),
     ]);
   }
 
@@ -532,11 +535,13 @@ export class Game {
       entity.update(deltaTime, this.map);
     }
 
-    // Si le Boss du Sanctuaire est vaincu (Reine de Sang ou Blob Boss), activation immédiate du portail royal
+    // Si le Boss du Sanctuaire est vaincu (Reine de Sang, Roi Gâteau ou Blob Boss), activation immédiate du portail royal
     const boss = this.entities.find(
       (e): e is Enemy =>
         e instanceof Enemy &&
-        (e.type.id === 'blob_boss' || e.type.id === 'blood_queen')
+        (e.type.id === 'blob_boss' ||
+          e.type.id === 'blood_queen' ||
+          e.type.id === 'carrot_cake_king')
     );
     if (boss && !boss.isAlive()) {
       for (const ent of this.entities) {
@@ -641,6 +646,16 @@ export class Game {
           );
         }
         seg.hitTarget();
+      }
+    }
+
+    // Détection des flaques de glaçage (Carrot Cake King) ralentissant le joueur
+    for (const entity of this.entities) {
+      if (entity instanceof FrostingPuddle && entity.active) {
+        const dist = Math.hypot(entity.x - this.player.x, entity.y - this.player.y);
+        if (dist < entity.hitBox + this.player.hitBox) {
+          this.player.applyFrostingSlow(0.35, 0.45);
+        }
       }
     }
 

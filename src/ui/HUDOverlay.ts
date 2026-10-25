@@ -156,7 +156,9 @@ export class HUDOverlay {
     }
 
     if (this.healthText) {
-      this.healthText.textContent = `PV ${Math.ceil(hp)} / ${maxHp}`;
+      const slowSuffix = player.isSlowed() ? ' [GLAÇAGE : -55% VIT]' : '';
+      this.healthText.textContent = `PV ${Math.ceil(hp)} / ${maxHp}${slowSuffix}`;
+      this.healthText.style.color = player.isSlowed() ? '#fdba74' : '#ffffff';
     }
 
     // Zone & Chronomètre

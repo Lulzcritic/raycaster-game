@@ -35,6 +35,10 @@ export class Player extends Entity {
   private maxSecondaryCooldown: number = PURPLE_ORB_CONFIG.COOLDOWN;
   private bobTimer = 0;
 
+  // Effet de ralentissement (glaçage collant du Carrot Cake King)
+  private frostingSlowTimer = 0;
+  private frostingSlowFactor = 1.0;
+
   constructor(
     input: InputManager,
     config: Partial<PlayerConfig> = {},
@@ -97,6 +101,15 @@ export class Player extends Entity {
     return this.maxSecondaryCooldown;
   }
 
+  public applyFrostingSlow(duration = 0.35, factor = 0.45): void {
+    this.frostingSlowTimer = Math.max(this.frostingSlowTimer, duration);
+    this.frostingSlowFactor = factor;
+  }
+
+  public isSlowed(): boolean {
+    return this.frostingSlowTimer > 0;
+  }
+
   public update(deltaTime: number, map: GameMap): void {
     const bonusStats = this.inventory.getTotalStats();
     this.maxHealth = 100 + bonusStats.maxHealth;
@@ -104,6 +117,10 @@ export class Player extends Entity {
 
     if (this.damageFlashTimer > 0) {
       this.damageFlashTimer = Math.max(0, this.damageFlashTimer - deltaTime);
+    }
+
+    if (this.frostingSlowTimer > 0) {
+      this.frostingSlowTimer = Math.max(0, this.frostingSlowTimer - deltaTime);
     }
 
     // Gestion du temps de recharge du tir principal (Boule de feu)
@@ -165,7 +182,8 @@ export class Player extends Entity {
     const prevY = this.y;
 
     if (forwardInput !== 0 || strafeInput !== 0) {
-      const speedBonus = 1 + bonusStats.moveSpeed;
+      const slowMultiplier = this.frostingSlowTimer > 0 ? this.frostingSlowFactor : 1.0;
+      const speedBonus = (1 + bonusStats.moveSpeed) * slowMultiplier;
       // Normalisation du vecteur pour éviter d'aller 1.41x plus vite en diagonale
       const length = Math.hypot(forwardInput, strafeInput);
       const forwardSpeed = (forwardInput / length) * this.speedMove * speedBonus;

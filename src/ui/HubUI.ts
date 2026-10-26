@@ -77,6 +77,8 @@ export class HubUI {
   private readonly avatarStats: HTMLElement | null;
 
   // Vues du contenu
+  private readonly playStatsContainer: HTMLElement | null;
+  private readonly playGearContainer: HTMLElement | null;
   private readonly equippedSlotsContainer: HTMLElement | null;
   private readonly stashListContainer: HTMLElement | null;
   private readonly fullStatsContainer: HTMLElement | null;
@@ -122,7 +124,9 @@ export class HubUI {
     this.avatarGearPreview = document.getElementById('hub-avatar-gear-preview');
     this.avatarStats = document.getElementById('hub-avatar-stats');
 
-    // Équipement & Stats
+    // Équipement & Stats & Jouer
+    this.playStatsContainer = document.getElementById('hub-play-stats');
+    this.playGearContainer = document.getElementById('hub-play-gear-summary');
     this.equippedSlotsContainer = document.getElementById('hub-equipped-slots');
     this.stashListContainer = document.getElementById('hub-stash-list');
     this.fullStatsContainer = document.getElementById('hub-full-stats');
@@ -167,6 +171,10 @@ export class HubUI {
 
   public setPlayer(player: Player): void {
     this.player = player;
+    if (this.isVisible()) {
+      this.renderPlayView();
+      this.renderAvatar();
+    }
   }
 
   public show(tab: HubTab = 'play'): void {
@@ -221,7 +229,9 @@ export class HubUI {
     }
 
     // Rendu spécifique de l'onglet actif
-    if (tab === 'equipment') {
+    if (tab === 'play') {
+      this.renderPlayView();
+    } else if (tab === 'equipment') {
       this.renderEquipmentView();
     } else if (tab === 'shop') {
       this.renderShopView();
@@ -357,6 +367,92 @@ export class HubUI {
   }
 
   // =========================================================================
+  // VUE 1 : JOUER (STATS DU JOUEUR, RÉSUMÉ ÉQUIPEMENT & LANCEMENT)
+  // =========================================================================
+  private renderPlayView(): void {
+    if (!this.player) return;
+
+    // 1. Statistiques effectives du joueur
+    if (this.playStatsContainer) {
+      const stats = this.player.getEffectiveStats();
+      const speedPct = Math.round(stats.moveSpeed * 100);
+      const castPct = Math.round(stats.castSpeed * 100);
+      const totalDamage = 16 + stats.damage + stats.magicPower;
+
+      this.playStatsContainer.innerHTML = `
+        <div class="hub-play-stat-tile">
+          <div class="hub-play-stat-icon">❤️</div>
+          <div class="hub-play-stat-content">
+            <span class="hub-play-stat-name">POINTS DE VIE</span>
+            <span class="hub-play-stat-value font-green">${this.player.maxHealth} PV</span>
+          </div>
+        </div>
+        <div class="hub-play-stat-tile">
+          <div class="hub-play-stat-icon">🗡️</div>
+          <div class="hub-play-stat-content">
+            <span class="hub-play-stat-name">DÉGÂTS TOTAUX</span>
+            <span class="hub-play-stat-value font-red">${totalDamage}</span>
+          </div>
+        </div>
+        <div class="hub-play-stat-tile">
+          <div class="hub-play-stat-icon">🛡️</div>
+          <div class="hub-play-stat-content">
+            <span class="hub-play-stat-name">DÉFENSE</span>
+            <span class="hub-play-stat-value font-blue">${stats.defense}</span>
+          </div>
+        </div>
+        <div class="hub-play-stat-tile">
+          <div class="hub-play-stat-icon">💨</div>
+          <div class="hub-play-stat-content">
+            <span class="hub-play-stat-name">VITESSE COURSE</span>
+            <span class="hub-play-stat-value font-yellow">${speedPct >= 0 ? `+${speedPct}%` : `${speedPct}%`}</span>
+          </div>
+        </div>
+        <div class="hub-play-stat-tile">
+          <div class="hub-play-stat-icon">⚡</div>
+          <div class="hub-play-stat-content">
+            <span class="hub-play-stat-name">VITESSE SORTS</span>
+            <span class="hub-play-stat-value font-purple">${castPct >= 0 ? `+${castPct}%` : `${castPct}%`}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Résumé de l'équipement (5 emplacements)
+    if (this.playGearContainer) {
+      this.playGearContainer.innerHTML = '';
+      const slots: EquipmentSlot[] = ['hat', 'weapon', 'armor', 'boots', 'offhand'];
+
+      for (const slot of slots) {
+        const item = this.player.inventory.getItem(slot);
+        const card = document.createElement('div');
+        card.className = `hub-play-gear-card ${item ? `rarity-${item.rarity}` : 'empty'}`;
+
+        const iconUrl = item ? ItemSpriteManager.getSpriteUrl(item.slot, item.rarity, item.id) : null;
+
+        card.innerHTML = `
+          <div class="hub-play-gear-badge">${SLOT_LABELS[slot]}</div>
+          <div class="hub-play-gear-row">
+            <div class="hub-play-gear-icon-box">
+              ${iconUrl ? `<img src="${iconUrl}" class="hub-play-gear-img" alt="" />` : `<span class="hub-play-gear-empty">+</span>`}
+            </div>
+            <div class="hub-play-gear-details">
+              <div class="hub-play-gear-name" style="color: ${item ? RARITY_COLORS[item.rarity] : '#64748b'}">
+                ${item ? item.name : 'Libre'}
+              </div>
+              <div class="hub-play-gear-bonus">
+                ${item ? this.formatItemStats(item) : 'Aucun bonus'}
+              </div>
+            </div>
+          </div>
+        `;
+
+        this.playGearContainer.appendChild(card);
+      }
+    }
+  }
+
+  // =========================================================================
   // VUE 2 : ÉQUIPEMENT & RÉSERVE (STASH)
   // =========================================================================
   private renderEquipmentView(): void {
@@ -396,6 +492,7 @@ export class HubUI {
             if (removed) {
               StashManager.addItem(removed);
               this.renderEquipmentView();
+              this.renderPlayView();
               this.renderAvatar();
             }
           });
@@ -444,6 +541,7 @@ export class HubUI {
                 StashManager.addItem(previous);
               }
               this.renderEquipmentView();
+              this.renderPlayView();
               this.renderAvatar();
             }
           });
@@ -569,6 +667,7 @@ export class HubUI {
             if (UpgradeManager.buy(id)) {
               this.updateWalletDisplay();
               this.renderShopView();
+              this.renderPlayView();
               this.renderAvatar();
             }
           });

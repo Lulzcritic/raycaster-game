@@ -274,39 +274,30 @@
 
           <!-- Interfaces flottantes directement sur le background (pas de fenêtre, pas de page défilable) -->
           <div class="hub-views-container">
-            <!-- Onglet JOUER -->
+            <!-- Onglet JOUER : Stats du joueur + Résumé d'équipement + Bouton entrer dans la citadelle -->
             <section id="hub-view-play" class="hub-view active">
               <div class="hub-play-stage">
                 <div class="hub-play-header">
-                  <h1 class="hub-view-title">⚔️ EXPÉDITION DANS LES CRYPTES</h1>
-                  <p class="hub-view-subtitle">Pénétrez dans la Citadelle oubliée, pillez les trésors anciens et extrayez vivant vos richesses.</p>
+                  <h1 class="hub-view-title">⚔️ CITADELLE OUBLIÉE</h1>
+                  <p class="hub-view-subtitle">Préparez votre mage avant de franchir les portes du donjon.</p>
                 </div>
 
-                <div class="hub-dungeon-zones">
-                  <div class="hub-zone-card zone-1">
-                    <div class="hub-zone-badge">ZONE 1</div>
-                    <h3>Quartier de Départ</h3>
-                    <p>Blobs toxiques et coffres rouillés. Faible menace.</p>
-                  </div>
-                  <div class="hub-zone-card zone-2">
-                    <div class="hub-zone-badge">ZONE 2</div>
-                    <h3>Anneau Central</h3>
-                    <p>Squelettes archers, Citrouilles maudites et Gobelins au trésor.</p>
-                  </div>
-                  <div class="hub-zone-card zone-3">
-                    <div class="hub-zone-badge">ZONE 3</div>
-                    <h3>Sanctuaire Royal</h3>
-                    <p>Boss impitoyables : Reine de Sang ou Roi Gâteau à la Carotte.</p>
-                  </div>
+                <!-- 1. Statistiques du joueur -->
+                <div class="hub-play-section">
+                  <h3 class="hub-sub-title">STATISTIQUES DU JOUEUR</h3>
+                  <div id="hub-play-stats" class="hub-play-stats-grid"></div>
                 </div>
 
-                <div class="hub-play-warning">
-                  ✦ <strong>RÈGLE D'EXTRACTION</strong> : Les pièces et objets ne sont sécurisés que si vous atteignez un portail d'extraction actif ! En cas de mort, le butin récolté dans la crypte est dissous dans le néant.
+                <!-- 2. Résumé de l'équipement -->
+                <div class="hub-play-section">
+                  <h3 class="hub-sub-title">RÉSUMÉ DE L'ÉQUIPEMENT</h3>
+                  <div id="hub-play-gear-summary" class="hub-play-gear-grid"></div>
                 </div>
 
+                <!-- 3. Bouton entrer dans la citadelle -->
                 <div class="hub-play-action">
                   <button id="hub-launch-raid-btn" class="hub-launch-btn" type="button">
-                    ⚔️ ENTRER DANS LA CRYPTE [LANCER LE RAID]
+                    ⚔️ ENTRER DANS LA CITADELLE
                   </button>
                 </div>
               </div>

@@ -13,6 +13,7 @@ import { StashManager } from '../core/StashManager';
 import { ItemDatabase } from '../config/ItemDatabase';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { ItemTooltip } from './ItemTooltip';
+import { FIREBALL_CONFIG } from '../config/constants';
 import type { Player } from '../entities/Player';
 import type { EquipmentItem, EquipmentSlot } from '../types';
 
@@ -372,7 +373,7 @@ export class HubUI {
         </div>
         <div class="hub-stat-row">
           <span class="hub-stat-label">🗡️ DÉGÂTS</span>
-          <span class="hub-stat-val font-red">${16 + stats.damage + stats.magicPower}</span>
+          <span class="hub-stat-val font-red">${FIREBALL_CONFIG.DAMAGE + stats.damage + stats.magicPower}</span>
         </div>
         <div class="hub-stat-row">
           <span class="hub-stat-label">🛡️ DÉFENSE</span>
@@ -443,7 +444,7 @@ export class HubUI {
       const stats = this.player.getEffectiveStats();
       const speedPct = Math.round(stats.moveSpeed * 100);
       const castPct = Math.round(stats.castSpeed * 100);
-      const totalDamage = 16 + stats.damage + stats.magicPower;
+      const totalDamage = FIREBALL_CONFIG.DAMAGE + stats.damage + stats.magicPower;
 
       const statItems = [
         {
@@ -639,10 +640,10 @@ export class HubUI {
           </div>
           <div class="hub-stats-table-row">
             <span>Dégâts Magiques</span>
-            <span>16</span>
+            <span>${FIREBALL_CONFIG.DAMAGE}</span>
             <span class="font-red">+${gear.damage}</span>
             <span class="font-red">+${upg.damage}</span>
-            <span class="font-red font-bold">${16 + total.damage}</span>
+            <span class="font-red font-bold">${FIREBALL_CONFIG.DAMAGE + total.damage}</span>
           </div>
           <div class="hub-stats-table-row">
             <span>Armure / Défense</span>

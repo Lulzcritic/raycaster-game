@@ -14,7 +14,7 @@ export class Fireball extends Entity {
   private animTimer = 0;
   private explosionTimer = 0;
 
-  constructor(x: number, y: number, angle: number, damage = 14) {
+  constructor(x: number, y: number, angle: number, damage: number = FIREBALL_CONFIG.DAMAGE) {
     super(x, y, angle, 0.1);
     this.damage = damage;
     Fireball.ensureSpritesCreated();

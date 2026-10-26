@@ -249,7 +249,7 @@ export class Player extends Entity {
     this.shootCooldown = FIREBALL_CONFIG.COOLDOWN * cooldownFactor;
     const spawnX = this.x + Math.cos(this.angle) * FIREBALL_CONFIG.SPAWN_OFFSET;
     const spawnY = this.y + Math.sin(this.angle) * FIREBALL_CONFIG.SPAWN_OFFSET;
-    const totalDamage = 16 + bonusDamage + magicPower;
+    const totalDamage = FIREBALL_CONFIG.DAMAGE + bonusDamage + magicPower;
     const fireball = new Fireball(spawnX, spawnY, this.angle, totalDamage);
     this.onShoot?.(fireball);
   }

@@ -14,26 +14,411 @@ export interface MapGeneratorOptions {
   seed?: number;
 }
 
+interface ChunkEnemy {
+  typeId: string;
+  x: number; // 0 à 10
+  y: number; // 0 à 10
+}
+
+interface ChunkChest {
+  x: number;
+  y: number;
+  tier?: 'starter' | 'standard' | 'high' | 'royal';
+  fixedLoot?: string[];
+}
+
+interface ChunkPortal {
+  x: number;
+  y: number;
+  name: string;
+  delaySec: number;
+}
+
+interface ChunkSprite {
+  x: number;
+  y: number;
+  textureId: number;
+  scale?: number;
+  itemId?: string;
+}
+
+interface ModuleTemplate {
+  id: string;
+  grid: string[]; // 11 lignes de 11 caractères
+  enemies?: ChunkEnemy[];
+  chests?: ChunkChest[];
+  portals?: ChunkPortal[];
+  sprites?: ChunkSprite[];
+  spawnPoint?: { x: number; y: number; angle: number };
+}
+
+/**
+ * GÉNÉRATEUR PROCÉDURAL MODULAIRE DE CITADELLE (APPROCHE SEMI-PROCÉDURALE)
+ *
+ * Architecture :
+ * - Grille de 5×5 modules préfabriqués de 11×11 cases (taille totale 51×51 cases).
+ * - Les modules adjacents partagent leur mur mitoyen, avec un point de passage centré à l'indice 5.
+ * - Centre (2, 2) : Sanctuaire du Boss (Zone 3), scellé par 4 Portes à Crâne d'Os.
+ * - Les 4 coins (0,0), (4,0), (0,4), (4,4) : Cryptes de réveil des joueurs (Zone 1),
+ *   scellées par une porte rouillée dont la clé est gardée dans la crypte.
+ * - Les 20 autres modules : Anneau intermédiaire de catacombes (Zone 2) connecté
+ *   par un arbre couvrant aléatoire avec boucles, garantissant 100% d'accessibilité.
+ */
 export class MapGenerator {
-  public static readonly DEFAULT_SIZE = 65;
-  public static readonly NUM_SECTORS = 6;
+  public static readonly DEFAULT_SIZE = 51;
+  public static readonly CHUNK_SIZE = 11;
+  public static readonly CHUNK_STEP = 10;
+  public static readonly GRID_CHUNKS = 5;
 
-  /**
-   * Génère un niveau d'extraction complet en miroir à 6 secteurs.
-   *
-   * RÈGLES STRICTES DE GÉNÉRATION :
-   * 1. AUCUN couloir ou ligne de vue ne dépasse 7 unités (tous les tronçons font 2 à 4 cases
-   *    avec des virages à 90°, doglegs et chicanes pour éliminer la pixellisation du raycaster).
-   * 2. TOUTES les portes (6 de secteur, 6 de sanctuaire) sont fermement encastrées dans des murs
-   *    pleins (flanquées de murs de part et d'autre, ouverture de 1 case uniquement).
-   * 3. Chaque zone de spawn est un mini-labyrinthe de catacombes (Crypte de Réveil, Antichambre,
-   *    Crypte de la Clé avec gardien, Armurerie avec équipement, Vestibule de Herse).
-   */
-  public static generate(options: MapGeneratorOptions = {}): LevelData {
-    const size = options.size ?? MapGenerator.DEFAULT_SIZE;
-    const center = Math.floor(size / 2); // 32 pour size = 65
+  // =========================================================================
+  // CATALOGUE DES SALLES PRÉFABRIQUÉES (11×11)
+  // # = Mur, . = Sol 1, * = Sol 2 (orné/runique), D = Emplacement de passage
+  // =========================================================================
 
-    // Initialisation : carte entièrement remplie de murs solides
+  private static readonly STARTING_CRYPT: ModuleTemplate = {
+    id: 'starting_crypt',
+    grid: [
+      '###########',
+      '#..#......#',
+      '#..#......#',
+      '#..#.####.#',
+      '#....#....#',
+      'D.####.K..#',
+      '#....#....#',
+      '#....####.#',
+      '#.S.......#',
+      '#.........#',
+      '###########',
+    ],
+    enemies: [{ typeId: 'blob', x: 7.5, y: 5.5 }],
+    chests: [
+      { x: 7, y: 2, tier: 'starter' },
+      { x: 7, y: 5, fixedLoot: ['key_spawn_rusty'] },
+    ],
+    spawnPoint: { x: 2.5, y: 8.5, angle: -Math.PI / 2 },
+  };
+
+  private static readonly BOSS_SANCTUM: ModuleTemplate = {
+    id: 'boss_sanctum',
+    grid: [
+      '###########',
+      '#.*.....*.#',
+      '#.##...##.#',
+      '#.........#',
+      '#....*....#',
+      'D..*****..D',
+      '#....*....#',
+      '#.........#',
+      '#.##...##.#',
+      '#.*.....*.#',
+      '###########',
+    ],
+    chests: [
+      { x: 2, y: 5, tier: 'royal' },
+      { x: 8, y: 5, tier: 'royal' },
+    ],
+    portals: [
+      {
+        x: 5.5,
+        y: 3.5,
+        name: 'Portail Royal du Sanctuaire',
+        delaySec: 75,
+      },
+    ],
+  };
+
+  private static readonly ARENA_COLOSSEUM: ModuleTemplate = {
+    id: 'arena_colosseum',
+    grid: [
+      '###########',
+      '#.........#',
+      '#..##.##..#',
+      '#..##.##..#',
+      '#.........#',
+      'D....*....D',
+      '#.........#',
+      '#..##.##..#',
+      '#..##.##..#',
+      '#.........#',
+      '###########',
+    ],
+    enemies: [
+      { typeId: 'skeleton_archer', x: 2.5, y: 2.5 },
+      { typeId: 'blob', x: 5.5, y: 5.5 },
+      { typeId: 'blob', x: 8.5, y: 8.5 },
+    ],
+    chests: [{ x: 5, y: 1, tier: 'standard' }],
+  };
+
+  private static readonly ARENA_CROSSFIRE: ModuleTemplate = {
+    id: 'arena_crossfire',
+    grid: [
+      '###########',
+      '#...#.#...#',
+      '#...#.#...#',
+      '#..#...#..#',
+      '###.....###',
+      'D....*....D',
+      '###.....###',
+      '#..#...#..#',
+      '#...#.#...#',
+      '#...#.#...#',
+      '###########',
+    ],
+    enemies: [
+      { typeId: 'skeleton_archer', x: 2.5, y: 2.5 },
+      { typeId: 'skeleton_archer', x: 8.5, y: 8.5 },
+      { typeId: 'goblin', x: 5.5, y: 5.5 },
+    ],
+    chests: [{ x: 5, y: 9, tier: 'standard' }],
+  };
+
+  private static readonly ARENA_PUMPKIN: ModuleTemplate = {
+    id: 'arena_pumpkin',
+    grid: [
+      '###########',
+      '#...***...#',
+      '#.*.***.*.#',
+      '#***...***#',
+      '#***...***#',
+      'D....*....D',
+      '#***...***#',
+      '#***...***#',
+      '#.*.***.*.#',
+      '#...***...#',
+      '###########',
+    ],
+    enemies: [
+      { typeId: 'pumpkin', x: 3.5, y: 3.5 },
+      { typeId: 'pumpkin', x: 7.5, y: 7.5 },
+      { typeId: 'blob', x: 5.5, y: 5.5 },
+    ],
+    chests: [{ x: 1, y: 1, tier: 'standard' }],
+  };
+
+  private static readonly ARENA_LABYRINTH: ModuleTemplate = {
+    id: 'arena_labyrinth',
+    grid: [
+      '###########',
+      '#.....#...#',
+      '#.###.#.#.#',
+      '#.#.....#.#',
+      '#.#.###.#.#',
+      'D.#...#...D',
+      '#.#.###.#.#',
+      '#.#.....#.#',
+      '#.###.#.#.#',
+      '#.....#...#',
+      '###########',
+    ],
+    enemies: [
+      { typeId: 'blob', x: 2.5, y: 2.5 },
+      { typeId: 'skeleton_archer', x: 8.5, y: 2.5 },
+      { typeId: 'blob', x: 2.5, y: 8.5 },
+    ],
+    chests: [{ x: 8, y: 8, tier: 'standard' }],
+  };
+
+  private static readonly ARENA_AMBUSH: ModuleTemplate = {
+    id: 'arena_ambush',
+    grid: [
+      '###########',
+      '#..#...#..#',
+      '#..#...#..#',
+      '#.........#',
+      '#..#####..#',
+      'D..#***#..D',
+      '#..#####..#',
+      '#.........#',
+      '#..#...#..#',
+      '#..#...#..#',
+      '###########',
+    ],
+    enemies: [
+      { typeId: 'blob', x: 2.5, y: 5.5 },
+      { typeId: 'blob', x: 8.5, y: 5.5 },
+      { typeId: 'pumpkin', x: 5.5, y: 8.5 },
+    ],
+    chests: [{ x: 5, y: 5, tier: 'high' }],
+  };
+
+  private static readonly TREASURE_VAULT: ModuleTemplate = {
+    id: 'treasure_vault',
+    grid: [
+      '###########',
+      '#.........#',
+      '#..#...#..#',
+      '#..#***#..#',
+      '#..#***#..#',
+      'D....*....D',
+      '#..#***#..#',
+      '#..#***#..#',
+      '#..#...#..#',
+      '#.........#',
+      '###########',
+    ],
+    enemies: [
+      { typeId: 'skeleton_archer', x: 5.5, y: 5.5 },
+      { typeId: 'blob', x: 2.5, y: 2.5 },
+    ],
+    chests: [
+      { x: 5, y: 3, tier: 'high', fixedLoot: ['key_crypt_skull'] },
+      { x: 5, y: 7, tier: 'standard' },
+    ],
+  };
+
+  private static readonly TREASURE_SHRINE: ModuleTemplate = {
+    id: 'treasure_shrine',
+    grid: [
+      '###########',
+      '#...#.#...#',
+      '#..##.##..#',
+      '#...#.#...#',
+      '##.......##',
+      'D...***...D',
+      '##.......##',
+      '#...#.#...#',
+      '#..##.##..#',
+      '#...#.#...#',
+      '###########',
+    ],
+    enemies: [
+      { typeId: 'skeleton_archer', x: 5.5, y: 2.5 },
+      { typeId: 'pumpkin', x: 5.5, y: 8.5 },
+    ],
+    chests: [{ x: 5, y: 5, tier: 'high', fixedLoot: ['key_crypt_skull'] }],
+  };
+
+  private static readonly EXTRACTION_SANCTUM: ModuleTemplate = {
+    id: 'extraction_sanctum',
+    grid: [
+      '###########',
+      '#..#...#..#',
+      '#.***.***.#',
+      '#.*******.#',
+      '#..*****..#',
+      'D...***...D',
+      '#..*****..#',
+      '#.*******.#',
+      '#.***.***.#',
+      '#..#...#..#',
+      '###########',
+    ],
+    enemies: [{ typeId: 'blob', x: 5.5, y: 3.5 }],
+    chests: [{ x: 1, y: 5, tier: 'standard' }],
+    portals: [
+      {
+        x: 5.5,
+        y: 5.5,
+        name: 'Portail des Âmes Sépulcrales',
+        delaySec: 40,
+      },
+    ],
+  };
+
+  private static readonly MERCHANT_BAZAAR: ModuleTemplate = {
+    id: 'merchant_bazaar',
+    grid: [
+      '###########',
+      '#.........#',
+      '#..#####..#',
+      '#..#***#..#',
+      '#..#***#..#',
+      'D....*....D',
+      '#..#####..#',
+      '#.........#',
+      '#.........#',
+      '#.........#',
+      '###########',
+    ],
+    sprites: [
+      {
+        x: 5.5,
+        y: 3.5,
+        textureId: TILE_TYPE.MERCHANT,
+        scale: 0.72,
+      },
+    ],
+    chests: [{ x: 8, y: 8, tier: 'standard' }],
+  };
+
+  private static readonly HOMONCULUS_SANCTUARY: ModuleTemplate = {
+    id: 'homonculus_sanctuary',
+    grid: [
+      '###########',
+      '#...#.#...#',
+      '#...*.*...#',
+      '#..#***#..#',
+      '#...*.*...#',
+      'D....*....D',
+      '#...*.*...#',
+      '#..#***#..#',
+      '#...*.*...#',
+      '#...#.#...#',
+      '###########',
+    ],
+    enemies: [
+      { typeId: 'goblin', x: 3.5, y: 5.5 },
+      { typeId: 'blob', x: 7.5, y: 5.5 },
+    ],
+    sprites: [
+      {
+        x: 5.5,
+        y: 5.5,
+        textureId: TILE_TYPE.HOMONCULUS,
+        scale: 0.42,
+        itemId: 'offhand_homonculus',
+      },
+    ],
+    chests: [{ x: 8, y: 2, tier: 'standard' }],
+  };
+
+  private static readonly CROSSROAD_GRAND: ModuleTemplate = {
+    id: 'crossroad_grand',
+    grid: [
+      '###########',
+      '#....#....#',
+      '#.##.#.##.#',
+      '#.#.....#.#',
+      '#.#.###.#.#',
+      'D.........D',
+      '#.#.###.#.#',
+      '#.#.....#.#',
+      '#.##.#.##.#',
+      '#....#....#',
+      '###########',
+    ],
+    enemies: [{ typeId: 'blob', x: 5.5, y: 5.5 }],
+    chests: [{ x: 5, y: 2, tier: 'standard' }],
+  };
+
+  private static readonly CORRIDOR_CHICANE: ModuleTemplate = {
+    id: 'corridor_chicane',
+    grid: [
+      '###########',
+      '#....#....#',
+      '#....#....#',
+      '#.####....#',
+      '#.#.......#',
+      'D.#...#####',
+      '#.#.......#',
+      '#.####....#',
+      '#....#....#',
+      '#....#....#',
+      '###########',
+    ],
+    enemies: [{ typeId: 'blob', x: 7.5, y: 4.5 }],
+    chests: [{ x: 2, y: 2, tier: 'standard' }],
+  };
+
+  // =========================================================================
+  // MÉTHODE PRINCIPALE DE GÉNÉRATION
+  // =========================================================================
+
+  public static generate(_options: MapGeneratorOptions = {}): LevelData {
+    const size = MapGenerator.DEFAULT_SIZE;
+
+    // Initialisation de la grille 51×51 entièrement remplie de murs
     const grid: number[][] = Array.from({ length: size }, () =>
       Array.from({ length: size }, () => TILE_TYPE.WALL_1)
     );
@@ -48,642 +433,377 @@ export class MapGenerator {
     const sprites: SpriteSpawnData[] = [];
     const playerSpawns: Array<{ x: number; y: number; angle: number }> = [];
 
-    // Helper pour creuser une case individuelle
-    const carve = (
-      x: number,
-      y: number,
-      floorTile: number = TILE_TYPE.GROUND_1
-    ): void => {
-      const ix = Math.round(x);
-      const iy = Math.round(y);
-      if (ix >= 1 && ix < size - 1 && iy >= 1 && iy < size - 1) {
-        grid[iy][ix] = TILE_TYPE.GROUND_1;
-        floorGrid[iy][ix] = floorTile;
-      }
-    };
-
-    // Helper pour creuser une pièce rectangulaire fermée
-    const carveRoom = (
-      cx: number,
-      cy: number,
-      rx = 1,
-      ry = 1,
-      floorTile: number = TILE_TYPE.GROUND_1
-    ): void => {
-      for (let dy = -ry; dy <= ry; dy++) {
-        for (let dx = -rx; dx <= rx; dx++) {
-          carve(cx + dx, cy + dy, floorTile);
-        }
-      }
-    };
-
-    // Helper pour tracer des couloirs orthogonaux stricts (1 seule case de large)
-    const carveOrthogonal = (
-      x1: number,
-      y1: number,
-      x2: number,
-      y2: number,
-      floorTile: number = TILE_TYPE.GROUND_1
-    ): void => {
-      if (x1 === x2) {
-        const minY = Math.min(y1, y2);
-        const maxY = Math.max(y1, y2);
-        for (let y = minY; y <= maxY; y++) carve(x1, y, floorTile);
-      } else if (y1 === y2) {
-        const minX = Math.min(x1, x2);
-        const maxX = Math.max(x1, x2);
-        for (let x = minX; x <= maxX; x++) carve(x, y1, floorTile);
-      } else {
-        // Virage en L (dogleg)
-        const minX = Math.min(x1, x2);
-        const maxX = Math.max(x1, x2);
-        for (let x = minX; x <= maxX; x++) carve(x, y1, floorTile);
-        const minY = Math.min(y1, y2);
-        const maxY = Math.max(y1, y2);
-        for (let y = minY; y <= maxY; y++) carve(x2, y, floorTile);
-      }
-    };
-
-    // Helper pour insérer une porte solidement encastrée entre 2 murs
-    const addDoor = (
-      x: number,
-      y: number,
-      orientation: 'horizontal' | 'vertical',
-      requiredKeyId: string
-    ): void => {
-      grid[y][x] = TILE_TYPE.DOOR;
-      if (orientation === 'horizontal') {
-        grid[y][x - 1] = TILE_TYPE.WALL_1;
-        grid[y][x + 1] = TILE_TYPE.WALL_1;
-        carve(x, y - 1);
-        carve(x, y + 1);
-      } else {
-        grid[y - 1][x] = TILE_TYPE.WALL_1;
-        grid[y + 1][x] = TILE_TYPE.WALL_1;
-        carve(x - 1, y);
-        carve(x + 1, y);
-      }
-      doors.push({ x, y, requiredKeyId });
-    };
-
-    // =========================================================================
-    // ÉTAPE 1 : ZONE 3 - SANCTUAIRE CENTRAL DU BOSS (r <= 4.0)
-    // =========================================================================
-    for (let dy = -4; dy <= 4; dy++) {
-      for (let dx = -4; dx <= 4; dx++) {
-        if (Math.hypot(dx, dy) <= 4.0) {
-          carve(center + dx, center + dy, TILE_TYPE.GROUND_2);
+    // 1. Définition des coordonnées des 20 nœuds de Zone 2
+    const zone2Coords: Array<[number, number]> = [];
+    for (let cy = 0; cy < MapGenerator.GRID_CHUNKS; cy++) {
+      for (let cx = 0; cx < MapGenerator.GRID_CHUNKS; cx++) {
+        // Exclure le centre (2,2) et les 4 coins de spawn
+        const isCenter = cx === 2 && cy === 2;
+        const isCorner =
+          (cx === 0 || cx === 4) && (cy === 0 || cy === 4);
+        if (!isCenter && !isCorner) {
+          zone2Coords.push([cx, cy]);
         }
       }
     }
 
-    // Piliers de l'arène + Autel central en obsidienne pour casser toute vue axiale
-    const sanctumPillars = [
-      [center, center], // Autel central
-      [center - 2, center - 2],
-      [center + 2, center - 2],
-      [center - 2, center + 2],
-      [center + 2, center + 2],
+    // 2. Génération d'un arbre couvrant aléatoire avec boucles pour Zone 2
+    // Tableau des connexions ouvertes : ensemble de clés "x1,y1-x2,y2"
+    const openConnections = new Set<string>();
+
+    const makeConnKey = (
+      c1x: number,
+      c1y: number,
+      c2x: number,
+      c2y: number
+    ): string => {
+      if (c1x < c2x || (c1x === c2x && c1y < c2y)) {
+        return `${c1x},${c1y}-${c2x},${c2y}`;
+      }
+      return `${c2x},${c2y}-${c1x},${c1y}`;
+    };
+
+    // Prim's algorithm pour l'arbre couvrant de Zone 2
+    const visited = new Set<string>();
+    const startZ2 = zone2Coords[Math.floor(Math.random() * zone2Coords.length)];
+    visited.add(`${startZ2[0]},${startZ2[1]}`);
+
+    const candidateEdges: Array<{
+      from: [number, number];
+      to: [number, number];
+    }> = [];
+
+    const addAdjacentEdges = (cx: number, cy: number) => {
+      const dirs = [
+        [0, -1],
+        [0, 1],
+        [-1, 0],
+        [1, 0],
+      ];
+      for (const [dx, dy] of dirs) {
+        const nx = cx + dx;
+        const ny = cy + dy;
+        const isZ2 = zone2Coords.some(([zx, zy]) => zx === nx && zy === ny);
+        if (isZ2 && !visited.has(`${nx},${ny}`)) {
+          candidateEdges.push({ from: [cx, cy], to: [nx, ny] });
+        }
+      }
+    };
+
+    addAdjacentEdges(startZ2[0], startZ2[1]);
+
+    while (visited.size < zone2Coords.length && candidateEdges.length > 0) {
+      const randIdx = Math.floor(Math.random() * candidateEdges.length);
+      const edge = candidateEdges.splice(randIdx, 1)[0];
+      const toKey = `${edge.to[0]},${edge.to[1]}`;
+
+      if (!visited.has(toKey)) {
+        visited.add(toKey);
+        openConnections.add(
+          makeConnKey(edge.from[0], edge.from[1], edge.to[0], edge.to[1])
+        );
+        addAdjacentEdges(edge.to[0], edge.to[1]);
+      }
+    }
+
+    // Ajout de 6 boucles aléatoires supplémentaires dans Zone 2 pour créer des routes circulaires
+    let addedLoops = 0;
+    const allPossibleZ2Edges: Array<{
+      from: [number, number];
+      to: [number, number];
+    }> = [];
+
+    for (let i = 0; i < zone2Coords.length; i++) {
+      const [ax, ay] = zone2Coords[i];
+      const dirs = [
+        [1, 0],
+        [0, 1],
+      ];
+      for (const [dx, dy] of dirs) {
+        const bx = ax + dx;
+        const by = ay + dy;
+        const isBInZ2 = zone2Coords.some(([zx, zy]) => zx === bx && zy === by);
+        if (isBInZ2) {
+          const key = makeConnKey(ax, ay, bx, by);
+          if (!openConnections.has(key)) {
+            allPossibleZ2Edges.push({ from: [ax, ay], to: [bx, by] });
+          }
+        }
+      }
+    }
+
+    // Mélanger et piocher des boucles
+    for (let i = allPossibleZ2Edges.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allPossibleZ2Edges[i], allPossibleZ2Edges[j]] = [
+        allPossibleZ2Edges[j],
+        allPossibleZ2Edges[i],
+      ];
+    }
+    for (const edge of allPossibleZ2Edges) {
+      if (addedLoops >= 6) break;
+      openConnections.add(
+        makeConnKey(edge.from[0], edge.from[1], edge.to[0], edge.to[1])
+      );
+      addedLoops++;
+    }
+
+    // 3. Connexion des 4 Cryptes de départ aux pièces Zone 2 adjacentes (Portes Rouillées)
+    const cornerSpawns: Array<{
+      cx: number;
+      cy: number;
+      connectTo: [number, number];
+      rotation: 0 | 1 | 2 | 3;
+    }> = [
+      { cx: 0, cy: 0, connectTo: [1, 0], rotation: 2 }, // Sortie vers l'Est
+      { cx: 4, cy: 0, connectTo: [3, 0], rotation: 0 }, // Sortie vers l'Ouest
+      { cx: 0, cy: 4, connectTo: [1, 4], rotation: 2 }, // Sortie vers l'Est
+      { cx: 4, cy: 4, connectTo: [3, 4], rotation: 0 }, // Sortie vers l'Ouest
     ];
-    for (const [px, py] of sanctumPillars) {
-      grid[py][px] = TILE_TYPE.WALL_1;
+
+    for (const corner of cornerSpawns) {
+      openConnections.add(
+        makeConnKey(corner.cx, corner.cy, corner.connectTo[0], corner.connectTo[1])
+      );
     }
 
-    // Boss final de la Zone 3 : Choix entre le Roi Gâteau à la Carotte et la Reine de Sang
+    // 4. Connexion du Sanctuaire central (2,2) à ses 4 voisins (Portes à Crâne)
+    const sanctumNeighbors: Array<[number, number]> = [
+      [2, 1], // Nord
+      [2, 3], // Sud
+      [1, 2], // Ouest
+      [3, 2], // Est
+    ];
+    for (const n of sanctumNeighbors) {
+      openConnections.add(makeConnKey(2, 2, n[0], n[1]));
+    }
+
+    // 5. Répartition des rôles pour les 20 pièces de Zone 2
+    // Mélange des 20 coordonnées
+    const shuffledZ2 = [...zone2Coords];
+    for (let i = shuffledZ2.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledZ2[i], shuffledZ2[j]] = [shuffledZ2[j], shuffledZ2[i]];
+    }
+
+    const chunkRoleMap = new Map<string, ModuleTemplate>();
+
+    // Rôle 1 : Marchand (1 pièce)
+    chunkRoleMap.set(`${shuffledZ2[0][0]},${shuffledZ2[0][1]}`, MapGenerator.MERCHANT_BAZAAR);
+
+    // Rôle 2 : 2 Portails d'extraction
+    chunkRoleMap.set(`${shuffledZ2[1][0]},${shuffledZ2[1][1]}`, MapGenerator.EXTRACTION_SANCTUM);
+    const extractionSanctum2 = {
+      ...MapGenerator.EXTRACTION_SANCTUM,
+      id: 'extraction_sanctum_2',
+      portals: [
+        {
+          x: 5.5,
+          y: 5.5,
+          name: 'Portail du Brasier Éthéré',
+          delaySec: 65,
+        },
+      ],
+    };
+    chunkRoleMap.set(`${shuffledZ2[2][0]},${shuffledZ2[2][1]}`, extractionSanctum2);
+
+    // Rôle 3 : 4 Cryptes aux trésors (avec clés de crâne)
+    chunkRoleMap.set(`${shuffledZ2[3][0]},${shuffledZ2[3][1]}`, MapGenerator.TREASURE_VAULT);
+    chunkRoleMap.set(`${shuffledZ2[4][0]},${shuffledZ2[4][1]}`, MapGenerator.TREASURE_SHRINE);
+    chunkRoleMap.set(`${shuffledZ2[5][0]},${shuffledZ2[5][1]}`, MapGenerator.TREASURE_VAULT);
+    chunkRoleMap.set(`${shuffledZ2[6][0]},${shuffledZ2[6][1]}`, MapGenerator.TREASURE_SHRINE);
+
+    // Rôle 4 : 1 Sanctuaire de l'Homonculus
+    chunkRoleMap.set(`${shuffledZ2[7][0]},${shuffledZ2[7][1]}`, MapGenerator.HOMONCULUS_SANCTUARY);
+
+    // Rôle 5 : Les 12 autres pièces sont des arènes de combat et des carrefours variés
+    const combatPool = [
+      MapGenerator.ARENA_COLOSSEUM,
+      MapGenerator.ARENA_CROSSFIRE,
+      MapGenerator.ARENA_PUMPKIN,
+      MapGenerator.ARENA_LABYRINTH,
+      MapGenerator.ARENA_AMBUSH,
+      MapGenerator.CROSSROAD_GRAND,
+      MapGenerator.CORRIDOR_CHICANE,
+    ];
+
+    for (let i = 8; i < shuffledZ2.length; i++) {
+      const template = combatPool[Math.floor(Math.random() * combatPool.length)];
+      chunkRoleMap.set(`${shuffledZ2[i][0]},${shuffledZ2[i][1]}`, template);
+    }
+
+    // 6. Placement des modules et gravure dans la grille
+    const catalogItems = [...ItemDatabase.getChestLootPool()];
+    let itemCursor = 0;
+
+    // A. Placement des 4 cryptes de départ
+    for (const corner of cornerSpawns) {
+      const rotated = MapGenerator.rotateModule(
+        MapGenerator.STARTING_CRYPT,
+        corner.rotation
+      );
+      MapGenerator.stampModule(
+        grid,
+        floorGrid,
+        corner.cx,
+        corner.cy,
+        rotated,
+        enemies,
+        sprites,
+        extractions,
+        chestLoots,
+        catalogItems,
+        itemCursor
+      );
+      itemCursor += 2;
+
+      // Calcul du point de réveil du joueur dans cette crypte
+      if (rotated.spawnPoint) {
+        playerSpawns.push({
+          x: corner.cx * MapGenerator.CHUNK_STEP + rotated.spawnPoint.x,
+          y: corner.cy * MapGenerator.CHUNK_STEP + rotated.spawnPoint.y,
+          angle: rotated.spawnPoint.angle,
+        });
+      }
+    }
+
+    // B. Placement du Sanctuaire du Boss au centre (2,2)
+    const bossTemplate = { ...MapGenerator.BOSS_SANCTUM };
+    // Choix aléatoire du Boss final
     const bossTypeId = Math.random() < 0.6 ? 'carrot_cake_king' : 'blood_queen';
-    enemies.push({
-      typeId: bossTypeId,
-      x: center + 0.5,
-      y: center + 1.5,
-    });
-    extractions.push({
-      x: center + 0.5,
-      y: center - 2.5,
-      name: 'Portail Royal du Sanctuaire',
-      activationDelaySec: 75,
-    });
-
-    // 2 Coffres Royaux du Sanctuaire
-    const royalChest1 = { x: center - 3, y: center };
-    const royalChest2 = { x: center + 3, y: center };
-    grid[royalChest1.y][royalChest1.x] = TILE_TYPE.CHEST;
-    grid[royalChest2.y][royalChest2.x] = TILE_TYPE.CHEST;
-    chestLoots[`${royalChest1.x},${royalChest1.y}`] = [
-      'weapon_crooked_phylactery_dagger',
-      'armor_shrunk_black_mass_robe',
-    ];
-    chestLoots[`${royalChest2.x},${royalChest2.y}`] = [
-      'weapon_arthritic_lich_staff',
-      'armor_cursed_bone_carapace',
+    bossTemplate.enemies = [
+      {
+        typeId: bossTypeId,
+        x: 5.5,
+        y: 6.5,
+      },
     ];
 
-    // 6 Portes du Sanctuaire fermement encastrées dans le mur d'enceinte (r ~ 5.5)
-    addDoor(32, 37, 'horizontal', 'key_crypt_skull'); // Sud
-    addDoor(32, 27, 'horizontal', 'key_crypt_skull'); // Nord
-    addDoor(36, 34, 'vertical', 'key_crypt_skull');   // Est-Sud-Est
-    addDoor(36, 30, 'vertical', 'key_crypt_skull');   // Est-Nord-Est
-    addDoor(28, 34, 'vertical', 'key_crypt_skull');   // Ouest-Sud-Ouest
-    addDoor(28, 30, 'vertical', 'key_crypt_skull');   // Ouest-Nord-Ouest
-
-    // =========================================================================
-    // ÉTAPE 2 : ZONE 2 - ANNEAU PARTAGÉ (Chambres & Chicanes) [8 <= r <= 18]
-    // =========================================================================
-    // 6 Vestibules d'accès aux herses de secteur (Entry Halls) avec piliers brise-vue
-    const entryVestibules = [
-      { cx: 46, cy: 41 }, // s=0
-      { cx: 32, cy: 48 }, // s=1
-      { cx: 18, cy: 41 }, // s=2
-      { cx: 18, cy: 23 }, // s=3
-      { cx: 32, cy: 16 }, // s=4
-      { cx: 46, cy: 23 }, // s=5
-    ];
-    for (const v of entryVestibules) {
-      carveRoom(v.cx, v.cy, 1, 1, TILE_TYPE.GROUND_1);
-      grid[v.cy][v.cx] = TILE_TYPE.WALL_1; // Pilier central pour briser la visée
-    }
-
-    // 6 Bastions de Carrefour (Nexus Chambers)
-    const nexusChambers = [
-      { cx: 44, cy: 32 }, // Est (k=0)
-      { cx: 39, cy: 44 }, // Sud-Est (k=1)
-      { cx: 25, cy: 44 }, // Sud-Ouest (k=2)
-      { cx: 20, cy: 32 }, // Ouest (k=3)
-      { cx: 25, cy: 20 }, // Nord-Ouest (k=4)
-      { cx: 39, cy: 20 }, // Nord-Est (k=5)
-    ];
-    for (const n of nexusChambers) {
-      carveRoom(n.cx, n.cy, 1, 1, TILE_TYPE.GROUND_1);
-      grid[n.cy][n.cx] = TILE_TYPE.WALL_1; // Pilier central
-    }
-
-    // Connexions Nexus <-> Vestibules d'entrée avec entrées asymétriques pour briser tout alignement
-    // s=1 (32, 48) -> SE Nexus (39, 44) & SW Nexus (25, 44)
-    carveOrthogonal(33, 49, 35, 49);
-    carveOrthogonal(35, 49, 35, 45);
-    carveOrthogonal(35, 45, 38, 45);
-
-    carveOrthogonal(31, 49, 29, 49);
-    carveOrthogonal(29, 49, 29, 45);
-    carveOrthogonal(29, 45, 26, 45);
-
-    // s=4 (32, 16) -> NE Nexus (39, 20) & NW Nexus (25, 20)
-    carveOrthogonal(33, 15, 35, 15);
-    carveOrthogonal(35, 15, 35, 19);
-    carveOrthogonal(35, 19, 38, 19);
-
-    carveOrthogonal(31, 15, 29, 15);
-    carveOrthogonal(29, 15, 29, 19);
-    carveOrthogonal(29, 19, 26, 19);
-
-    // s=0 (46, 41) -> SE Nexus (39, 44) & E Nexus (44, 32) avec chicanes
-    carveOrthogonal(47, 42, 47, 43);
-    carveOrthogonal(47, 43, 44, 43);
-    carveOrthogonal(44, 43, 44, 42);
-    carveOrthogonal(44, 42, 40, 42);
-    carveOrthogonal(40, 42, 40, 43);
-
-    carveOrthogonal(47, 40, 47, 36);
-    carveOrthogonal(47, 36, 44, 36);
-    carveOrthogonal(44, 36, 44, 33);
-
-    // s=5 (46, 23) -> NE Nexus (39, 20) & E Nexus (44, 32) avec chicanes
-    carveOrthogonal(47, 22, 47, 21);
-    carveOrthogonal(47, 21, 44, 21);
-    carveOrthogonal(44, 21, 44, 22);
-    carveOrthogonal(44, 22, 40, 22);
-    carveOrthogonal(40, 22, 40, 21);
-
-    carveOrthogonal(47, 24, 47, 28);
-    carveOrthogonal(47, 28, 44, 28);
-    carveOrthogonal(44, 28, 44, 31);
-
-    // s=2 (18, 41) -> SW Nexus (25, 44) & W Nexus (20, 32) avec chicanes
-    carveOrthogonal(17, 42, 17, 43);
-    carveOrthogonal(17, 43, 20, 43);
-    carveOrthogonal(20, 43, 20, 42);
-    carveOrthogonal(20, 42, 24, 42);
-    carveOrthogonal(24, 42, 24, 43);
-
-    carveOrthogonal(17, 40, 17, 36);
-    carveOrthogonal(17, 36, 20, 36);
-    carveOrthogonal(20, 36, 20, 33);
-
-    // s=3 (18, 23) -> NW Nexus (25, 20) & W Nexus (20, 32) avec chicanes
-    carveOrthogonal(17, 22, 17, 21);
-    carveOrthogonal(17, 21, 20, 21);
-    carveOrthogonal(20, 21, 20, 22);
-    carveOrthogonal(20, 22, 24, 22);
-    carveOrthogonal(24, 22, 24, 21);
-
-    carveOrthogonal(17, 24, 17, 28);
-    carveOrthogonal(17, 28, 20, 28);
-    carveOrthogonal(20, 28, 20, 31);
-
-    // Chicanes d'accès aux 6 portes du Sanctuaire (segments courts <= 3 cases)
-    // S Sanctum Door at (32, 37)
-    carveOrthogonal(32, 38, 33, 38);
-    carveOrthogonal(33, 38, 33, 41);
-    carveOrthogonal(33, 41, 31, 41);
-    carveOrthogonal(31, 41, 31, 44);
-    carveOrthogonal(31, 44, 33, 44);
-    carveOrthogonal(33, 44, 33, 47);
-
-    // N Sanctum Door at (32, 27)
-    carveOrthogonal(32, 26, 33, 26);
-    carveOrthogonal(33, 26, 33, 23);
-    carveOrthogonal(33, 23, 31, 23);
-    carveOrthogonal(31, 23, 31, 20);
-    carveOrthogonal(31, 20, 33, 20);
-    carveOrthogonal(33, 20, 33, 17);
-
-    // ESE Sanctum Door at (36, 34)
-    carveOrthogonal(37, 34, 37, 36);
-    carveOrthogonal(37, 36, 40, 36);
-    carveOrthogonal(40, 36, 40, 38);
-    carveOrthogonal(40, 38, 43, 38);
-    carveOrthogonal(43, 38, 43, 41);
-    carveOrthogonal(43, 41, 45, 41);
-
-    // ENE Sanctum Door at (36, 30)
-    carveOrthogonal(37, 30, 37, 28);
-    carveOrthogonal(37, 28, 40, 28);
-    carveOrthogonal(40, 28, 40, 26);
-    carveOrthogonal(40, 26, 43, 26);
-    carveOrthogonal(43, 26, 43, 23);
-    carveOrthogonal(43, 23, 45, 23);
-
-    // WSW Sanctum Door at (28, 34)
-    carveOrthogonal(27, 34, 27, 36);
-    carveOrthogonal(27, 36, 24, 36);
-    carveOrthogonal(24, 36, 24, 38);
-    carveOrthogonal(24, 38, 21, 38);
-    carveOrthogonal(21, 38, 21, 41);
-    carveOrthogonal(21, 41, 19, 41);
-
-    // WNW Sanctum Door at (28, 30)
-    carveOrthogonal(27, 30, 27, 28);
-    carveOrthogonal(27, 28, 24, 28);
-    carveOrthogonal(24, 28, 24, 26);
-    carveOrthogonal(24, 26, 21, 26);
-    carveOrthogonal(21, 26, 21, 23);
-    carveOrthogonal(21, 23, 19, 23);
-
-    // Monstres d'élite gardant les Nexus de la Zone 2 (Squelettes Archers remplaçant le blob violet)
-    const eliteSpots = [
-      { x: 44.5, y: 31.5 },
-      { x: 39.5, y: 43.5 },
-      { x: 25.5, y: 43.5 },
-      { x: 20.5, y: 31.5 },
-      { x: 25.5, y: 21.5 },
-      { x: 39.5, y: 21.5 },
-    ];
-    for (const espot of eliteSpots) {
-      enemies.push({ typeId: 'skeleton_archer', x: espot.x, y: espot.y });
-    }
-
-    // Monstres normaux en patrouille dans Zone 2
-    const zone2Patrols = [
-      { x: 35.5, y: 47.5 },
-      { x: 29.5, y: 47.5 },
-      { x: 35.5, y: 17.5 },
-      { x: 29.5, y: 17.5 },
-      { x: 44.5, y: 38.5 },
-      { x: 20.5, y: 38.5 },
-    ];
-    for (const pat of zone2Patrols) {
-      enemies.push({ typeId: 'blob', x: pat.x, y: pat.y });
-    }
-
-    // Citrouilles ensorcelées hantant les couloirs de la Zone 2
-    const pumpkinSpots = [
-      { x: 44.5, y: 25.5 },
-      { x: 20.5, y: 25.5 },
-      { x: 32.5, y: 44.5 },
-    ];
-    for (const pspot of pumpkinSpots) {
-      enemies.push({ typeId: 'pumpkin', x: pspot.x, y: pspot.y });
-    }
-
-    // Gobelins au Trésor en vadrouille dans les couloirs de la Zone 2
-    const goblinSpots = [
-      { x: 32.5, y: 46.5 },
-      { x: 32.5, y: 17.5 },
-    ];
-    for (const gspot of goblinSpots) {
-      enemies.push({ typeId: 'goblin', x: gspot.x, y: gspot.y });
-    }
-
-    // 3 Portails d'extraction de Zone 2 (activations progressives)
-    extractions.push({
-      x: 44.5,
-      y: 33.5,
-      name: "Portail de l'Aura Sépulcrale",
-      activationDelaySec: 30,
-    });
-    extractions.push({
-      x: 25.5,
-      y: 45.5,
-      name: 'Portail des Catacombes Oubliées',
-      activationDelaySec: 50,
-    });
-    extractions.push({
-      x: 39.5,
-      y: 19.5,
-      name: 'Portail du Brasier Éthéré',
-      activationDelaySec: 70,
-    });
-
-    // 12 Coffres de Zone 2 (dont 3 clés de sanctum garanties)
-    const zone2ChestPositions = [
-      { x: 45, y: 32 },
-      { x: 43, y: 32 },
-      { x: 40, y: 44 },
-      { x: 38, y: 44 },
-      { x: 26, y: 44 },
-      { x: 24, y: 44 },
-      { x: 21, y: 32 },
-      { x: 19, y: 32 },
-      { x: 26, y: 20 },
-      { x: 24, y: 20 },
-      { x: 40, y: 20 },
-      { x: 38, y: 20 },
-    ];
-
-    const poolItems = ItemDatabase.getChestLootPool();
-
-    // Mélange des coffres pour une répartition généreuse des clés du sanctuaire (au moins 6 sur 12)
-    const shuffledChestSpots = [...zone2ChestPositions].sort(
-      () => Math.random() - 0.5
+    MapGenerator.stampModule(
+      grid,
+      floorGrid,
+      2,
+      2,
+      bossTemplate,
+      enemies,
+      sprites,
+      extractions,
+      chestLoots,
+      catalogItems,
+      itemCursor
     );
+    itemCursor += 2;
 
-    shuffledChestSpots.forEach((pos, idx) => {
-      grid[pos.y][pos.x] = TILE_TYPE.CHEST;
-      const loots: string[] = [];
-      if (idx < 6) {
-        loots.push('key_crypt_skull');
+    // C. Placement des 20 modules de Zone 2 avec rotations aléatoires (0, 90, 180 ou 270°)
+    for (const [cx, cy] of zone2Coords) {
+      const template = chunkRoleMap.get(`${cx},${cy}`) ?? MapGenerator.ARENA_COLOSSEUM;
+      const rot = Math.floor(Math.random() * 4) as 0 | 1 | 2 | 3;
+      const rotated = MapGenerator.rotateModule(template, rot);
+
+      MapGenerator.stampModule(
+        grid,
+        floorGrid,
+        cx,
+        cy,
+        rotated,
+        enemies,
+        sprites,
+        extractions,
+        chestLoots,
+        catalogItems,
+        itemCursor
+      );
+      itemCursor += 3;
+    }
+
+    // 7. Percement des portes et passages entre les modules connectés
+    for (let cy = 0; cy < MapGenerator.GRID_CHUNKS; cy++) {
+      for (let cx = 0; cx < MapGenerator.GRID_CHUNKS; cx++) {
+        // Connexion vers l'Est (cx, cy) -> (cx + 1, cy)
+        if (cx < MapGenerator.GRID_CHUNKS - 1) {
+          const key = makeConnKey(cx, cy, cx + 1, cy);
+          if (openConnections.has(key)) {
+            const doorX = cx * MapGenerator.CHUNK_STEP + 10;
+            const doorY = cy * MapGenerator.CHUNK_STEP + 5;
+
+            // Déterminer s'il s'agit d'une porte verrouillée
+            const isSanctumEntry =
+              (cx === 1 && cy === 2) || (cx === 2 && cy === 2);
+            const isSpawnExit =
+              (cx === 0 && cy === 0) ||
+              (cx === 3 && cy === 0) ||
+              (cx === 0 && cy === 4) ||
+              (cx === 3 && cy === 4);
+
+            if (isSanctumEntry) {
+              grid[doorY][doorX] = TILE_TYPE.DOOR;
+              doors.push({ x: doorX, y: doorY, requiredKeyId: 'key_crypt_skull' });
+            } else if (isSpawnExit) {
+              grid[doorY][doorX] = TILE_TYPE.DOOR;
+              doors.push({ x: doorX, y: doorY, requiredKeyId: 'key_spawn_rusty' });
+            } else {
+              grid[doorY][doorX] = TILE_TYPE.GROUND_1;
+            }
+
+            // S'assurer que les cases devant et derrière la porte sont ouvertes
+            grid[doorY][doorX - 1] = TILE_TYPE.GROUND_1;
+            grid[doorY][doorX + 1] = TILE_TYPE.GROUND_1;
+          }
+        }
+
+        // Connexion vers le Sud (cx, cy) -> (cx, cy + 1)
+        if (cy < MapGenerator.GRID_CHUNKS - 1) {
+          const key = makeConnKey(cx, cy, cx, cy + 1);
+          if (openConnections.has(key)) {
+            const doorX = cx * MapGenerator.CHUNK_STEP + 5;
+            const doorY = cy * MapGenerator.CHUNK_STEP + 10;
+
+            const isSanctumEntry =
+              (cx === 2 && cy === 1) || (cx === 2 && cy === 2);
+            const isSpawnExit =
+              (cx === 0 && cy === 0) ||
+              (cx === 4 && cy === 0) ||
+              (cx === 0 && cy === 3) ||
+              (cx === 4 && cy === 3);
+
+            if (isSanctumEntry) {
+              grid[doorY][doorX] = TILE_TYPE.DOOR;
+              doors.push({ x: doorX, y: doorY, requiredKeyId: 'key_crypt_skull' });
+            } else if (isSpawnExit) {
+              grid[doorY][doorX] = TILE_TYPE.DOOR;
+              doors.push({ x: doorX, y: doorY, requiredKeyId: 'key_spawn_rusty' });
+            } else {
+              grid[doorY][doorX] = TILE_TYPE.GROUND_1;
+            }
+
+            // S'assurer que les cases devant et derrière la porte sont ouvertes
+            grid[doorY - 1][doorX] = TILE_TYPE.GROUND_1;
+            grid[doorY + 1][doorX] = TILE_TYPE.GROUND_1;
+          }
+        }
       }
-      const item1 =
-        poolItems[(idx * 2) % poolItems.length]?.id ??
-        'hat_myopic_necromancer';
-      const item2 =
-        poolItems[(idx * 2 + 1) % poolItems.length]?.id ??
-        'armor_moldy_hermit_rags';
-      loots.push(item1, item2);
-      chestLoots[`${pos.x},${pos.y}`] = loots;
-    });
+    }
 
-    // =========================================================================
-    // ÉTAPE 3 : ZONE 1 - LES 6 QUARTIERS DE DÉPART (Labyrinthes Catacombes)
-    // =========================================================================
-
-    // A. Construction d'un secteur vertical (s=1 South, s=4 North)
-    const buildVerticalSector = (isNorth: boolean): void => {
-      const ym = (y: number): number => (isNorth ? size - 1 - y : y);
-      const doorY = ym(50);
-      addDoor(32, doorY, 'horizontal', 'key_spawn_rusty');
-
-      carve(32, ym(51));
-      grid[ym(52)][32] = TILE_TYPE.WALL_1; // Brise-vue face à la herse
-
-      // Vestibule en L
-      carve(31, ym(51));
-      carve(31, ym(52));
-      carve(31, ym(53));
-
-      // Chicane vers Antichambre
-      carveOrthogonal(31, ym(53), 33, ym(53));
-      carveOrthogonal(33, ym(53), 33, ym(55));
-      carveOrthogonal(33, ym(55), 32, ym(55));
-      carveOrthogonal(32, ym(55), 32, ym(56));
-
-      // Antichambre (3x3 à ym(57) avec pilier central brise-vue)
-      carveRoom(32, ym(57), 1, 1);
-      grid[ym(57)][32] = TILE_TYPE.WALL_1;
-
-      // Aile Est : Crypte de la Clé (décalée en ym(58))
-      carveOrthogonal(33, ym(58), 35, ym(58));
-      carveRoom(37, ym(58), 1, 1);
-      grid[ym(58)][38] = TILE_TYPE.CHEST;
-      chestLoots[`38,${ym(58)}`] = [
-        'key_spawn_rusty',
-        'weapon_splintered_apprentice_wand',
-      ];
-      enemies.push({ typeId: 'blob', x: 37.5, y: ym(58) + 0.5 });
-
-      // Aile Ouest : Armurerie (décalée en ym(56))
-      carveOrthogonal(31, ym(56), 29, ym(56));
-      carveRoom(27, ym(56), 1, 1);
-      grid[ym(56)][26] = TILE_TYPE.CHEST;
-      chestLoots[`26,${ym(56)}`] = ['armor_tattered_gambeson'];
-
-      // Crypte de Réveil (Sud) : chambre fermée
-      carveRoom(28, ym(61), 1, 1);
-      grid[ym(60)][27] = TILE_TYPE.WALL_1;
-      grid[ym(60)][28] = TILE_TYPE.WALL_1;
-      grid[ym(60)][29] = TILE_TYPE.WALL_1;
-
-      // Corridor d'accès avec chicane brisant toute ligne de mire
-      carveOrthogonal(31, ym(58), 31, ym(60));
-      carveOrthogonal(31, ym(60), 29, ym(60));
-      carve(29, ym(61)); // Entrée unique de la crypte
-
-      playerSpawns.push({
-        x: 28.5,
-        y: ym(61) + 0.5,
-        angle: isNorth ? Math.PI / 2 : (3 * Math.PI) / 2,
-      });
-    };
-
-    // B. Construction d'un secteur diagonal (s=0, 5, 2, 3)
-    const buildDiagonalSector = (mirrorX: boolean, mirrorY: boolean): void => {
-      const xm = (x: number): number => (mirrorX ? size - 1 - x : x);
-      const ym = (y: number): number => (mirrorY ? size - 1 - y : y);
-
-      const doorX = xm(48);
-      const doorY = ym(41);
-      addDoor(doorX, doorY, 'vertical', 'key_spawn_rusty');
-
-      carve(xm(49), ym(41));
-      grid[ym(41)][xm(50)] = TILE_TYPE.WALL_1; // Brise-vue face à la herse
-
-      carve(xm(49), ym(42));
-      carve(xm(50), ym(42));
-
-      // Chicane vers Antichambre
-      carveOrthogonal(xm(50), ym(42), xm(52), ym(42));
-      carveOrthogonal(xm(52), ym(42), xm(52), ym(44));
-
-      // Antichambre (3x3 à xm(54), ym(45) avec pilier central)
-      carveRoom(xm(54), ym(45), 1, 1);
-      grid[ym(45)][xm(54)] = TILE_TYPE.WALL_1;
-
-      // Aile Clé (décalée au Nord en ym(43))
-      carveOrthogonal(xm(54), ym(44), xm(54), ym(43));
-      carveOrthogonal(xm(54), ym(43), xm(56), ym(43));
-      carveRoom(xm(57), ym(43), 1, 1);
-      const keyChestX = xm(58);
-      const keyChestY = ym(43);
-      grid[keyChestY][keyChestX] = TILE_TYPE.CHEST;
-      chestLoots[`${keyChestX},${keyChestY}`] = [
-        'key_spawn_rusty',
-        'hat_leech_infested_mitre',
-      ];
-      enemies.push({ typeId: 'blob', x: xm(57) + 0.5, y: ym(43) + 0.5 });
-
-      // Aile Armurerie (décalée à l'Ouest en ym(46))
-      carveOrthogonal(xm(53), ym(46), xm(51), ym(46));
-      carveRoom(xm(50), ym(46), 1, 1);
-      const armChestX = xm(49);
-      const armChestY = ym(46);
-      grid[armChestY][armChestX] = TILE_TYPE.CHEST;
-      chestLoots[`${armChestX},${armChestY}`] = [
-        'boots_cobbled_grave_treaders',
-      ];
-
-      // Crypte de Réveil (fermée avec chicane)
-      carveRoom(xm(55), ym(49), 1, 1);
-      grid[ym(48)][xm(54)] = TILE_TYPE.WALL_1;
-      grid[ym(48)][xm(55)] = TILE_TYPE.WALL_1;
-      grid[ym(48)][xm(56)] = TILE_TYPE.WALL_1;
-
-      // Entrée latérale
-      carveOrthogonal(xm(54), ym(46), xm(54), ym(47));
-      carveOrthogonal(xm(54), ym(47), xm(56), ym(47));
-      carve(xm(56), ym(48));
-      carve(xm(56), ym(49));
-
-      const spawnAngle = Math.atan2(center - ym(49), center - xm(55));
-      playerSpawns.push({
-        x: xm(55) + 0.5,
-        y: ym(49) + 0.5,
-        angle: spawnAngle,
-      });
-    };
-
-    // Construction des 6 secteurs
-    buildVerticalSector(false); // Secteur 1 (Sud)
-    buildVerticalSector(true);  // Secteur 4 (Nord)
-
-    buildDiagonalSector(false, false); // Secteur 0 (Est-Sud-Est)
-    buildDiagonalSector(false, true);  // Secteur 5 (Est-Nord-Est)
-    buildDiagonalSector(true, false);  // Secteur 2 (Ouest-Sud-Ouest)
-    buildDiagonalSector(true, true);   // Secteur 3 (Ouest-Nord-Ouest)
-
-    // =========================================================================
-    // ÉTAPE 4 : SCELLAGE DU PÉRIMÈTRE EXTÉRIEUR (r >= 30)
-    // =========================================================================
+    // 8. Fermeture solide du périmètre extérieur de la carte
+    for (let x = 0; x < size; x++) {
+      grid[0][x] = TILE_TYPE.WALL_1;
+      grid[size - 1][x] = TILE_TYPE.WALL_1;
+    }
     for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const r = Math.hypot(x - center, y - center);
-        if (
-          r >= 30.0 ||
-          x === 0 ||
-          y === 0 ||
-          x === size - 1 ||
-          y === size - 1
-        ) {
-          grid[y][x] = TILE_TYPE.WALL_1;
-        }
-      }
+      grid[y][0] = TILE_TYPE.WALL_1;
+      grid[y][size - 1] = TILE_TYPE.WALL_1;
     }
 
-    // =========================================================================
-    // ÉTAPE 5 : SÉLECTION DU POINT DE SPAWN JOUEUR INITIAL
-    // =========================================================================
-    const initialSpawnIndex = Math.floor(Math.random() * playerSpawns.length);
-    const chosenSpawn = playerSpawns[initialSpawnIndex] ?? {
-      x: 28.5,
-      y: 61.5,
-      angle: (3 * Math.PI) / 2,
-    };
-
-    // =========================================================================
-    // ÉTAPE 6 : APPARITION RARE DE L'HOMONCULUS SUR LA CARTE (HORS COFFRES)
-    // =========================================================================
-    const candidateSpawns: Array<{ x: number; y: number }> = [];
-    for (let y = 6; y < size - 6; y++) {
-      for (let x = 6; x < size - 6; x++) {
-        if (grid[y][x] === TILE_TYPE.GROUND_1) {
-          const r = Math.hypot(x - center, y - center);
-          if (r >= 12 && r <= 24) {
-            const isDoor = doors.some((d) => d.x === x && d.y === y);
-            const isChest = grid[y][x] === TILE_TYPE.CHEST;
-            const isPlayer = playerSpawns.some(
-              (p) => Math.hypot(p.x - (x + 0.5), p.y - (y + 0.5)) < 2.5
-            );
-            const isExtraction = extractions.some(
-              (e) => Math.hypot(e.x - (x + 0.5), e.y - (y + 0.5)) < 2.5
-            );
-            if (!isDoor && !isChest && !isPlayer && !isExtraction) {
-              candidateSpawns.push({ x, y });
-            }
-          }
-        }
-      }
-    }
-
-    if (candidateSpawns.length > 0) {
-      const chosen =
-        candidateSpawns[Math.floor(Math.random() * candidateSpawns.length)];
-      sprites.push({
-        x: chosen.x + 0.5,
-        y: chosen.y + 0.5,
-        textureId: TILE_TYPE.HOMONCULUS,
-        scale: 0.42,
-        itemId: 'offhand_homonculus',
-      });
-    }
-
-    // =========================================================================
-    // ÉTAPE 7 : APPARITION DES MARCHANDS (ZONE 2 ET ZONE 3)
-    // =========================================================================
-    // 1. Marchand en Zone 3 (Sanctuaire central dans une alcôve royale)
-    const zone3MerchantPos = { x: center - 3, y: center - 2 };
-    sprites.push({
-      x: zone3MerchantPos.x + 0.5,
-      y: zone3MerchantPos.y + 0.5,
-      textureId: TILE_TYPE.MERCHANT,
-      scale: 0.72,
-    });
-
-    // 2. Marchand en Zone 2 (Anneau intermédiaire des catacombes)
-    const z2Candidates: Array<{ x: number; y: number }> = [];
-    for (let y = 8; y < size - 8; y++) {
-      for (let x = 8; x < size - 8; x++) {
-        if (grid[y][x] === TILE_TYPE.GROUND_1) {
-          const r = Math.hypot(x - center, y - center);
-          if (r >= 13 && r <= 22) {
-            const isDoor = doors.some((d) => d.x === x && d.y === y);
-            const isChest = grid[y][x] === TILE_TYPE.CHEST;
-            const isSprite = sprites.some(
-              (s) => Math.hypot(s.x - (x + 0.5), s.y - (y + 0.5)) < 2.5
-            );
-            const isPlayer = playerSpawns.some(
-              (p) => Math.hypot(p.x - (x + 0.5), p.y - (y + 0.5)) < 2.5
-            );
-            const isExtraction = extractions.some(
-              (e) => Math.hypot(e.x - (x + 0.5), e.y - (y + 0.5)) < 2.5
-            );
-            if (!isDoor && !isChest && !isSprite && !isPlayer && !isExtraction) {
-              z2Candidates.push({ x, y });
-            }
-          }
-        }
-      }
-    }
-
-    if (z2Candidates.length > 0) {
-      const chosenZ2 = z2Candidates[Math.floor(Math.random() * z2Candidates.length)];
-      sprites.push({
-        x: chosenZ2.x + 0.5,
-        y: chosenZ2.y + 0.5,
-        textureId: TILE_TYPE.MERCHANT,
-        scale: 0.72,
-      });
-    }
+    // 9. Sélection du point de réveil du joueur parmi les 4 cryptes
+    const chosenSpawn =
+      playerSpawns[Math.floor(Math.random() * playerSpawns.length)] ?? {
+        x: 2.5,
+        y: 8.5,
+        angle: -Math.PI / 2,
+      };
 
     return {
-      name: `Donjon d'Extraction (Session #${Math.floor(1000 + Math.random() * 9000)})`,
+      name: `Citadelle Modulaire (Expédition #${Math.floor(1000 + Math.random() * 9000)})`,
       grid,
       floorGrid,
       skyTileId: TILE_TYPE.SKY_1,
@@ -699,5 +819,237 @@ export class MapGenerator {
         angle: chosenSpawn.angle,
       },
     };
+  }
+
+  // =========================================================================
+  // FONCTIONS UTILITAIRES DE TRANSFORMATION DES MODULES
+  // =========================================================================
+
+  /**
+   * Effectue une rotation de 90° × rotation (0, 1, 2, 3) sur un module 11×11
+   */
+  private static rotateModule(
+    template: ModuleTemplate,
+    rotation: 0 | 1 | 2 | 3
+  ): ModuleTemplate {
+    if (rotation === 0) {
+      return template;
+    }
+
+    const size = MapGenerator.CHUNK_SIZE; // 11
+    const rotCoord = (x: number, y: number): { x: number; y: number } => {
+      if (rotation === 1) return { x: size - 1 - y, y: x };
+      if (rotation === 2) return { x: size - 1 - x, y: size - 1 - y };
+      return { x: y, y: size - 1 - x };
+    };
+
+    // Rotation de la grille de caractères
+    const newGrid: string[] = [];
+    for (let y = 0; y < size; y++) {
+      let rowChars = '';
+      for (let x = 0; x < size; x++) {
+        // Coordonnée d'origine correspondante
+        let ox = x;
+        let oy = y;
+        if (rotation === 1) {
+          ox = y;
+          oy = size - 1 - x;
+        } else if (rotation === 2) {
+          ox = size - 1 - x;
+          oy = size - 1 - y;
+        } else if (rotation === 3) {
+          ox = size - 1 - y;
+          oy = x;
+        }
+        rowChars += template.grid[oy][ox];
+      }
+      newGrid.push(rowChars);
+    }
+
+    // Rotation des ennemis
+    const newEnemies = template.enemies?.map((e) => {
+      const rc = rotCoord(e.x, e.y);
+      return { typeId: e.typeId, x: rc.x, y: rc.y };
+    });
+
+    // Rotation des coffres
+    const newChests = template.chests?.map((c) => {
+      const rc = rotCoord(c.x, c.y);
+      return {
+        x: Math.round(rc.x),
+        y: Math.round(rc.y),
+        tier: c.tier,
+        fixedLoot: c.fixedLoot,
+      };
+    });
+
+    // Rotation des portails
+    const newPortals = template.portals?.map((p) => {
+      const rc = rotCoord(p.x, p.y);
+      return { x: rc.x, y: rc.y, name: p.name, delaySec: p.delaySec };
+    });
+
+    // Rotation des sprites
+    const newSprites = template.sprites?.map((s) => {
+      const rc = rotCoord(s.x, s.y);
+      return {
+        x: rc.x,
+        y: rc.y,
+        textureId: s.textureId,
+        scale: s.scale,
+        itemId: s.itemId,
+      };
+    });
+
+    // Rotation du point de réveil
+    let newSpawn = template.spawnPoint;
+    if (newSpawn) {
+      const rc = rotCoord(newSpawn.x, newSpawn.y);
+      newSpawn = {
+        x: rc.x,
+        y: rc.y,
+        angle: (newSpawn.angle + rotation * (Math.PI / 2)) % (Math.PI * 2),
+      };
+    }
+
+    return {
+      id: `${template.id}_rot${rotation}`,
+      grid: newGrid,
+      enemies: newEnemies,
+      chests: newChests,
+      portals: newPortals,
+      sprites: newSprites,
+      spawnPoint: newSpawn,
+    };
+  }
+
+  /**
+   * Estampe un module 11×11 dans la carte globale à l'emplacement de chunk (cx, cy)
+   */
+  private static stampModule(
+    grid: number[][],
+    floorGrid: number[][],
+    cx: number,
+    cy: number,
+    module: ModuleTemplate,
+    enemies: EnemySpawnData[],
+    sprites: SpriteSpawnData[],
+    extractions: ExtractionSpawnData[],
+    chestLoots: Record<string, string[]>,
+    catalogItems: any[],
+    itemCursor: number
+  ): void {
+    const ox = cx * MapGenerator.CHUNK_STEP;
+    const oy = cy * MapGenerator.CHUNK_STEP;
+
+    // 1. Décalque de la grille
+    for (let ly = 0; ly < MapGenerator.CHUNK_SIZE; ly++) {
+      for (let lx = 0; lx < MapGenerator.CHUNK_SIZE; lx++) {
+        const char = module.grid[ly][lx];
+        const gx = ox + lx;
+        const gy = oy + ly;
+
+        if (char === '#') {
+          grid[gy][gx] = TILE_TYPE.WALL_1;
+        } else if (char === '*') {
+          grid[gy][gx] = TILE_TYPE.GROUND_1;
+          floorGrid[gy][gx] = TILE_TYPE.GROUND_2;
+        } else if (char === '.') {
+          grid[gy][gx] = TILE_TYPE.GROUND_1;
+          floorGrid[gy][gx] = TILE_TYPE.GROUND_1;
+        } else if (char === 'D') {
+          // Point de passage potentiel : reste mur par défaut jusqu'au perçage par openConnections
+          grid[gy][gx] = TILE_TYPE.WALL_1;
+        } else if (char === 'S') {
+          grid[gy][gx] = TILE_TYPE.GROUND_1;
+        } else if (char === 'K') {
+          grid[gy][gx] = TILE_TYPE.CHEST;
+        }
+      }
+    }
+
+    // 2. Ajout des ennemis
+    if (module.enemies) {
+      for (const e of module.enemies) {
+        enemies.push({
+          typeId: e.typeId,
+          x: ox + e.x,
+          y: oy + e.y,
+        });
+      }
+    }
+
+    // 3. Ajout des coffres et génération de leur butin selon leur tier
+    if (module.chests) {
+      for (let i = 0; i < module.chests.length; i++) {
+        const c: ChunkChest = module.chests[i];
+        const gx: number = ox + c.x;
+        const gy: number = oy + c.y;
+        grid[gy][gx] = TILE_TYPE.CHEST;
+
+        const keyCoord = `${gx},${gy}`;
+        if (c.fixedLoot) {
+          const bonusItem =
+            catalogItems[(itemCursor + i) % catalogItems.length]?.id ??
+            'armor_moldy_hermit_rags';
+          chestLoots[keyCoord] = [...c.fixedLoot, bonusItem];
+        } else if (c.tier === 'starter') {
+          const starterItems = [
+            'weapon_splintered_apprentice_wand',
+            'armor_tattered_gambeson',
+            'hat_myopic_necromancer',
+            'boots_cobbled_grave_treaders',
+          ];
+          chestLoots[keyCoord] = [
+            starterItems[Math.floor(Math.random() * starterItems.length)],
+          ];
+        } else if (c.tier === 'royal') {
+          const royalItems = [
+            'weapon_crooked_phylactery_dagger',
+            'armor_shrunk_black_mass_robe',
+            'weapon_arthritic_lich_staff',
+            'armor_cursed_bone_carapace',
+          ];
+          chestLoots[keyCoord] = [
+            royalItems[(itemCursor + i) % royalItems.length],
+            royalItems[(itemCursor + i + 1) % royalItems.length],
+          ];
+        } else {
+          // Standard / High tier
+          const count = c.tier === 'high' ? 3 : 2;
+          const loot: string[] = [];
+          for (let k = 0; k < count; k++) {
+            const item = catalogItems[(itemCursor + k) % catalogItems.length];
+            if (item) loot.push(item.id);
+          }
+          chestLoots[keyCoord] = loot;
+        }
+      }
+    }
+
+    // 4. Ajout des portails d'extraction
+    if (module.portals) {
+      for (const p of module.portals) {
+        extractions.push({
+          x: ox + p.x,
+          y: oy + p.y,
+          name: p.name,
+          activationDelaySec: p.delaySec,
+        });
+      }
+    }
+
+    // 5. Ajout des sprites
+    if (module.sprites) {
+      for (const s of module.sprites) {
+        sprites.push({
+          x: ox + s.x,
+          y: oy + s.y,
+          textureId: s.textureId,
+          scale: s.scale,
+          itemId: s.itemId,
+        });
+      }
+    }
   }
 }

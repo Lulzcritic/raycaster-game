@@ -66,6 +66,9 @@ export class Enemy extends Entity {
 
   // Variables propres à la Citrouille (ponte de graines régulières)
   private seedLayTimer = 4.0;
+  public canLaySeeds = true;
+  private activeSeedsCount = 0;
+  public onSeedResolved?: () => void;
 
   // Variables propres à la Graine de Citrouille (compte à rebours avant éclosion)
   private hatchTimer = 5.5;
@@ -293,6 +296,7 @@ export class Enemy extends Entity {
     if (this.type.id === 'pumpkin_seed') {
       if (this.hasHatched) return;
       this.stateTimer = 0.35;
+      this.onSeedResolved?.();
       if (this.onSpawnEntity) {
         const coin = new DroppedCoin(
           this.x,
@@ -459,6 +463,7 @@ export class Enemy extends Entity {
       if (this.hatchTimer <= 0 && !this.hasHatched && this.isAlive()) {
         this.hasHatched = true;
         this.active = false;
+        this.onSeedResolved?.();
         if (this.onSpawnEntity) {
           const babyPumpkin = new Enemy(
             this.x,
@@ -468,7 +473,8 @@ export class Enemy extends Entity {
             this.onSpawnEntity,
             this.onNotify
           );
-          babyPumpkin.state = 'aggro';
+          babyPumpkin.canLaySeeds = false; // Ne pond pas de graines à l'infini
+          babyPumpkin.state = 'idle';
           this.onSpawnEntity(babyPumpkin);
         }
         this.onNotify?.("UNE GRAINE A ÉCLOS ! UNE NOUVELLE CITROUILLE APPARAÎT !");
@@ -492,14 +498,14 @@ export class Enemy extends Entity {
     const dy = this.player.y - this.y;
     const distanceToPlayer = Math.hypot(dx, dy);
 
-    // 1. Détection de la zone d'aggression
+    // 1. Détection de la zone d'aggression (vue directe requise, pas à travers les murs/portes fermées)
     if (this.state === 'idle') {
       if (distanceToPlayer <= this.type.stats.aggroRadius) {
-        if (distanceToPlayer <= 2.2 || this.hasLineOfSight(map)) {
+        if (this.hasLineOfSight(map)) {
           this.state = 'aggro';
           this.hopTimer = 0;
           if (this.type.id === 'pumpkin') {
-            this.seedLayTimer = 3.5; // Première graine pondue après 3.5 secondes
+            this.seedLayTimer = 3.5; // Première graine pondue après 3.5 secondes de combat rapproché
             this.onNotify?.("ATTENTION : UNE CITROUILLE ENSORCELÉE VOUS TRAQUE !");
           }
           if (this.type.id === 'carrot_cake_king') {
@@ -512,6 +518,18 @@ export class Enemy extends Entity {
             this.coinTrailCooldown = 0.85;
             this.onNotify?.("ATTENTION : GOBELIN AU TRÉSOR REPÉRÉ ! (8s POUR L'ÉLIMINER)");
           }
+        }
+      }
+    } else if (this.state === 'aggro' && this.type.rank !== 'boss') {
+      // Désaggro si le joueur s'est enfui très loin et hors de vue
+      if (
+        distanceToPlayer > Math.max(10.0, this.type.stats.aggroRadius * 1.5) &&
+        !this.hasLineOfSight(map)
+      ) {
+        this.state = 'idle';
+        this.isMoving = false;
+        if (this.type.id === 'pumpkin') {
+          this.seedLayTimer = 4.0;
         }
       }
     }
@@ -557,21 +575,28 @@ export class Enemy extends Entity {
         return;
       }
 
-      // Ponte régulière de graines par la Citrouille enragée
-      if (this.type.id === 'pumpkin') {
-        this.seedLayTimer -= deltaTime;
-        if (this.seedLayTimer <= 0 && this.onSpawnEntity) {
-          this.seedLayTimer = 7.5;
-          const seed = new Enemy(
-            this.x,
-            this.y,
-            getEnemyType('pumpkin_seed'),
-            this.player,
-            this.onSpawnEntity,
-            this.onNotify
-          );
-          this.onSpawnEntity(seed);
-          this.onNotify?.("LA CITROUILLE A PONDU UNE GRAINE ! DÉTRUISEZ-LA VITE !");
+      // Ponte de graines par la Citrouille enragée : UNIQUEMENT si le joueur est proche (<= 4.5) et en vue
+      if (this.type.id === 'pumpkin' && this.canLaySeeds) {
+        const isPlayerNearby = distanceToPlayer <= 4.5 && this.hasLineOfSight(map);
+        if (isPlayerNearby && this.activeSeedsCount < 2) {
+          this.seedLayTimer -= deltaTime;
+          if (this.seedLayTimer <= 0 && this.onSpawnEntity) {
+            this.seedLayTimer = 8.5;
+            this.activeSeedsCount++;
+            const seed = new Enemy(
+              this.x,
+              this.y,
+              getEnemyType('pumpkin_seed'),
+              this.player,
+              this.onSpawnEntity,
+              this.onNotify
+            );
+            seed.onSeedResolved = () => {
+              this.activeSeedsCount = Math.max(0, this.activeSeedsCount - 1);
+            };
+            this.onSpawnEntity(seed);
+            this.onNotify?.("LA CITROUILLE A PONDU UNE GRAINE ! DÉTRUISEZ-LA VITE !");
+          }
         }
       }
 

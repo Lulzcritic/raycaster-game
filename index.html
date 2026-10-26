@@ -274,31 +274,47 @@
 
           <!-- Interfaces flottantes directement sur le background (pas de fenêtre, pas de page défilable) -->
           <div class="hub-views-container">
-            <!-- Onglet JOUER : Stats du joueur + Résumé d'équipement + Bouton entrer dans la citadelle -->
+            <!-- Onglet JOUER : Équipement arrangé sur le corps (gauche) + Stats en liste verticale (droite) + Bouton citadelle -->
             <section id="hub-view-play" class="hub-view active">
               <div class="hub-play-stage">
                 <div class="hub-play-header">
-                  <h1 class="hub-view-title">⚔️ CITADELLE OUBLIÉE</h1>
-                  <p class="hub-view-subtitle">Préparez votre mage avant de franchir les portes du donjon.</p>
+                  <h1 class="hub-view-title">⚔️ PRÉPARATION DU HÉROS</h1>
+                  <p class="hub-view-subtitle">Vérifiez vos équipements anatomiques et vos attributs avant d'entrer dans la Citadelle.</p>
                 </div>
 
-                <!-- 1. Statistiques du joueur -->
-                <div class="hub-play-section">
-                  <h3 class="hub-sub-title">STATISTIQUES DU JOUEUR</h3>
-                  <div id="hub-play-stats" class="hub-play-stats-grid"></div>
-                </div>
+                <div class="hub-play-split">
+                  <!-- Partie gauche du menu Jouer : Équipement arrangé selon le placement sur le corps (Paperdoll) -->
+                  <div class="hub-play-left-col">
+                    <h3 class="hub-sub-title">ÉQUIPEMENT DU CORPS</h3>
+                    <div class="hub-play-paperdoll">
+                      <!-- Ligne 1 : Chapeau (Tête) -->
+                      <div class="hub-paperdoll-row top">
+                        <div id="hub-play-slot-hat" class="hub-play-body-slot slot-hat"></div>
+                      </div>
+                      <!-- Ligne 2 : Arme (Main droite) - Armure (Torse) - Main Gauche (Main gauche) -->
+                      <div class="hub-paperdoll-row middle">
+                        <div id="hub-play-slot-weapon" class="hub-play-body-slot slot-weapon"></div>
+                        <div id="hub-play-slot-armor" class="hub-play-body-slot slot-armor"></div>
+                        <div id="hub-play-slot-offhand" class="hub-play-body-slot slot-offhand"></div>
+                      </div>
+                      <!-- Ligne 3 : Bottes (Pieds) -->
+                      <div class="hub-paperdoll-row bottom">
+                        <div id="hub-play-slot-boots" class="hub-play-body-slot slot-boots"></div>
+                      </div>
+                    </div>
+                  </div>
 
-                <!-- 2. Résumé de l'équipement -->
-                <div class="hub-play-section">
-                  <h3 class="hub-sub-title">RÉSUMÉ DE L'ÉQUIPEMENT</h3>
-                  <div id="hub-play-gear-summary" class="hub-play-gear-grid"></div>
-                </div>
+                  <!-- Partie droite du menu Jouer : Stats en liste verticale + Bouton Citadelle -->
+                  <div class="hub-play-right-col">
+                    <h3 class="hub-sub-title">ATTRIBUTS & STATISTIQUES</h3>
+                    <div id="hub-play-stats-list" class="hub-play-stats-vlist"></div>
 
-                <!-- 3. Bouton entrer dans la citadelle -->
-                <div class="hub-play-action">
-                  <button id="hub-launch-raid-btn" class="hub-launch-btn" type="button">
-                    ⚔️ ENTRER DANS LA CITADELLE
-                  </button>
+                    <div class="hub-play-action">
+                      <button id="hub-launch-raid-btn" class="hub-launch-btn" type="button">
+                        ⚔️ ENTRER DANS LA CITADELLE
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>

@@ -77,8 +77,8 @@ export class HubUI {
   private readonly avatarStats: HTMLElement | null;
 
   // Vues du contenu
-  private readonly playStatsContainer: HTMLElement | null;
-  private readonly playGearContainer: HTMLElement | null;
+  private readonly playStatsList: HTMLElement | null;
+  private readonly playBodySlots: Partial<Record<EquipmentSlot, HTMLElement | null>> = {};
   private readonly equippedSlotsContainer: HTMLElement | null;
   private readonly stashListContainer: HTMLElement | null;
   private readonly fullStatsContainer: HTMLElement | null;
@@ -125,8 +125,14 @@ export class HubUI {
     this.avatarStats = document.getElementById('hub-avatar-stats');
 
     // Équipement & Stats & Jouer
-    this.playStatsContainer = document.getElementById('hub-play-stats');
-    this.playGearContainer = document.getElementById('hub-play-gear-summary');
+    this.playStatsList = document.getElementById('hub-play-stats-list');
+    this.playBodySlots = {
+      hat: document.getElementById('hub-play-slot-hat'),
+      weapon: document.getElementById('hub-play-slot-weapon'),
+      armor: document.getElementById('hub-play-slot-armor'),
+      boots: document.getElementById('hub-play-slot-boots'),
+      offhand: document.getElementById('hub-play-slot-offhand'),
+    };
     this.equippedSlotsContainer = document.getElementById('hub-equipped-slots');
     this.stashListContainer = document.getElementById('hub-stash-list');
     this.fullStatsContainer = document.getElementById('hub-full-stats');
@@ -367,88 +373,111 @@ export class HubUI {
   }
 
   // =========================================================================
-  // VUE 1 : JOUER (STATS DU JOUEUR, RÉSUMÉ ÉQUIPEMENT & LANCEMENT)
+  // VUE 1 : JOUER (ÉQUIPEMENT ANATOMIQUE À GAUCHE & STATS VERTICALES À DROITE)
   // =========================================================================
   private renderPlayView(): void {
     if (!this.player) return;
 
-    // 1. Statistiques effectives du joueur
-    if (this.playStatsContainer) {
+    // 1. Équipement arrangé selon le placement sur le corps (Paperdoll à gauche)
+    const slots: EquipmentSlot[] = ['hat', 'weapon', 'armor', 'boots', 'offhand'];
+    const slotPlaceholders: Record<EquipmentSlot, string> = {
+      hat: '🎩',
+      weapon: '⚔️',
+      armor: '🥋',
+      boots: '👢',
+      key: '🔑',
+      offhand: '🔮',
+    };
+
+    for (const slot of slots) {
+      const container = this.playBodySlots[slot];
+      if (!container) continue;
+
+      const item = this.player.inventory.getItem(slot);
+      const iconUrl = item ? ItemSpriteManager.getSpriteUrl(item.slot, item.rarity, item.id) : null;
+      const rarityClass = item ? `rarity-${item.rarity}` : 'empty';
+
+      container.className = `hub-play-body-slot slot-${slot} ${rarityClass}`;
+      container.title = item ? `${item.name} (${SLOT_LABELS[slot]}) - Cliquez pour aller à l'équipement` : `${SLOT_LABELS[slot]} (Vide) - Cliquez pour équiper`;
+      container.innerHTML = `
+        <div class="hub-body-slot-badge">${SLOT_LABELS[slot]}</div>
+        <div class="hub-body-slot-icon-box">
+          ${iconUrl ? `<img src="${iconUrl}" class="hub-body-slot-img" alt="" />` : `<span class="hub-body-slot-placeholder">${slotPlaceholders[slot]}</span>`}
+        </div>
+        <div class="hub-body-slot-info">
+          <div class="hub-body-slot-name" style="color: ${item ? RARITY_COLORS[item.rarity] : '#64748b'}">
+            ${item ? item.name : 'Emplacement libre'}
+          </div>
+          <div class="hub-body-slot-stats">
+            ${item ? this.formatItemStats(item) : 'Aucun bonus direct'}
+          </div>
+        </div>
+      `;
+
+      container.onclick = () => {
+        this.switchTab('equipment');
+      };
+    }
+
+    // 2. Statistiques en liste verticale (à droite)
+    if (this.playStatsList) {
       const stats = this.player.getEffectiveStats();
       const speedPct = Math.round(stats.moveSpeed * 100);
       const castPct = Math.round(stats.castSpeed * 100);
       const totalDamage = 16 + stats.damage + stats.magicPower;
 
-      this.playStatsContainer.innerHTML = `
-        <div class="hub-play-stat-tile">
-          <div class="hub-play-stat-icon">❤️</div>
-          <div class="hub-play-stat-content">
-            <span class="hub-play-stat-name">POINTS DE VIE</span>
-            <span class="hub-play-stat-value font-green">${this.player.maxHealth} PV</span>
-          </div>
-        </div>
-        <div class="hub-play-stat-tile">
-          <div class="hub-play-stat-icon">🗡️</div>
-          <div class="hub-play-stat-content">
-            <span class="hub-play-stat-name">DÉGÂTS TOTAUX</span>
-            <span class="hub-play-stat-value font-red">${totalDamage}</span>
-          </div>
-        </div>
-        <div class="hub-play-stat-tile">
-          <div class="hub-play-stat-icon">🛡️</div>
-          <div class="hub-play-stat-content">
-            <span class="hub-play-stat-name">DÉFENSE</span>
-            <span class="hub-play-stat-value font-blue">${stats.defense}</span>
-          </div>
-        </div>
-        <div class="hub-play-stat-tile">
-          <div class="hub-play-stat-icon">💨</div>
-          <div class="hub-play-stat-content">
-            <span class="hub-play-stat-name">VITESSE COURSE</span>
-            <span class="hub-play-stat-value font-yellow">${speedPct >= 0 ? `+${speedPct}%` : `${speedPct}%`}</span>
-          </div>
-        </div>
-        <div class="hub-play-stat-tile">
-          <div class="hub-play-stat-icon">⚡</div>
-          <div class="hub-play-stat-content">
-            <span class="hub-play-stat-name">VITESSE SORTS</span>
-            <span class="hub-play-stat-value font-purple">${castPct >= 0 ? `+${castPct}%` : `${castPct}%`}</span>
-          </div>
-        </div>
-      `;
-    }
+      const statItems = [
+        {
+          icon: '❤️',
+          label: 'POINTS DE VIE MAX',
+          desc: 'Endurance vitale face aux périls',
+          value: `${this.player.maxHealth} PV`,
+          colorClass: 'font-green',
+        },
+        {
+          icon: '🔮',
+          label: 'DÉGÂTS DES SORTS',
+          desc: 'Puissance offensive brute des arcanes',
+          value: `${totalDamage}`,
+          colorClass: 'font-red',
+        },
+        {
+          icon: '🛡️',
+          label: 'DÉFENSE / ARMURE',
+          desc: 'Réduction directe des dégâts subis',
+          value: `${stats.defense}`,
+          colorClass: 'font-blue',
+        },
+        {
+          icon: '💨',
+          label: 'VITESSE DE COURSE',
+          desc: 'Agilité de déplacement et d\'esquive',
+          value: speedPct >= 0 ? `+${speedPct}%` : `${speedPct}%`,
+          colorClass: 'font-yellow',
+        },
+        {
+          icon: '⚡',
+          label: 'CADENCE D\'INCANTATION',
+          desc: 'Vitesse de récupération magique',
+          value: castPct >= 0 ? `+${castPct}%` : `${castPct}%`,
+          colorClass: 'font-purple',
+        },
+      ];
 
-    // 2. Résumé de l'équipement (5 emplacements)
-    if (this.playGearContainer) {
-      this.playGearContainer.innerHTML = '';
-      const slots: EquipmentSlot[] = ['hat', 'weapon', 'armor', 'boots', 'offhand'];
-
-      for (const slot of slots) {
-        const item = this.player.inventory.getItem(slot);
-        const card = document.createElement('div');
-        card.className = `hub-play-gear-card ${item ? `rarity-${item.rarity}` : 'empty'}`;
-
-        const iconUrl = item ? ItemSpriteManager.getSpriteUrl(item.slot, item.rarity, item.id) : null;
-
-        card.innerHTML = `
-          <div class="hub-play-gear-badge">${SLOT_LABELS[slot]}</div>
-          <div class="hub-play-gear-row">
-            <div class="hub-play-gear-icon-box">
-              ${iconUrl ? `<img src="${iconUrl}" class="hub-play-gear-img" alt="" />` : `<span class="hub-play-gear-empty">+</span>`}
+      this.playStatsList.innerHTML = statItems
+        .map(
+          (s) => `
+          <div class="hub-stat-vrow">
+            <div class="hub-stat-vicon">${s.icon}</div>
+            <div class="hub-stat-vmeta">
+              <span class="hub-stat-vlabel">${s.label}</span>
+              <span class="hub-stat-vdesc">${s.desc}</span>
             </div>
-            <div class="hub-play-gear-details">
-              <div class="hub-play-gear-name" style="color: ${item ? RARITY_COLORS[item.rarity] : '#64748b'}">
-                ${item ? item.name : 'Libre'}
-              </div>
-              <div class="hub-play-gear-bonus">
-                ${item ? this.formatItemStats(item) : 'Aucun bonus'}
-              </div>
-            </div>
+            <div class="hub-stat-vval ${s.colorClass}">${s.value}</div>
           </div>
-        `;
-
-        this.playGearContainer.appendChild(card);
-      }
+        `
+        )
+        .join('');
     }
   }
 

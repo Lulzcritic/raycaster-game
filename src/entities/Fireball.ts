@@ -9,14 +9,22 @@ export class Fireball extends Entity {
   private static explosionFrames: HTMLCanvasElement[] | null = null;
 
   public readonly damage: number;
+  public readonly shooterId?: string;
   private state: FireballState = 'flying';
   private distanceTraveled = 0;
   private animTimer = 0;
   private explosionTimer = 0;
 
-  constructor(x: number, y: number, angle: number, damage: number = FIREBALL_CONFIG.DAMAGE) {
+  constructor(
+    x: number,
+    y: number,
+    angle: number,
+    damage: number = FIREBALL_CONFIG.DAMAGE,
+    shooterId?: string
+  ) {
     super(x, y, angle, 0.1);
     this.damage = damage;
+    this.shooterId = shooterId;
     Fireball.ensureSpritesCreated();
   }
 

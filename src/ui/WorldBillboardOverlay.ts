@@ -5,6 +5,7 @@ import { DroppedItemOrb } from '../entities/DroppedItemOrb';
 import { Enemy } from '../entities/Enemy';
 import { ExtractionPortal } from '../entities/ExtractionPortal';
 import { Merchant } from '../entities/Merchant';
+import { RemotePlayer } from '../entities/RemotePlayer';
 import { createItemCardElement, fillItemCardElement } from './ItemTooltip';
 import { TILE_TYPE } from '../config/constants';
 import type { Player } from '../entities/Player';
@@ -28,6 +29,7 @@ export class WorldBillboardOverlay {
   private readonly chestBeaconMap = new Map<BillboardSprite, HTMLElement>();
   private readonly merchantMap = new Map<Merchant, HTMLElement>();
   private readonly doorMap = new Map<Door, HTMLElement>();
+  private readonly remotePlayerMap = new Map<RemotePlayer, HTMLElement>();
   private edgeBeaconEl: HTMLElement | null = null;
 
   constructor() {
@@ -612,6 +614,82 @@ export class WorldBillboardOverlay {
       doorEl.style.top = `${screenPixelY}px`;
       doorEl.style.transform = `translate(-50%, -100%) scale(${scale})`;
     }
+
+    // =========================================================================
+    // 6. EN-TÊTES ET BARRES DE VIE DES JOUEURS DISTANTS (MULTIJOUEUR)
+    // =========================================================================
+    const activeRemotePlayers = new Set<RemotePlayer>();
+    for (const entity of entities) {
+      if (entity instanceof RemotePlayer && entity.active && entity.hp > 0) {
+        activeRemotePlayers.add(entity);
+      }
+    }
+
+    for (const [remote, el] of this.remotePlayerMap.entries()) {
+      if (!activeRemotePlayers.has(remote)) {
+        el.remove();
+        this.remotePlayerMap.delete(remote);
+      }
+    }
+
+    for (const remote of activeRemotePlayers) {
+      let el = this.remotePlayerMap.get(remote);
+      if (!el) {
+        el = this.createRemotePlayerElement(remote);
+        this.container.appendChild(el);
+        this.remotePlayerMap.set(remote, el);
+      }
+
+      const dx = remote.x - player.x;
+      const dy = remote.y - player.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < 0.2 || distance > 18.0) {
+        el.style.display = 'none';
+        continue;
+      }
+
+      let angleDiff = Math.atan2(dy, dx) - player.angle;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+      if (Math.abs(angleDiff) > player.fov / 2 + 0.15) {
+        el.style.display = 'none';
+        continue;
+      }
+
+      const canvasX = (0.5 + angleDiff / player.fov) * 320;
+      const screenCol = Math.floor(canvasX);
+
+      // Z-buffer occlusion
+      if (screenCol >= 0 && screenCol < 320) {
+        const ray = rayHits[screenCol];
+        if (ray && ray.hit && distance > ray.distance + 0.15) {
+          el.style.display = 'none';
+          continue;
+        }
+      }
+
+      this.updateRemotePlayerElement(el, remote);
+
+      const fullWallHeight = focalLength / distance;
+      const floorScreenY = (240 + fullWallHeight) / 2;
+      const bottomScreenY = floorScreenY - fullWallHeight * remote.getElevation();
+      const topOfSpriteScreenY = bottomScreenY - fullWallHeight * remote.getScale();
+      const anchorCanvasY = topOfSpriteScreenY - 14;
+
+      const screenPixelX =
+        canvasRect.left + (canvasX / 320) * canvasRect.width;
+      const screenPixelY =
+        canvasRect.top + (anchorCanvasY / 240) * canvasRect.height;
+
+      const scale = Math.max(0.65, Math.min(1.25, 1.45 / Math.sqrt(distance)));
+
+      el.style.display = 'flex';
+      el.style.left = `${screenPixelX}px`;
+      el.style.top = `${screenPixelY}px`;
+      el.style.transform = `translate(-50%, -100%) scale(${scale})`;
+    }
   }
 
   public setVisible(visible: boolean): void {
@@ -651,9 +729,66 @@ export class WorldBillboardOverlay {
     }
     this.doorMap.clear();
 
+    for (const playerEl of this.remotePlayerMap.values()) {
+      playerEl.remove();
+    }
+    this.remotePlayerMap.clear();
+
     if (this.edgeBeaconEl) {
       this.edgeBeaconEl.remove();
       this.edgeBeaconEl = null;
+    }
+  }
+
+  private createRemotePlayerElement(remote: RemotePlayer): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'world-remote-player-overhead';
+
+    const header = document.createElement('div');
+    header.className = 'remote-player-header';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'remote-player-name';
+    nameEl.textContent = `🧙 ${remote.name}`;
+    header.appendChild(nameEl);
+
+    const gsEl = document.createElement('div');
+    gsEl.className = 'remote-player-gs';
+    gsEl.textContent = `⭐ ${remote.gearScore}`;
+    header.appendChild(gsEl);
+
+    el.appendChild(header);
+
+    const barFrame = document.createElement('div');
+    barFrame.className = 'remote-player-bar-frame';
+
+    const fill = document.createElement('div');
+    fill.className = 'remote-player-bar-fill';
+    barFrame.appendChild(fill);
+
+    const textHp = document.createElement('div');
+    textHp.className = 'remote-player-hp-text';
+    textHp.textContent = `${remote.hp} / ${remote.maxHp}`;
+    barFrame.appendChild(textHp);
+
+    el.appendChild(barFrame);
+    return el;
+  }
+
+  private updateRemotePlayerElement(el: HTMLElement, remote: RemotePlayer): void {
+    const fill = el.querySelector<HTMLElement>('.remote-player-bar-fill');
+    const textHp = el.querySelector<HTMLElement>('.remote-player-hp-text');
+    const gsEl = el.querySelector<HTMLElement>('.remote-player-gs');
+    const pct = Math.max(0, Math.min(100, Math.round((remote.hp / remote.maxHp) * 100)));
+
+    if (fill) {
+      fill.style.width = `${pct}%`;
+    }
+    if (textHp) {
+      textHp.textContent = `${remote.hp} / ${remote.maxHp}`;
+    }
+    if (gsEl) {
+      gsEl.textContent = `⭐ ${remote.gearScore}`;
     }
   }
 

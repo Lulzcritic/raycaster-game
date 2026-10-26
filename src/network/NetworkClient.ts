@@ -1,8 +1,13 @@
 import type {
   ClientMessage,
+  InstancePlayersPayload,
   MatchFoundPayload,
   MatchStartPayload,
+  PlayerLeftPayload,
+  PlayerShootPayload,
+  PlayerUpdatePayload,
   QueueStatusPayload,
+  RemoteShootPayload,
   ServerMessage,
 } from '../types/network';
 
@@ -20,6 +25,9 @@ export class NetworkClient {
   private matchFoundListeners: Array<(data: MatchFoundPayload) => void> = [];
   private matchStartListeners: Array<(data: MatchStartPayload) => void> = [];
   private connectionListeners: Array<(connected: boolean) => void> = [];
+  private instancePlayersListeners: Array<(data: InstancePlayersPayload) => void> = [];
+  private remoteShootListeners: Array<(data: RemoteShootPayload) => void> = [];
+  private playerLeftListeners: Array<(data: PlayerLeftPayload) => void> = [];
 
   private constructor() {
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
@@ -106,22 +114,61 @@ export class NetworkClient {
         }
         break;
 
+      case 'INSTANCE_PLAYERS':
+        for (const listener of this.instancePlayersListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'REMOTE_SHOOT':
+        for (const listener of this.remoteShootListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'PLAYER_LEFT':
+        for (const listener of this.playerLeftListeners) {
+          listener(msg.payload);
+        }
+        break;
+
       case 'PONG':
         // Heartbeat
         break;
     }
   }
 
-  public joinQueue(playerName: string, gearScore: number): void {
+  public joinQueue(playerName: string, gearScore: number, skinId?: string): void {
     this.send({
       type: 'JOIN_QUEUE',
-      payload: { playerName, gearScore },
+      payload: { playerName, gearScore, skinId },
     });
   }
 
   public leaveQueue(): void {
     this.send({
       type: 'LEAVE_QUEUE',
+    });
+  }
+
+  public sendPlayerUpdate(payload: PlayerUpdatePayload): void {
+    this.send({
+      type: 'PLAYER_UPDATE',
+      payload,
+    });
+  }
+
+  public sendPlayerShoot(payload: PlayerShootPayload): void {
+    this.send({
+      type: 'PLAYER_SHOOT',
+      payload,
+    });
+  }
+
+  public leaveMatch(instanceId: string): void {
+    this.send({
+      type: 'LEAVE_MATCH',
+      payload: { instanceId },
     });
   }
 
@@ -158,6 +205,27 @@ export class NetworkClient {
     this.matchStartListeners.push(callback);
     return () => {
       this.matchStartListeners = this.matchStartListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onInstancePlayers(callback: (data: InstancePlayersPayload) => void): () => void {
+    this.instancePlayersListeners.push(callback);
+    return () => {
+      this.instancePlayersListeners = this.instancePlayersListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemoteShoot(callback: (data: RemoteShootPayload) => void): () => void {
+    this.remoteShootListeners.push(callback);
+    return () => {
+      this.remoteShootListeners = this.remoteShootListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onPlayerLeft(callback: (data: PlayerLeftPayload) => void): () => void {
+    this.playerLeftListeners.push(callback);
+    return () => {
+      this.playerLeftListeners = this.playerLeftListeners.filter((l) => l !== callback);
     };
   }
 

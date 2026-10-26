@@ -12,6 +12,7 @@ export interface QueuedPlayer {
   ws: WebSocket;
   id: string;
   name: string;
+  skinId: string;
   gearScore: number;
   joinedAt: number;
 }
@@ -64,27 +65,53 @@ export class Matchmaker {
           payload: { timestamp: message.payload.timestamp },
         });
         break;
+      case 'PLAYER_UPDATE': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handlePlayerUpdate(ws, message.payload);
+        }
+        break;
+      }
+      case 'PLAYER_SHOOT': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handlePlayerShoot(ws, message.payload);
+        }
+        break;
+      }
+      case 'LEAVE_MATCH': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          const player = instance.players.find((p) => p.ws === ws);
+          if (player) {
+            instance.removePlayer(player.id);
+          }
+        }
+        break;
+      }
     }
   }
 
   public joinQueue(ws: WebSocket, payload: JoinQueuePayload): void {
-    // Si déjà dans la file, mise à jour des infos
     const existingIndex = this.queue.findIndex((p) => p.ws === ws);
     const id = `player_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const skinId = payload.skinId || 'puzzle_lord';
 
     if (existingIndex !== -1) {
       this.queue[existingIndex].name = payload.playerName || 'Aventurier';
+      this.queue[existingIndex].skinId = skinId;
       this.queue[existingIndex].gearScore = payload.gearScore || 30;
     } else {
       this.queue.push({
         ws,
         id,
         name: payload.playerName || 'Aventurier',
+        skinId,
         gearScore: payload.gearScore || 30,
         joinedAt: Date.now(),
       });
       console.log(
-        `[Matchmaker] Joueur inscrit: ${payload.playerName} (GS: ${payload.gearScore}) | File: ${this.queue.length}`
+        `[Matchmaker] Joueur inscrit: ${payload.playerName} (GS: ${payload.gearScore}, Skin: ${skinId}) | File: ${this.queue.length}`
       );
     }
 
@@ -141,11 +168,23 @@ export class Matchmaker {
       ws: p.ws,
       id: p.id,
       name: p.name,
+      skinId: p.skinId,
       gearScore: p.gearScore,
       spawnIndex: index % 4, // Attribue une crypte de coin différente (0, 1, 2 ou 3)
+      x: 0,
+      y: 0,
+      angle: 0,
+      isMoving: false,
+      isAttacking: false,
+      hp: 100,
+      maxHp: 100,
+      lastUpdate: Date.now(),
     }));
 
     const instance = new GameInstance(instanceId, mapSeed, playerSessions);
+    instance.onDestroyCallback = (id) => {
+      this.activeInstances.delete(id);
+    };
     this.activeInstances.set(instanceId, instance);
 
     console.log(
@@ -195,6 +234,7 @@ export class Matchmaker {
       isQueued,
       queuedPlayers: this.queue.map((p) => ({
         name: p.name,
+        skinId: p.skinId,
         gearScore: p.gearScore,
       })),
     };
@@ -223,6 +263,9 @@ export class Matchmaker {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
+    }
+    for (const inst of this.activeInstances.values()) {
+      inst.destroy();
     }
     this.activeInstances.clear();
     this.queue.length = 0;

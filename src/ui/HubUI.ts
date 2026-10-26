@@ -95,7 +95,12 @@ export class HubUI {
   private currentTab: HubTab = 'play';
   private player: Player | null = null;
 
-  private onStartRaidCallback?: (options?: { seed?: number; spawnIndex?: number }) => void;
+  private onStartRaidCallback?: (options?: {
+    seed?: number;
+    spawnIndex?: number;
+    instanceId?: string;
+    localPlayerId?: string;
+  }) => void;
   private onReturnToMenuCallback?: () => void;
 
   // Multijoueur & Convoi 60s
@@ -107,7 +112,12 @@ export class HubUI {
   private joinConvoiBtn: HTMLButtonElement | null = null;
 
   constructor(
-    onStartRaid?: (options?: { seed?: number; spawnIndex?: number }) => void,
+    onStartRaid?: (options?: {
+      seed?: number;
+      spawnIndex?: number;
+      instanceId?: string;
+      localPlayerId?: string;
+    }) => void,
     onReturnToMenu?: () => void
   ) {
     this.onStartRaidCallback = onStartRaid;
@@ -351,7 +361,13 @@ export class HubUI {
 
     net.onMatchStart((data) => {
       ItemTooltip.getInstance().hide();
-      this.onStartRaidCallback?.({ seed: data.mapSeed, spawnIndex: data.spawnIndex });
+      const localPlayer = data.players[data.playerIndex];
+      this.onStartRaidCallback?.({
+        seed: data.mapSeed,
+        spawnIndex: data.spawnIndex,
+        instanceId: data.instanceId,
+        localPlayerId: localPlayer?.id,
+      });
     });
 
     if (this.joinConvoiBtn) {
@@ -363,8 +379,9 @@ export class HubUI {
           net.leaveQueue();
         } else {
           const playerName = SKINS[this.currentSkinIndex]?.name ?? 'Lord Aventurier';
+          const skinId = SKINS[this.currentSkinIndex]?.id ?? 'puzzle_lord';
           const gearScore = this.player ? this.player.getGearScore() : 50;
-          net.joinQueue(playerName, gearScore);
+          net.joinQueue(playerName, gearScore, skinId);
         }
       };
     }

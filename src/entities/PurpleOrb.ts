@@ -9,6 +9,7 @@ export class PurpleOrb extends Entity {
   private static explosionFrames: HTMLCanvasElement[] | null = null;
 
   public readonly baseDamage: number;
+  public readonly shooterId?: string;
   public bouncesRemaining: number;
   public bouncesDone = 0;
   private state: PurpleOrbState = 'flying';
@@ -26,11 +27,13 @@ export class PurpleOrb extends Entity {
     y: number,
     angle: number,
     damage: number = PURPLE_ORB_CONFIG.DAMAGE,
-    maxBounces: number = PURPLE_ORB_CONFIG.MAX_BOUNCES
+    maxBounces: number = PURPLE_ORB_CONFIG.MAX_BOUNCES,
+    shooterId?: string
   ) {
     super(x, y, angle, PURPLE_ORB_CONFIG.HITBOX);
     this.baseDamage = damage;
     this.bouncesRemaining = maxBounces;
+    this.shooterId = shooterId;
     PurpleOrb.ensureSpritesCreated();
   }
 

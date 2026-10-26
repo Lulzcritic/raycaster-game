@@ -1236,6 +1236,85 @@ body {
 }
 
 /* =========================================================================
+   EN-TÊTE ET BARRE DE VIE DES JOUEURS DISTANTS (MULTIJOUEUR)
+   ========================================================================= */
+.world-remote-player-overhead {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  transform-origin: bottom center;
+  font-family: var(--font-medieval);
+  user-select: none;
+  white-space: nowrap;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.95));
+}
+
+.remote-player-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 12, 28, 0.88);
+  border: 1.5px solid #6366f1;
+  padding: 3px 8px;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.45);
+}
+
+.remote-player-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e0e7ff;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px rgba(99, 102, 241, 0.8);
+}
+
+.remote-player-gs {
+  font-size: 11px;
+  font-weight: 800;
+  color: #facc15;
+  background: rgba(234, 179, 8, 0.2);
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-shadow: 0 0 5px rgba(234, 179, 8, 0.7);
+}
+
+.remote-player-bar-frame {
+  position: relative;
+  width: 110px;
+  height: 12px;
+  background: #0f0c1c;
+  border: 1.5px solid #4338ca;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+}
+
+.remote-player-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  transition: width 0.15s ease-out;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+}
+
+.remote-player-hp-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 0 3px #000000, 0 0 2px #000000;
+  letter-spacing: 0.3px;
+}
+
+/* =========================================================================
    INDICATEURS DES PORTAILS D'EXTRACTION DANS LE MONDE 3D
    ========================================================================= */
 .world-portal-badge {

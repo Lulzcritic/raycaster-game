@@ -40,6 +40,7 @@ export class Player extends Entity {
   // Effet de ralentissement (glaçage collant du Carrot Cake King)
   private frostingSlowTimer = 0;
   private frostingSlowFactor = 1.0;
+  private currentlyMoving = false;
 
   constructor(
     input: InputManager,
@@ -111,6 +112,14 @@ export class Player extends Entity {
 
   public isAlive(): boolean {
     return this.health > 0;
+  }
+
+  public isMoving(): boolean {
+    return this.currentlyMoving;
+  }
+
+  public isAttacking(): boolean {
+    return this.isCasting();
   }
 
   public isCasting(): boolean {
@@ -232,6 +241,7 @@ export class Player extends Entity {
 
     // Balancement de la main au premier plan (courbe en U façon Doom) quand le joueur marche
     const hasMoved = Math.hypot(this.x - prevX, this.y - prevY) > 0.0001;
+    this.currentlyMoving = hasMoved;
     if (hasMoved) {
       this.bobTimer += deltaTime * this.bobFrequency;
       this.handBobX = Math.sin(this.bobTimer * 0.5) * (this.bobAmplitude * 1.8);

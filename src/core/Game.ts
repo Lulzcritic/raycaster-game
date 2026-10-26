@@ -47,6 +47,9 @@ import { BloodOrb } from '../entities/BloodOrb';
 import { BloodWaveSegment } from '../entities/BloodWaveSegment';
 import { PurpleOrb } from '../entities/PurpleOrb';
 import { FrostingPuddle } from '../entities/FrostingPuddle';
+import { RemotePlayer } from '../entities/RemotePlayer';
+import { PlayerSpriteManager } from '../graphics/PlayerSpriteManager';
+import { NetworkClient } from '../network/NetworkClient';
 import { WalletManager } from './WalletManager';
 import { GearScoreService } from './GearScoreService';
 import { QuestManager } from './QuestManager';
@@ -79,6 +82,12 @@ export class Game {
   private isExtracted = false;
   private lostHomonculusOnExtract = false;
   private lastHitWaveId = -1;
+
+  // Multijoueur temps réel (Phase 2)
+  private currentInstanceId: string | null = null;
+  private localPlayerId: string | null = null;
+  private networkTickTimer = 0;
+  private readonly remotePlayers = new Map<string, RemotePlayer>();
 
   constructor(canvas: HTMLCanvasElement, initialLevel?: LevelData) {
     const startLevel = initialLevel ?? MapGenerator.generate();
@@ -175,8 +184,31 @@ export class Game {
       },
       (projectile) => {
         this.entities.push(projectile);
+        if (this.currentInstanceId) {
+          if (projectile instanceof Fireball) {
+            NetworkClient.getInstance().sendPlayerShoot({
+              instanceId: this.currentInstanceId,
+              spellType: 'fireball',
+              originX: projectile.x,
+              originY: projectile.y,
+              angle: projectile.angle,
+              damage: projectile.damage,
+            });
+          } else if (projectile instanceof PurpleOrb) {
+            NetworkClient.getInstance().sendPlayerShoot({
+              instanceId: this.currentInstanceId,
+              spellType: 'purple_orb',
+              originX: projectile.x,
+              originY: projectile.y,
+              angle: projectile.angle,
+              damage: projectile.baseDamage,
+            });
+          }
+        }
       }
     );
+
+    this.setupNetworkListeners();
 
     this.hubUI = new HubUI(
       (matchOptions) => {
@@ -199,6 +231,73 @@ export class Game {
     this.mainMenu.show();
   }
 
+  private setupNetworkListeners(): void {
+    const net = NetworkClient.getInstance();
+
+    net.onInstancePlayers((data) => {
+      if (!this.currentInstanceId) return;
+
+      for (const p of data.players) {
+        if (p.id === this.localPlayerId) continue;
+
+        let remote = this.remotePlayers.get(p.id);
+        if (!remote) {
+          remote = new RemotePlayer(
+            p.id,
+            p.name,
+            p.skinId,
+            p.gearScore,
+            p.x,
+            p.y,
+            p.angle,
+            p.hp,
+            p.maxHp
+          );
+          this.remotePlayers.set(p.id, remote);
+          this.entities.push(remote);
+        } else {
+          remote.updateNetworkState(
+            p.x,
+            p.y,
+            p.angle,
+            p.isMoving,
+            p.isAttacking,
+            p.hp,
+            p.maxHp
+          );
+        }
+      }
+    });
+
+    net.onRemoteShoot((data) => {
+      if (!this.currentInstanceId) return;
+
+      if (data.spellType === 'fireball') {
+        const fb = new Fireball(data.originX, data.originY, data.angle, data.damage, data.shooterId);
+        this.entities.push(fb);
+      } else if (data.spellType === 'purple_orb') {
+        const orb = new PurpleOrb(
+          data.originX,
+          data.originY,
+          data.angle,
+          data.damage,
+          undefined,
+          data.shooterId
+        );
+        this.entities.push(orb);
+      }
+    });
+
+    net.onPlayerLeft((data) => {
+      const remote = this.remotePlayers.get(data.playerId);
+      if (remote) {
+        remote.active = false;
+        this.remotePlayers.delete(data.playerId);
+        this.interactionPrompt.showNotification(`👤 ${remote.name} a quitté la Citadelle.`);
+      }
+    });
+  }
+
   public getCurrentLevel(): LevelData {
     return this.currentLevel;
   }
@@ -218,6 +317,7 @@ export class Game {
       BloodQueenSpriteManager.preloadAll(),
       PumpkinSpriteManager.preloadAll(),
       CakeKingSpriteManager.preloadAll(),
+      PlayerSpriteManager.preloadAll(),
     ]);
   }
 
@@ -233,6 +333,14 @@ export class Game {
     this.player.maxHealth = 100 + this.player.getEffectiveStats().maxHealth;
     this.player.health = this.player.maxHealth;
     this.entities = [];
+
+    // Ré-ancrage des joueurs distants présents dans l'instance
+    for (const remote of this.remotePlayers.values()) {
+      if (remote.active) {
+        this.entities.push(remote);
+      }
+    }
+
     this.interactionPrompt.clear();
     this.worldBillboardOverlay.clear();
     this.hudOverlay.reset();
@@ -514,6 +622,16 @@ export class Game {
   }
 
   public openHub(tab: 'play' | 'equipment' | 'shop' | 'quests' = 'play'): void {
+    if (this.currentInstanceId) {
+      NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
+      this.currentInstanceId = null;
+      this.localPlayerId = null;
+      for (const remote of this.remotePlayers.values()) {
+        remote.active = false;
+      }
+      this.remotePlayers.clear();
+    }
+
     this.isInMainMenu = false;
     this.isInHub = true;
     this.isPaused = true;
@@ -540,13 +658,26 @@ export class Game {
     this.openHub('play');
   }
 
-  public startRaidFromHub(options?: { seed?: number; spawnIndex?: number }): void {
+  public startRaidFromHub(options?: {
+    seed?: number;
+    spawnIndex?: number;
+    instanceId?: string;
+    localPlayerId?: string;
+  }): void {
     WalletManager.resetSessionCoins();
     this.isInHub = false;
     this.isInMainMenu = false;
     this.hubUI.hide();
     this.mainMenu.hide();
     this.pauseMenu.hide();
+
+    if (this.currentInstanceId && this.currentInstanceId !== options?.instanceId) {
+      NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
+    }
+    this.remotePlayers.clear();
+    this.currentInstanceId = options?.instanceId ?? null;
+    this.localPlayerId = options?.localPlayerId ?? null;
+
     this.startNewExtractionMatch(options);
     this.isPaused = false;
     this.worldBillboardOverlay.setVisible(true);
@@ -560,6 +691,16 @@ export class Game {
   }
 
   public returnToMainMenu(): void {
+    if (this.currentInstanceId) {
+      NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
+      this.currentInstanceId = null;
+      this.localPlayerId = null;
+      for (const remote of this.remotePlayers.values()) {
+        remote.active = false;
+      }
+      this.remotePlayers.clear();
+    }
+
     this.isInMainMenu = true;
     this.isInHub = false;
     this.hubUI.hide();
@@ -619,6 +760,24 @@ export class Game {
     this.player.update(deltaTime, this.map);
     this.interactionPrompt.update(deltaTime);
 
+    // Envoi de la position locale au serveur à 20 Hz (50ms)
+    if (this.currentInstanceId) {
+      this.networkTickTimer += deltaTime;
+      if (this.networkTickTimer >= 0.05) {
+        this.networkTickTimer = 0;
+        NetworkClient.getInstance().sendPlayerUpdate({
+          instanceId: this.currentInstanceId,
+          x: this.player.x,
+          y: this.player.y,
+          angle: this.player.angle,
+          isMoving: this.player.isMoving(),
+          isAttacking: this.player.isAttacking(),
+          hp: this.player.health,
+          maxHp: this.player.maxHealth,
+        });
+      }
+    }
+
     for (const entity of this.entities) {
       entity.update(deltaTime, this.map);
     }
@@ -648,6 +807,7 @@ export class Game {
     );
 
     for (const fb of flyingFireballs) {
+      // 1. Collision avec ennemis vivants
       for (const enemy of aliveEnemies) {
         const dist = Math.hypot(fb.x - enemy.x, fb.y - enemy.y);
         if (dist < fb.hitBox + enemy.hitBox) {
@@ -656,9 +816,31 @@ export class Game {
           break;
         }
       }
+
+      // 2. Collision avec le joueur local (tir adverse d'un autre joueur)
+      if (fb.isFlying() && fb.shooterId && fb.shooterId !== this.localPlayerId) {
+        const distToPlayer = Math.hypot(fb.x - this.player.x, fb.y - this.player.y);
+        if (distToPlayer < fb.hitBox + this.player.hitBox) {
+          this.player.takeDamage(fb.damage);
+          this.interactionPrompt.showNotification(`💥 TOUCHÉ PAR UNE BOULE DE FEU ! (-${fb.damage} PV)`);
+          fb.explode();
+        }
+      }
+
+      // 3. Collision visuelle avec joueurs distants
+      if (fb.isFlying()) {
+        for (const remote of this.remotePlayers.values()) {
+          if (!remote.active || remote.hp <= 0) continue;
+          const dist = Math.hypot(fb.x - remote.x, fb.y - remote.y);
+          if (dist < fb.hitBox + remote.hitBox) {
+            fb.explode();
+            break;
+          }
+        }
+      }
     }
 
-    // Détection des collisions orbes violets rebondissants (Clic Droit) <-> ennemis vivants ET joueur (auto-dégâts)
+    // Détection des collisions orbes violets rebondissants (Clic Droit) <-> ennemis vivants ET joueur (auto-dégâts / PvP)
     const flyingPurpleOrbs = this.entities.filter(
       (e): e is PurpleOrb => e instanceof PurpleOrb && e.isFlying()
     );
@@ -692,15 +874,34 @@ export class Game {
         continue;
       }
 
-      // 2. Collision avec le joueur (dégâts à soi-même après rebond ou délai initial)
-      if (orb.canDamageSelf()) {
+      // 2. Collision avec les joueurs distants
+      for (const remote of this.remotePlayers.values()) {
+        if (!remote.active || remote.hp <= 0) continue;
+        const dist = Math.hypot(orb.x - remote.x, orb.y - remote.y);
+        if (dist < orb.hitBox + remote.hitBox) {
+          orb.explode();
+          hitTarget = true;
+          break;
+        }
+      }
+
+      if (hitTarget) {
+        continue;
+      }
+
+      // 3. Collision avec le joueur local (dégâts d'un projectile adverse OU auto-dégâts après rebond)
+      const isRemoteOrb = orb.shooterId && orb.shooterId !== this.localPlayerId;
+      if (isRemoteOrb || orb.canDamageSelf()) {
         const distToPlayer = Math.hypot(orb.x - this.player.x, orb.y - this.player.y);
         if (distToPlayer < orb.hitBox + this.player.hitBox) {
-          const selfDamage = Math.min(orb.damage, Math.round(orb.baseDamage * 1.5));
+          const selfDamage = isRemoteOrb
+            ? orb.damage
+            : Math.min(orb.damage, Math.round(orb.baseDamage * 1.5));
           this.player.takeDamage(selfDamage);
-          this.interactionPrompt.showNotification(
-            `VOTRE ORBE MAGIQUE VOUS A TOUCHÉ ! (-${selfDamage} PV)`
-          );
+          const msg = isRemoteOrb
+            ? `💥 TOUCHÉ PAR UN ORBE ADVERSE ! (-${selfDamage} PV)`
+            : `VOTRE ORBE MAGIQUE VOUS A TOUCHÉ ! (-${selfDamage} PV)`;
+          this.interactionPrompt.showNotification(msg);
           orb.explode();
         }
       }

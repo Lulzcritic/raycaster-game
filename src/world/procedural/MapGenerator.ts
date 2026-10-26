@@ -53,22 +53,21 @@ interface ModuleTemplate {
 }
 
 /**
- * GÉNÉRATEUR PROCÉDURAL MODULAIRE DE CITADELLE (APPROCHE SEMI-PROCÉDURALE)
+ * GÉNÉRATEUR PROCÉDURAL MODULAIRE DE CITADELLE 71×71 (APPROCHE 2 : SALLES PRÉFABRIQUÉES INTERCONNECTÉES)
  *
- * Architecture :
- * - Grille de 5×5 modules préfabriqués de 11×11 cases (taille totale 51×51 cases).
- * - Les modules adjacents partagent leur mur mitoyen, avec un point de passage centré à l'indice 5.
- * - Centre (2, 2) : Sanctuaire du Boss (Zone 3), scellé par 4 Portes à Crâne d'Os.
- * - Les 4 coins (0,0), (4,0), (0,4), (4,4) : Cryptes de réveil des joueurs (Zone 1),
- *   scellées par une porte rouillée dont la clé est gardée dans la crypte.
- * - Les 20 autres modules : Anneau intermédiaire de catacombes (Zone 2) connecté
- *   par un arbre couvrant aléatoire avec boucles, garantissant 100% d'accessibilité.
+ * Équilibrage & Pacing :
+ * - Grille de 7×7 modules de 11×11 cases (taille totale 71×71 cases).
+ * - Centre (3, 3) : Sanctuaire Royal du Boss (Zone 3), scellé par 4 Portes à Crâne d'Os.
+ * - Les 4 coins (0,0), (6,0), (0,6), (6,6) : Cryptes d'éveil des joueurs (Zone 1).
+ * - Les 44 autres modules : Vaste réseau de catacombes (Zone 2) connecté par un arbre couvrant
+ *   aléatoire avec boucles de circulation, garantissant 100% d'accessibilité.
+ * - Durée calibrée : ~4-5 min pour atteindre la première extraction tactique, ~12-15 min pour le boss.
  */
 export class MapGenerator {
-  public static readonly DEFAULT_SIZE = 51;
+  public static readonly DEFAULT_SIZE = 71;
   public static readonly CHUNK_SIZE = 11;
   public static readonly CHUNK_STEP = 10;
-  public static readonly GRID_CHUNKS = 5;
+  public static readonly GRID_CHUNKS = 7;
 
   // =========================================================================
   // CATALOGUE DES SALLES PRÉFABRIQUÉES (11×11)
@@ -122,7 +121,7 @@ export class MapGenerator {
         x: 5.5,
         y: 3.5,
         name: 'Portail Royal du Sanctuaire',
-        delaySec: 75,
+        delaySec: 90,
       },
     ],
   };
@@ -311,7 +310,7 @@ export class MapGenerator {
         x: 5.5,
         y: 5.5,
         name: 'Portail des Âmes Sépulcrales',
-        delaySec: 40,
+        delaySec: 45,
       },
     ],
   };
@@ -412,13 +411,13 @@ export class MapGenerator {
   };
 
   // =========================================================================
-  // MÉTHODE PRINCIPALE DE GÉNÉRATION
+  // MÉTHODE PRINCIPALE DE GÉNÉRATION (71×71)
   // =========================================================================
 
   public static generate(_options: MapGeneratorOptions = {}): LevelData {
-    const size = MapGenerator.DEFAULT_SIZE;
+    const size = MapGenerator.DEFAULT_SIZE; // 71
 
-    // Initialisation de la grille 51×51 entièrement remplie de murs
+    // Initialisation de la grille 71×71 entièrement remplie de murs
     const grid: number[][] = Array.from({ length: size }, () =>
       Array.from({ length: size }, () => TILE_TYPE.WALL_1)
     );
@@ -433,22 +432,21 @@ export class MapGenerator {
     const sprites: SpriteSpawnData[] = [];
     const playerSpawns: Array<{ x: number; y: number; angle: number }> = [];
 
-    // 1. Définition des coordonnées des 20 nœuds de Zone 2
+    // 1. Définition des coordonnées des 44 nœuds de Zone 2 (grille 7×7)
     const zone2Coords: Array<[number, number]> = [];
     for (let cy = 0; cy < MapGenerator.GRID_CHUNKS; cy++) {
       for (let cx = 0; cx < MapGenerator.GRID_CHUNKS; cx++) {
-        // Exclure le centre (2,2) et les 4 coins de spawn
-        const isCenter = cx === 2 && cy === 2;
+        // Exclure le centre (3,3) et les 4 coins de spawn
+        const isCenter = cx === 3 && cy === 3;
         const isCorner =
-          (cx === 0 || cx === 4) && (cy === 0 || cy === 4);
+          (cx === 0 || cx === 6) && (cy === 0 || cy === 6);
         if (!isCenter && !isCorner) {
           zone2Coords.push([cx, cy]);
         }
       }
     }
 
-    // 2. Génération d'un arbre couvrant aléatoire avec boucles pour Zone 2
-    // Tableau des connexions ouvertes : ensemble de clés "x1,y1-x2,y2"
+    // 2. Génération d'un arbre couvrant aléatoire avec boucles pour les 44 nœuds de Zone 2
     const openConnections = new Set<string>();
 
     const makeConnKey = (
@@ -463,7 +461,7 @@ export class MapGenerator {
       return `${c2x},${c2y}-${c1x},${c1y}`;
     };
 
-    // Prim's algorithm pour l'arbre couvrant de Zone 2
+    // Algorithme de Prim pour l'arbre couvrant de Zone 2
     const visited = new Set<string>();
     const startZ2 = zone2Coords[Math.floor(Math.random() * zone2Coords.length)];
     visited.add(`${startZ2[0]},${startZ2[1]}`);
@@ -506,7 +504,7 @@ export class MapGenerator {
       }
     }
 
-    // Ajout de 6 boucles aléatoires supplémentaires dans Zone 2 pour créer des routes circulaires
+    // Ajout de 16 boucles aléatoires supplémentaires dans Zone 2 pour un réseau de circulation ouvert
     let addedLoops = 0;
     const allPossibleZ2Edges: Array<{
       from: [number, number];
@@ -541,7 +539,7 @@ export class MapGenerator {
       ];
     }
     for (const edge of allPossibleZ2Edges) {
-      if (addedLoops >= 6) break;
+      if (addedLoops >= 16) break;
       openConnections.add(
         makeConnKey(edge.from[0], edge.from[1], edge.to[0], edge.to[1])
       );
@@ -556,9 +554,9 @@ export class MapGenerator {
       rotation: 0 | 1 | 2 | 3;
     }> = [
       { cx: 0, cy: 0, connectTo: [1, 0], rotation: 2 }, // Sortie vers l'Est
-      { cx: 4, cy: 0, connectTo: [3, 0], rotation: 0 }, // Sortie vers l'Ouest
-      { cx: 0, cy: 4, connectTo: [1, 4], rotation: 2 }, // Sortie vers l'Est
-      { cx: 4, cy: 4, connectTo: [3, 4], rotation: 0 }, // Sortie vers l'Ouest
+      { cx: 6, cy: 0, connectTo: [5, 0], rotation: 0 }, // Sortie vers l'Ouest
+      { cx: 0, cy: 6, connectTo: [1, 6], rotation: 2 }, // Sortie vers l'Est
+      { cx: 6, cy: 6, connectTo: [5, 6], rotation: 0 }, // Sortie vers l'Ouest
     ];
 
     for (const corner of cornerSpawns) {
@@ -567,19 +565,19 @@ export class MapGenerator {
       );
     }
 
-    // 4. Connexion du Sanctuaire central (2,2) à ses 4 voisins (Portes à Crâne)
+    // 4. Connexion du Sanctuaire central (3,3) à ses 4 voisins (Portes à Crâne)
     const sanctumNeighbors: Array<[number, number]> = [
-      [2, 1], // Nord
-      [2, 3], // Sud
-      [1, 2], // Ouest
-      [3, 2], // Est
+      [3, 2], // Nord
+      [3, 4], // Sud
+      [2, 3], // Ouest
+      [4, 3], // Est
     ];
     for (const n of sanctumNeighbors) {
-      openConnections.add(makeConnKey(2, 2, n[0], n[1]));
+      openConnections.add(makeConnKey(3, 3, n[0], n[1]));
     }
 
-    // 5. Répartition des rôles pour les 20 pièces de Zone 2
-    // Mélange des 20 coordonnées
+    // 5. Répartition thématique des 44 pièces de Zone 2 en anneaux concentriques
+    // Tri selon la distance au centre (3,3)
     const shuffledZ2 = [...zone2Coords];
     for (let i = shuffledZ2.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -588,35 +586,76 @@ export class MapGenerator {
 
     const chunkRoleMap = new Map<string, ModuleTemplate>();
 
-    // Rôle 1 : Marchand (1 pièce)
+    // A. 2 Marchands (1 dans l'anneau intermédiaire, 1 dans l'anneau profond)
     chunkRoleMap.set(`${shuffledZ2[0][0]},${shuffledZ2[0][1]}`, MapGenerator.MERCHANT_BAZAAR);
+    chunkRoleMap.set(`${shuffledZ2[1][0]},${shuffledZ2[1][1]}`, MapGenerator.MERCHANT_BAZAAR);
 
-    // Rôle 2 : 2 Portails d'extraction
-    chunkRoleMap.set(`${shuffledZ2[1][0]},${shuffledZ2[1][1]}`, MapGenerator.EXTRACTION_SANCTUM);
-    const extractionSanctum2 = {
+    // B. 3 Portails d'extraction échelonnés dans le temps (45s, 65s, 85s)
+    chunkRoleMap.set(`${shuffledZ2[2][0]},${shuffledZ2[2][1]}`, {
+      ...MapGenerator.EXTRACTION_SANCTUM,
+      id: 'extraction_sanctum_1',
+      portals: [
+        {
+          x: 5.5,
+          y: 5.5,
+          name: 'Portail des Catacombes Extérieures',
+          delaySec: 45,
+        },
+      ],
+    });
+
+    chunkRoleMap.set(`${shuffledZ2[3][0]},${shuffledZ2[3][1]}`, {
       ...MapGenerator.EXTRACTION_SANCTUM,
       id: 'extraction_sanctum_2',
       portals: [
         {
           x: 5.5,
           y: 5.5,
-          name: 'Portail du Brasier Éthéré',
+          name: 'Portail de l\'Aura Sépulcrale',
           delaySec: 65,
         },
       ],
-    };
-    chunkRoleMap.set(`${shuffledZ2[2][0]},${shuffledZ2[2][1]}`, extractionSanctum2);
+    });
 
-    // Rôle 3 : 4 Cryptes aux trésors (avec clés de crâne)
-    chunkRoleMap.set(`${shuffledZ2[3][0]},${shuffledZ2[3][1]}`, MapGenerator.TREASURE_VAULT);
-    chunkRoleMap.set(`${shuffledZ2[4][0]},${shuffledZ2[4][1]}`, MapGenerator.TREASURE_SHRINE);
-    chunkRoleMap.set(`${shuffledZ2[5][0]},${shuffledZ2[5][1]}`, MapGenerator.TREASURE_VAULT);
-    chunkRoleMap.set(`${shuffledZ2[6][0]},${shuffledZ2[6][1]}`, MapGenerator.TREASURE_SHRINE);
+    chunkRoleMap.set(`${shuffledZ2[4][0]},${shuffledZ2[4][1]}`, {
+      ...MapGenerator.EXTRACTION_SANCTUM,
+      id: 'extraction_sanctum_3',
+      portals: [
+        {
+          x: 5.5,
+          y: 5.5,
+          name: 'Portail du Brasier Éthéré',
+          delaySec: 85,
+        },
+      ],
+    });
 
-    // Rôle 4 : 1 Sanctuaire de l'Homonculus
-    chunkRoleMap.set(`${shuffledZ2[7][0]},${shuffledZ2[7][1]}`, MapGenerator.HOMONCULUS_SANCTUARY);
+    // C. 8 Cryptes et Sanctuaires aux Trésors (garantissant au moins 6 Clés de Crâne dans la citadelle)
+    const treasureTemplates = [
+      MapGenerator.TREASURE_VAULT,
+      MapGenerator.TREASURE_SHRINE,
+      MapGenerator.TREASURE_VAULT,
+      MapGenerator.TREASURE_SHRINE,
+      MapGenerator.TREASURE_VAULT,
+      MapGenerator.TREASURE_SHRINE,
+      MapGenerator.TREASURE_VAULT,
+      MapGenerator.TREASURE_SHRINE,
+    ];
 
-    // Rôle 5 : Les 12 autres pièces sont des arènes de combat et des carrefours variés
+    for (let t = 0; t < treasureTemplates.length; t++) {
+      chunkRoleMap.set(
+        `${shuffledZ2[5 + t][0]},${shuffledZ2[5 + t][1]}`,
+        treasureTemplates[t]
+      );
+    }
+
+    // D. 1 Sanctuaire secret de l'Homonculus
+    chunkRoleMap.set(
+      `${shuffledZ2[13][0]},${shuffledZ2[13][1]}`,
+      MapGenerator.HOMONCULUS_SANCTUARY
+    );
+
+    // E. Les 30 autres pièces : Arènes de combat, labyrinthes et carrefours variés
     const combatPool = [
       MapGenerator.ARENA_COLOSSEUM,
       MapGenerator.ARENA_CROSSFIRE,
@@ -627,12 +666,12 @@ export class MapGenerator {
       MapGenerator.CORRIDOR_CHICANE,
     ];
 
-    for (let i = 8; i < shuffledZ2.length; i++) {
+    for (let i = 14; i < shuffledZ2.length; i++) {
       const template = combatPool[Math.floor(Math.random() * combatPool.length)];
       chunkRoleMap.set(`${shuffledZ2[i][0]},${shuffledZ2[i][1]}`, template);
     }
 
-    // 6. Placement des modules et gravure dans la grille
+    // 6. Placement des modules et gravure dans la grille 71×71
     const catalogItems = [...ItemDatabase.getChestLootPool()];
     let itemCursor = 0;
 
@@ -667,7 +706,7 @@ export class MapGenerator {
       }
     }
 
-    // B. Placement du Sanctuaire du Boss au centre (2,2)
+    // B. Placement du Sanctuaire du Boss au centre (3,3)
     const bossTemplate = { ...MapGenerator.BOSS_SANCTUM };
     // Choix aléatoire du Boss final
     const bossTypeId = Math.random() < 0.6 ? 'carrot_cake_king' : 'blood_queen';
@@ -682,8 +721,8 @@ export class MapGenerator {
     MapGenerator.stampModule(
       grid,
       floorGrid,
-      2,
-      2,
+      3,
+      3,
       bossTemplate,
       enemies,
       sprites,
@@ -694,7 +733,7 @@ export class MapGenerator {
     );
     itemCursor += 2;
 
-    // C. Placement des 20 modules de Zone 2 avec rotations aléatoires (0, 90, 180 ou 270°)
+    // C. Placement des 44 modules de Zone 2 avec rotations aléatoires (0, 90, 180 ou 270°)
     for (const [cx, cy] of zone2Coords) {
       const template = chunkRoleMap.get(`${cx},${cy}`) ?? MapGenerator.ARENA_COLOSSEUM;
       const rot = Math.floor(Math.random() * 4) as 0 | 1 | 2 | 3;
@@ -728,12 +767,12 @@ export class MapGenerator {
 
             // Déterminer s'il s'agit d'une porte verrouillée
             const isSanctumEntry =
-              (cx === 1 && cy === 2) || (cx === 2 && cy === 2);
+              (cx === 2 && cy === 3) || (cx === 3 && cy === 3);
             const isSpawnExit =
               (cx === 0 && cy === 0) ||
-              (cx === 3 && cy === 0) ||
-              (cx === 0 && cy === 4) ||
-              (cx === 3 && cy === 4);
+              (cx === 5 && cy === 0) ||
+              (cx === 0 && cy === 6) ||
+              (cx === 5 && cy === 6);
 
             if (isSanctumEntry) {
               grid[doorY][doorX] = TILE_TYPE.DOOR;
@@ -759,12 +798,12 @@ export class MapGenerator {
             const doorY = cy * MapGenerator.CHUNK_STEP + 10;
 
             const isSanctumEntry =
-              (cx === 2 && cy === 1) || (cx === 2 && cy === 2);
+              (cx === 3 && cy === 2) || (cx === 3 && cy === 3);
             const isSpawnExit =
               (cx === 0 && cy === 0) ||
-              (cx === 4 && cy === 0) ||
-              (cx === 0 && cy === 3) ||
-              (cx === 4 && cy === 3);
+              (cx === 6 && cy === 0) ||
+              (cx === 0 && cy === 5) ||
+              (cx === 6 && cy === 5);
 
             if (isSanctumEntry) {
               grid[doorY][doorX] = TILE_TYPE.DOOR;
@@ -803,7 +842,7 @@ export class MapGenerator {
       };
 
     return {
-      name: `Citadelle Modulaire (Expédition #${Math.floor(1000 + Math.random() * 9000)})`,
+      name: `Citadelle Royale 71×71 (Expédition #${Math.floor(1000 + Math.random() * 9000)})`,
       grid,
       floorGrid,
       skyTileId: TILE_TYPE.SKY_1,
@@ -848,7 +887,6 @@ export class MapGenerator {
     for (let y = 0; y < size; y++) {
       let rowChars = '';
       for (let x = 0; x < size; x++) {
-        // Coordonnée d'origine correspondante
         let ox = x;
         let oy = y;
         if (rotation === 1) {

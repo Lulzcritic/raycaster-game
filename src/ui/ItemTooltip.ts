@@ -19,9 +19,14 @@ export const ITEM_CARD_STAT_LABELS: Array<{
 ];
 
 /**
- * Remplit un élément DOM avec la carte d'information complète de l'objet en jeu
+ * Remplit un élément DOM avec la carte d'information complète de l'objet en jeu,
+ * avec comparaison dynamique contre l'objet équipé porté par le joueur.
  */
-export function fillItemCardElement(card: HTMLElement, item: EquipmentItem): void {
+export function fillItemCardElement(
+  card: HTMLElement,
+  item: EquipmentItem,
+  comparedItem?: EquipmentItem | null
+): void {
   card.innerHTML = '';
   const rarityColor = RARITY_COLORS[item.rarity] ?? RARITY_COLORS.common;
   card.style.borderColor = rarityColor;
@@ -68,34 +73,59 @@ export function fillItemCardElement(card: HTMLElement, item: EquipmentItem): voi
   badgeEl.style.borderColor = rarityColor;
   card.appendChild(badgeEl);
 
-  // Score de puissance / GearScore de l'objet
+  // Score de puissance / GearScore de l'objet avec comparaison
   const gs = item.gearScore ?? GearScoreService.calculateItemGearScore(item);
   const gsEl = document.createElement('div');
   gsEl.className = 'world-card-gearscore';
-  gsEl.style.color = '#facc15';
-  gsEl.style.fontSize = '8px';
-  gsEl.style.fontWeight = 'bold';
-  gsEl.style.letterSpacing = '1px';
-  gsEl.style.margin = '4px 0 6px 0';
-  gsEl.style.textAlign = 'center';
-  gsEl.textContent = `⭐ PUISSANCE : ${gs}`;
+
+  let gsArrowHtml = '';
+  if (comparedItem !== undefined) {
+    if (comparedItem === null) {
+      // Aucun item équipé dans ce slot : pur gain
+      gsArrowHtml = `<span class="stat-arrow up">▲ +${gs}</span>`;
+    } else {
+      const eqGs =
+        comparedItem.gearScore ?? GearScoreService.calculateItemGearScore(comparedItem);
+      const diffGs = gs - eqGs;
+      if (diffGs > 0) {
+        gsArrowHtml = `<span class="stat-arrow up">▲ +${diffGs}</span>`;
+      } else if (diffGs < 0) {
+        gsArrowHtml = `<span class="stat-arrow down">▼ ${diffGs}</span>`;
+      }
+    }
+  }
+
+  gsEl.innerHTML = `<span>⭐ PUISSANCE : ${gs}</span>${gsArrowHtml}`;
   card.appendChild(gsEl);
 
-  // 3. Stats de l'item en blanc
+  // 3. Stats de l'item avec flèches comparatives verte (haut) / rouge (bas)
   const statsContainer = document.createElement('div');
   statsContainer.className = 'world-card-stats';
 
   let hasStat = false;
   for (const statDef of ITEM_CARD_STAT_LABELS) {
-    const rawValue = item.stats[statDef.key];
-    if (rawValue === undefined || rawValue === 0) {
+    const rawValue = item.stats[statDef.key] ?? 0;
+    const eqValue =
+      comparedItem !== undefined && comparedItem !== null
+        ? (comparedItem.stats[statDef.key] ?? 0)
+        : 0;
+
+    // Ne rien afficher si ni l'item au sol ni l'objet porté ne possède cette statistique
+    if (rawValue === 0 && eqValue === 0) {
       continue;
     }
     hasStat = true;
+
     const line = document.createElement('div');
     line.className = 'world-card-stat-line';
-    const sign = rawValue > 0 ? '+' : '';
+    if (comparedItem !== undefined) {
+      line.classList.add('compared');
+    }
+    if (rawValue === 0 && eqValue > 0) {
+      line.classList.add('stat-loss');
+    }
 
+    const sign = rawValue > 0 ? '+' : '';
     const range = item.statRanges?.[statDef.key];
     const rangeText = range
       ? (statDef.isMultiplier
@@ -103,9 +133,36 @@ export function fillItemCardElement(card: HTMLElement, item: EquipmentItem): voi
           : ` [${range.min}-${range.max}]`)
       : '';
 
-    line.textContent = statDef.isMultiplier
+    const labelText = statDef.isMultiplier
       ? `${sign}${Math.round(rawValue * 100)}% ${statDef.label}${rangeText}`
       : `${sign}${rawValue} ${statDef.label}${rangeText}`;
+
+    let arrowHtml = '';
+    if (comparedItem !== undefined) {
+      if (comparedItem === null) {
+        // Rien d'équipé dans ce slot : chaque stat positive est un gain, chaque malus une perte
+        if (rawValue > 0) {
+          arrowHtml = `<span class="stat-arrow up">▲</span>`;
+        } else if (rawValue < 0) {
+          arrowHtml = `<span class="stat-arrow down">▼</span>`;
+        }
+      } else {
+        const diff = rawValue - eqValue;
+        if (diff > 0) {
+          const deltaStr = statDef.isMultiplier
+            ? `+${Math.round(diff * 100)}%`
+            : `+${diff}`;
+          arrowHtml = `<span class="stat-arrow up">▲ ${deltaStr}</span>`;
+        } else if (diff < 0) {
+          const deltaStr = statDef.isMultiplier
+            ? `${Math.round(diff * 100)}%`
+            : `${diff}`;
+          arrowHtml = `<span class="stat-arrow down">▼ ${deltaStr}</span>`;
+        }
+      }
+    }
+
+    line.innerHTML = `<span class="stat-name-val">${labelText}</span>${arrowHtml}`;
     statsContainer.appendChild(line);
   }
 
@@ -133,10 +190,13 @@ export function fillItemCardElement(card: HTMLElement, item: EquipmentItem): voi
 /**
  * Crée un élément DOM neuf contenant la carte d'item en jeu
  */
-export function createItemCardElement(item: EquipmentItem): HTMLElement {
+export function createItemCardElement(
+  item: EquipmentItem,
+  comparedItem?: EquipmentItem | null
+): HTMLElement {
   const card = document.createElement('div');
   card.className = 'world-item-card';
-  fillItemCardElement(card, item);
+  fillItemCardElement(card, item, comparedItem);
   return card;
 }
 
@@ -146,7 +206,7 @@ export function createItemCardElement(item: EquipmentItem): HTMLElement {
 export class ItemTooltip {
   private static instance: ItemTooltip | null = null;
   private tooltipEl: HTMLElement | null = null;
-  private currentItem: EquipmentItem | null = null;
+  private currentTooltipKey: string | null = null;
   private isVisible = false;
 
   private constructor() {
@@ -170,11 +230,17 @@ export class ItemTooltip {
     return this.tooltipEl;
   }
 
-  public show(item: EquipmentItem, clientX: number, clientY: number): void {
+  public show(
+    item: EquipmentItem,
+    clientX: number,
+    clientY: number,
+    comparedItem?: EquipmentItem | null
+  ): void {
     const el = this.createTooltipElement();
-    if (this.currentItem !== item) {
-      this.currentItem = item;
-      fillItemCardElement(el, item);
+    const key = `${item.instanceId ?? item.id}_cmp_${comparedItem ? (comparedItem.instanceId ?? comparedItem.id) : comparedItem === null ? 'none' : 'undef'}`;
+    if (this.currentTooltipKey !== key) {
+      this.currentTooltipKey = key;
+      fillItemCardElement(el, item, comparedItem);
     }
     el.classList.add('visible');
     this.isVisible = true;
@@ -222,7 +288,7 @@ export class ItemTooltip {
     if (!this.tooltipEl || !this.isVisible) return;
     this.tooltipEl.classList.remove('visible');
     this.isVisible = false;
-    this.currentItem = null;
+    this.currentTooltipKey = null;
   }
 
   /**
@@ -230,12 +296,14 @@ export class ItemTooltip {
    */
   public attach(
     element: HTMLElement,
-    getItem: () => EquipmentItem | null | undefined
+    getItem: () => EquipmentItem | null | undefined,
+    getComparedItem?: () => EquipmentItem | null | undefined
   ): void {
     element.addEventListener('mouseenter', (e: MouseEvent) => {
       const item = getItem();
       if (item) {
-        this.show(item, e.clientX, e.clientY);
+        const compared = getComparedItem ? getComparedItem() : undefined;
+        this.show(item, e.clientX, e.clientY, compared);
       } else {
         this.hide();
       }
@@ -244,8 +312,9 @@ export class ItemTooltip {
     element.addEventListener('mousemove', (e: MouseEvent) => {
       const item = getItem();
       if (item) {
+        const compared = getComparedItem ? getComparedItem() : undefined;
         if (!this.isVisible) {
-          this.show(item, e.clientX, e.clientY);
+          this.show(item, e.clientX, e.clientY, compared);
         } else {
           this.updatePosition(e.clientX, e.clientY);
         }

@@ -5,7 +5,7 @@ import { DroppedItemOrb } from '../entities/DroppedItemOrb';
 import { Enemy } from '../entities/Enemy';
 import { ExtractionPortal } from '../entities/ExtractionPortal';
 import { Merchant } from '../entities/Merchant';
-import { createItemCardElement } from './ItemTooltip';
+import { createItemCardElement, fillItemCardElement } from './ItemTooltip';
 import { TILE_TYPE } from '../config/constants';
 import type { Player } from '../entities/Player';
 import type { Renderer } from '../graphics/Renderer';
@@ -76,10 +76,25 @@ export class WorldBillboardOverlay {
 
     for (const [holder, item] of activeHolders.entries()) {
       let cardEl = this.cardMap.get(holder);
+      const equippedItem = player.inventory.getItem(item.slot);
+      const itemKey = item.instanceId ?? item.id;
+      const equippedKey = equippedItem
+        ? (equippedItem.instanceId ?? equippedItem.id)
+        : 'empty';
+
       if (!cardEl) {
-        cardEl = this.createCardElement(item);
+        cardEl = this.createCardElement(item, equippedItem);
+        cardEl.dataset.itemKey = itemKey;
+        cardEl.dataset.equippedKey = equippedKey;
         this.container.appendChild(cardEl);
         this.cardMap.set(holder, cardEl);
+      } else if (
+        cardEl.dataset.itemKey !== itemKey ||
+        cardEl.dataset.equippedKey !== equippedKey
+      ) {
+        fillItemCardElement(cardEl, item, equippedItem);
+        cardEl.dataset.itemKey = itemKey;
+        cardEl.dataset.equippedKey = equippedKey;
       }
 
       if (holder instanceof DroppedItemOrb && !holder.hasLanded()) {
@@ -831,8 +846,11 @@ export class WorldBillboardOverlay {
     }
   }
 
-  private createCardElement(item: EquipmentItem): HTMLElement {
-    return createItemCardElement(item);
+  private createCardElement(
+    item: EquipmentItem,
+    comparedItem?: EquipmentItem | null
+  ): HTMLElement {
+    return createItemCardElement(item, comparedItem);
   }
 
   // =========================================================================

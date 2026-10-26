@@ -606,7 +606,11 @@ export class HubUI {
             <button class="hub-equip-btn" type="button">ÉQUIPER</button>
           `;
 
-          ItemTooltip.getInstance().attach(itemCard, () => item);
+          ItemTooltip.getInstance().attach(
+            itemCard,
+            () => item,
+            () => this.player?.inventory.getItem(item.slot)
+          );
 
           const equipBtn = itemCard.querySelector('.hub-equip-btn');
           equipBtn?.addEventListener('click', () => {

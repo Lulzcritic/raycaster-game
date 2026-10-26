@@ -14,6 +14,7 @@ import { ItemDatabase } from '../config/ItemDatabase';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { ItemTooltip } from './ItemTooltip';
 import { FIREBALL_CONFIG } from '../config/constants';
+import { GearScoreService } from '../core/GearScoreService';
 import type { Player } from '../entities/Player';
 import type { EquipmentItem, EquipmentSlot } from '../types';
 
@@ -368,6 +369,10 @@ export class HubUI {
 
       this.avatarStats.innerHTML = `
         <div class="hub-stat-row">
+          <span class="hub-stat-label">⭐ PUISSANCE</span>
+          <span class="hub-stat-val font-yellow font-bold">${this.player.getGearScore()}</span>
+        </div>
+        <div class="hub-stat-row">
           <span class="hub-stat-label">❤️ PV MAX</span>
           <span class="hub-stat-val font-green">${this.player.maxHealth}</span>
         </div>
@@ -447,6 +452,13 @@ export class HubUI {
       const totalDamage = FIREBALL_CONFIG.DAMAGE + stats.damage + stats.magicPower;
 
       const statItems = [
+        {
+          icon: '⭐',
+          label: 'PUISSANCE TOTALE (GEAR SCORE)',
+          desc: 'Score global d\'équipement & niveau de la citadelle',
+          value: `${this.player.getGearScore()}`,
+          colorClass: 'font-yellow font-bold',
+        },
         {
           icon: '❤️',
           label: 'POINTS DE VIE MAX',
@@ -859,6 +871,8 @@ export class HubUI {
 
   private formatItemStats(item: EquipmentItem): string {
     const parts: string[] = [];
+    const gs = item.gearScore ?? GearScoreService.calculateItemGearScore(item);
+    parts.push(`⭐ ${gs}`);
     if (item.stats.maxHealth) parts.push(`+${item.stats.maxHealth} PV`);
     if (item.stats.damage) parts.push(`+${item.stats.damage} Dégâts`);
     if (item.stats.defense) parts.push(`+${item.stats.defense} Déf`);

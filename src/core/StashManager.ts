@@ -1,4 +1,5 @@
 import { ItemDatabase } from '../config/ItemDatabase';
+import { GearScoreService } from './GearScoreService';
 import type { EquipmentItem, EquipmentSlot } from '../types';
 
 export class StashManager {
@@ -14,17 +15,38 @@ export class StashManager {
     try {
       const saved = localStorage.getItem(this.STORAGE_KEY);
       if (saved) {
-        const ids: string[] = JSON.parse(saved);
-        this.stashItems = ids
-          .map((id) => ItemDatabase.getItemById(id))
+        const rawList: unknown[] = JSON.parse(saved);
+        this.stashItems = rawList
+          .map((entry) => {
+            if (typeof entry === 'string') {
+              const template = ItemDatabase.getItemById(entry);
+              if (!template) return undefined;
+              return {
+                ...template,
+                gearScore:
+                  template.gearScore ??
+                  GearScoreService.calculateItemGearScore(template),
+              };
+            } else if (entry && typeof entry === 'object' && 'id' in entry) {
+              const item = entry as EquipmentItem;
+              if (!item.gearScore) {
+                item.gearScore = GearScoreService.calculateItemGearScore(item);
+              }
+              return item;
+            }
+            return undefined;
+          })
           .filter((item): item is EquipmentItem => item !== undefined);
       } else {
         // Objets initiaux de réserve
         const starterItem1 = ItemDatabase.getItemById('armor_moldy_hermit_rags');
         const starterItem2 = ItemDatabase.getItemById('hat_leech_infested_mitre');
-        this.stashItems = [starterItem1, starterItem2].filter(
-          (i): i is EquipmentItem => i !== undefined
-        );
+        this.stashItems = [starterItem1, starterItem2]
+          .filter((i): i is EquipmentItem => i !== undefined)
+          .map((it) => ({
+            ...it,
+            gearScore: it.gearScore ?? GearScoreService.calculateItemGearScore(it),
+          }));
         this.save();
       }
     } catch (err) {
@@ -41,13 +63,18 @@ export class StashManager {
 
   public static addItem(item: EquipmentItem): void {
     this.init();
+    if (!item.gearScore) {
+      item.gearScore = GearScoreService.calculateItemGearScore(item);
+    }
     this.stashItems.push(item);
     this.save();
   }
 
-  public static removeItem(itemId: string): EquipmentItem | null {
+  public static removeItem(itemIdOrInstanceId: string): EquipmentItem | null {
     this.init();
-    const index = this.stashItems.findIndex((it) => it.id === itemId);
+    const index = this.stashItems.findIndex(
+      (it) => it.instanceId === itemIdOrInstanceId || it.id === itemIdOrInstanceId
+    );
     if (index >= 0) {
       const removed = this.stashItems.splice(index, 1)[0];
       this.save();
@@ -63,8 +90,7 @@ export class StashManager {
 
   private static save(): void {
     try {
-      const ids = this.stashItems.map((item) => item.id);
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(ids));
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.stashItems));
     } catch (err) {
       console.warn('Impossible de sauvegarder la réserve d’objets :', err);
     }

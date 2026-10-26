@@ -3,6 +3,7 @@ import type { EquipmentItem, ItemRarity, ItemStats } from '../types';
 import type { GameMap } from '../world/GameMap';
 import { Entity } from './Entity';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
+import { GearScoreService } from '../core/GearScoreService';
 
 export const RARITY_COLORS: Record<ItemRarity, string> = {
   common: '#ffffff',    // Commun : Blanc
@@ -165,7 +166,13 @@ export class ItemCardBillboard extends Entity {
     const rarityLabel = RARITY_LABELS[this.item.rarity] ?? 'OBJET';
     ctx.font = '5px "Press Start 2P", monospace';
     this.drawText(ctx, `[ ${rarityLabel} ]`, w / 2, currentY + 4, rarityColor, 'center');
-    currentY += 10;
+    currentY += 8;
+
+    // Ligne de puissance / GearScore de l'objet
+    const gs = this.item.gearScore ?? GearScoreService.calculateItemGearScore(this.item);
+    ctx.font = 'bold 5.5px "Press Start 2P", monospace';
+    this.drawText(ctx, `⭐ PUISSANCE : ${gs}`, w / 2, currentY + 4, '#ffe600', 'center');
+    currentY += 8;
 
     // 4. NOM DE L'ITEM avec la couleur liée à sa rareté
     ctx.font = 'bold 7px "Press Start 2P", monospace';

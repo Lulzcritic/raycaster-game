@@ -37,12 +37,20 @@ export interface ItemStats {
   charisma?: number;
 }
 
+export interface StatRollRange {
+  min: number;
+  max: number;
+}
+
 export interface EquipmentItem {
   id: string;
+  instanceId?: string;
   name: string;
   slot: EquipmentSlot;
   rarity: ItemRarity;
   stats: ItemStats;
+  gearScore?: number;
+  statRanges?: Partial<Record<keyof ItemStats, StatRollRange>>;
   effect?: string;
   description: string;
   textureId?: number;
@@ -54,6 +62,7 @@ export interface SpriteSpawnData {
   textureId: number;
   scale?: number;
   itemId?: string;
+  item?: EquipmentItem;
 }
 
 export interface RayHit {
@@ -101,13 +110,20 @@ export interface ExtractionSpawnData {
   activationDelaySec?: number;
 }
 
+export interface DifficultyScaling {
+  playerGearScore: number;
+  hpMultiplier: number;
+  damageMultiplier: number;
+  goldMultiplier: number;
+}
+
 export interface LevelData {
   name: string;
   grid: number[][];
   floorGrid?: number[][];
   skyTileId?: number;
   sprites?: SpriteSpawnData[];
-  chestLoots?: Record<string, string[]>;
+  chestLoots?: Record<string, EquipmentItem[] | string[]>;
   enemies?: EnemySpawnData[];
   doors?: DoorSpawnData[];
   extractions?: ExtractionSpawnData[];
@@ -117,4 +133,5 @@ export interface LevelData {
     y: number;
     angle: number;
   };
+  difficulty?: DifficultyScaling;
 }

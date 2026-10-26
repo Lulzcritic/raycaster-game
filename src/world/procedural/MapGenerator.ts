@@ -1,8 +1,10 @@
 import { TILE_TYPE } from '../../config/constants';
 import { ItemDatabase } from '../../config/ItemDatabase';
+import { GearScoreService } from '../../core/GearScoreService';
 import type {
   DoorSpawnData,
   EnemySpawnData,
+  EquipmentItem,
   ExtractionSpawnData,
   LevelData,
   SpriteSpawnData,
@@ -12,6 +14,7 @@ export interface MapGeneratorOptions {
   size?: number;
   numPlayers?: number;
   seed?: number;
+  playerGearScore?: number;
 }
 
 interface ChunkEnemy {
@@ -416,6 +419,8 @@ export class MapGenerator {
 
   public static generate(_options: MapGeneratorOptions = {}): LevelData {
     const size = MapGenerator.DEFAULT_SIZE; // 71
+    const playerGearScore = _options.playerGearScore ?? 50;
+    const difficulty = GearScoreService.calculateDifficultyScaling(playerGearScore);
 
     // Initialisation de la grille 71×71 entièrement remplie de murs
     const grid: number[][] = Array.from({ length: size }, () =>
@@ -425,7 +430,7 @@ export class MapGenerator {
       Array.from({ length: size }, () => TILE_TYPE.GROUND_1)
     );
 
-    const chestLoots: Record<string, string[]> = {};
+    const chestLoots: Record<string, EquipmentItem[]> = {};
     const enemies: EnemySpawnData[] = [];
     const doors: DoorSpawnData[] = [];
     const extractions: ExtractionSpawnData[] = [];
@@ -672,7 +677,10 @@ export class MapGenerator {
     }
 
     // 6. Placement des modules et gravure dans la grille 71×71
-    const catalogItems = [...ItemDatabase.getChestLootPool()];
+    const catalogTemplates = [...ItemDatabase.getChestLootPool()];
+    const catalogItems = catalogTemplates.map((tpl) =>
+      GearScoreService.rollItem(tpl, playerGearScore)
+    );
     let itemCursor = 0;
 
     // A. Placement des 4 cryptes de départ
@@ -692,7 +700,8 @@ export class MapGenerator {
         extractions,
         chestLoots,
         catalogItems,
-        itemCursor
+        itemCursor,
+        playerGearScore
       );
       itemCursor += 2;
 
@@ -729,7 +738,8 @@ export class MapGenerator {
       extractions,
       chestLoots,
       catalogItems,
-      itemCursor
+      itemCursor,
+      playerGearScore
     );
     itemCursor += 2;
 
@@ -750,7 +760,8 @@ export class MapGenerator {
         extractions,
         chestLoots,
         catalogItems,
-        itemCursor
+        itemCursor,
+        playerGearScore
       );
       itemCursor += 3;
     }
@@ -857,6 +868,7 @@ export class MapGenerator {
         y: chosenSpawn.y,
         angle: chosenSpawn.angle,
       },
+      difficulty,
     };
   }
 
@@ -973,9 +985,10 @@ export class MapGenerator {
     enemies: EnemySpawnData[],
     sprites: SpriteSpawnData[],
     extractions: ExtractionSpawnData[],
-    chestLoots: Record<string, string[]>,
-    catalogItems: any[],
-    itemCursor: number
+    chestLoots: Record<string, EquipmentItem[]>,
+    catalogItems: EquipmentItem[],
+    itemCursor: number,
+    playerGearScore: number = 50
   ): void {
     const ox = cx * MapGenerator.CHUNK_STEP;
     const oy = cy * MapGenerator.CHUNK_STEP;
@@ -1027,38 +1040,54 @@ export class MapGenerator {
 
         const keyCoord = `${gx},${gy}`;
         if (c.fixedLoot) {
+          const lootList: EquipmentItem[] = [];
+          for (const rawId of c.fixedLoot) {
+            const tpl = ItemDatabase.getItemById(rawId);
+            if (tpl) {
+              lootList.push(GearScoreService.rollItem(tpl, playerGearScore));
+            }
+          }
           const bonusItem =
-            catalogItems[(itemCursor + i) % catalogItems.length]?.id ??
-            'armor_moldy_hermit_rags';
-          chestLoots[keyCoord] = [...c.fixedLoot, bonusItem];
+            catalogItems[(itemCursor + i) % catalogItems.length] ??
+            catalogItems[0];
+          if (bonusItem) {
+            lootList.push(bonusItem);
+          }
+          chestLoots[keyCoord] = lootList;
         } else if (c.tier === 'starter') {
-          const starterItems = [
+          const starterIds = [
             'weapon_splintered_apprentice_wand',
             'armor_tattered_gambeson',
             'hat_myopic_necromancer',
             'boots_cobbled_grave_treaders',
           ];
-          chestLoots[keyCoord] = [
-            starterItems[Math.floor(Math.random() * starterItems.length)],
-          ];
+          const chosenId = starterIds[Math.floor(Math.random() * starterIds.length)];
+          const tpl = ItemDatabase.getItemById(chosenId);
+          if (tpl) {
+            chestLoots[keyCoord] = [GearScoreService.rollItem(tpl, playerGearScore)];
+          }
         } else if (c.tier === 'royal') {
-          const royalItems = [
+          const royalIds = [
             'weapon_crooked_phylactery_dagger',
             'armor_shrunk_black_mass_robe',
             'weapon_arthritic_lich_staff',
             'armor_cursed_bone_carapace',
           ];
-          chestLoots[keyCoord] = [
-            royalItems[(itemCursor + i) % royalItems.length],
-            royalItems[(itemCursor + i + 1) % royalItems.length],
-          ];
+          const tpl1 = ItemDatabase.getItemById(royalIds[(itemCursor + i) % royalIds.length]);
+          const tpl2 = ItemDatabase.getItemById(
+            royalIds[(itemCursor + i + 1) % royalIds.length]
+          );
+          const loot: EquipmentItem[] = [];
+          if (tpl1) loot.push(GearScoreService.rollItem(tpl1, playerGearScore));
+          if (tpl2) loot.push(GearScoreService.rollItem(tpl2, playerGearScore));
+          chestLoots[keyCoord] = loot;
         } else {
           // Standard / High tier
           const count = c.tier === 'high' ? 3 : 2;
-          const loot: string[] = [];
+          const loot: EquipmentItem[] = [];
           for (let k = 0; k < count; k++) {
             const item = catalogItems[(itemCursor + k) % catalogItems.length];
-            if (item) loot.push(item.id);
+            if (item) loot.push(item);
           }
           chestLoots[keyCoord] = loot;
         }

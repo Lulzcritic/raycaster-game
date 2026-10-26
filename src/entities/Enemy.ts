@@ -2,6 +2,7 @@ import { getEnemyType } from '../config/enemyTypes';
 import { ItemDatabase } from '../config/ItemDatabase';
 import { WalletManager } from '../core/WalletManager';
 import { QuestManager } from '../core/QuestManager';
+import { GearScoreService } from '../core/GearScoreService';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
@@ -100,6 +101,18 @@ export class Enemy extends Entity {
       type.id === 'pumpkin_seed'
         ? {}
         : Enemy.generateEnemySprites(type);
+  }
+
+  public scaledDamage?: number;
+  public get attackDamage(): number {
+    return this.scaledDamage ?? this.type.stats.damage;
+  }
+
+  public scaleStats(hpMultiplier: number, damageMultiplier: number): void {
+    if (this.type.id === 'pumpkin_seed') return;
+    this.maxHealth = Math.round(this.type.stats.maxHealth * hpMultiplier);
+    this.health = this.maxHealth;
+    this.scaledDamage = Math.max(1, Math.round(this.type.stats.damage * damageMultiplier));
   }
 
   public setAttackCooldown(duration: number): void {
@@ -346,7 +359,11 @@ export class Enemy extends Entity {
         // 2. Butin au moins RARE garanti (rare, epic, legendary, artifact)
         const rarePool = ItemDatabase.getRareOrBetterLootPool();
         if (rarePool.length > 0) {
-          const prize = rarePool[Math.floor(Math.random() * rarePool.length)];
+          const rawPrize = rarePool[Math.floor(Math.random() * rarePool.length)];
+          const prize = GearScoreService.rollItem(
+            rawPrize,
+            this.player.getGearScore()
+          );
           const dropOrb = new DroppedItemOrb(
             this.x,
             this.y,
@@ -891,7 +908,7 @@ export class Enemy extends Entity {
           this.x + Math.cos(angleToPlayer) * 0.35,
           this.y + Math.sin(angleToPlayer) * 0.35,
           angleToPlayer,
-          this.type.stats.damage
+          this.attackDamage
         );
         this.onSpawnEntity(orb);
       }
@@ -907,8 +924,8 @@ export class Enemy extends Entity {
       const dist = Math.hypot(dx, dy);
 
       if (dist <= this.type.stats.attackRange * 1.4) {
-        this.player.takeDamage(this.type.stats.damage);
-        this.onNotify?.(`LE ROI GÂTEAU VOUS ASSÈNE UN COUP DE CORPS À CORPS ! (-${this.type.stats.damage} PV)`);
+        this.player.takeDamage(this.attackDamage);
+        this.onNotify?.(`LE ROI GÂTEAU VOUS ASSÈNE UN COUP DE CORPS À CORPS ! (-${this.attackDamage} PV)`);
         const angle = Math.atan2(dy, dx);
         this.x -= Math.cos(angle) * 0.12;
         this.y -= Math.sin(angle) * 0.12;
@@ -929,7 +946,7 @@ export class Enemy extends Entity {
           this.x,
           this.y,
           angleToPlayer,
-          this.type.stats.damage,
+          this.attackDamage,
           this.player
         );
         this.onSpawnEntity(arrow);
@@ -946,7 +963,7 @@ export class Enemy extends Entity {
 
     // Vérifie que le joueur est toujours à portée d'attaque
     if (dist <= this.type.stats.attackRange * 1.35) {
-      this.player.takeDamage(this.type.stats.damage);
+      this.player.takeDamage(this.attackDamage);
       // Rebond en arrière après l'attaque
       const angle = Math.atan2(dy, dx);
       this.x -= Math.cos(angle) * 0.12;

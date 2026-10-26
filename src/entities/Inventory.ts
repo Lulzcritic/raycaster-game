@@ -1,5 +1,6 @@
 import type { EquipmentItem, EquipmentSlot, ItemStats } from '../types';
 import { ItemDatabase } from '../config/ItemDatabase';
+import { GearScoreService } from '../core/GearScoreService';
 
 export const EQUIPMENT_SLOTS: readonly EquipmentSlot[] = [
   'hat',
@@ -135,10 +136,10 @@ export class Inventory {
 
   public saveToStorage(): void {
     try {
-      const equipped: Record<string, string> = {};
+      const equipped: Record<string, EquipmentItem> = {};
       for (const [slot, item] of this.slots.entries()) {
         if (item && slot !== 'key' && slot !== 'offhand') {
-          equipped[slot] = item.id;
+          equipped[slot] = item;
         }
       }
       localStorage.setItem(Inventory.STORAGE_KEY, JSON.stringify(equipped));
@@ -153,11 +154,28 @@ export class Inventory {
       if (!saved) {
         return;
       }
-      const parsed: Record<string, string> = JSON.parse(saved);
-      for (const [slot, itemId] of Object.entries(parsed)) {
-        const item = ItemDatabase.getItemById(itemId);
-        if (item && item.slot === slot) {
-          this.slots.set(slot as EquipmentSlot, item);
+      const parsed: Record<string, unknown> = JSON.parse(saved);
+      for (const [slot, entry] of Object.entries(parsed)) {
+        if (!entry) continue;
+        if (typeof entry === 'string') {
+          // Rétrocompatibilité legacy (identifiant ID)
+          const item = ItemDatabase.getItemById(entry);
+          if (item && item.slot === slot) {
+            const withGs: EquipmentItem = {
+              ...item,
+              gearScore:
+                item.gearScore ?? GearScoreService.calculateItemGearScore(item),
+            };
+            this.slots.set(slot as EquipmentSlot, withGs);
+          }
+        } else if (typeof entry === 'object' && 'id' in entry) {
+          const item = entry as EquipmentItem;
+          if (!item.gearScore) {
+            item.gearScore = GearScoreService.calculateItemGearScore(item);
+          }
+          if (item.slot === slot) {
+            this.slots.set(slot as EquipmentSlot, item);
+          }
         }
       }
     } catch {

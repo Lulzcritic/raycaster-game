@@ -43,6 +43,7 @@ import { BloodWaveSegment } from '../entities/BloodWaveSegment';
 import { PurpleOrb } from '../entities/PurpleOrb';
 import { FrostingPuddle } from '../entities/FrostingPuddle';
 import { WalletManager } from './WalletManager';
+import { GearScoreService } from './GearScoreService';
 import { QuestManager } from './QuestManager';
 import { UpgradeManager } from './UpgradeManager';
 import { StashManager } from './StashManager';
@@ -263,14 +264,20 @@ export class Game {
         const def = spriteDefs.get(tileId);
         if (def) {
           const coordKey = `${col},${row}`;
-          const customItemIds = level.chestLoots?.[coordKey];
+          const rawChestLoot = level.chestLoots?.[coordKey];
           let chestLoot: EquipmentItem[] | undefined;
 
-          if (customItemIds && customItemIds.length > 0) {
-            chestLoot = customItemIds
-              .filter((id) => id !== 'offhand_homonculus')
-              .map((id) => ItemDatabase.getItemById(id))
-              .filter((item): item is EquipmentItem => item !== undefined);
+          if (rawChestLoot && rawChestLoot.length > 0) {
+            chestLoot = rawChestLoot
+              .map((it) =>
+                typeof it === 'string'
+                  ? ItemDatabase.getItemById(it)
+                  : (it as EquipmentItem)
+              )
+              .filter(
+                (item): item is EquipmentItem =>
+                  item !== undefined && item.id !== 'offhand_homonculus'
+              );
           } else if (tileId === TILE_TYPE.CHEST && catalogItems.length > 0) {
             const lootCount = chestIndex % 2 === 0 ? 2 : 3;
             chestLoot = Array.from(
@@ -318,7 +325,8 @@ export class Game {
 
         const def = spriteDefs.get(s.textureId);
         const lootCount = chestIndex % 2 === 0 ? 2 : 3;
-        const singleItem = s.itemId ? ItemDatabase.getItemById(s.itemId) : undefined;
+        const singleItem =
+          s.item ?? (s.itemId ? ItemDatabase.getItemById(s.itemId) : undefined);
         // Un coffre ne peut jamais recevoir l'Homonculus ; seuls les sprites d'items libres (s.textureId !== CHEST) portent leur item unique
         const chestLoot = s.textureId === TILE_TYPE.CHEST
           ? (catalogItems.length > 0
@@ -363,6 +371,12 @@ export class Game {
               this.interactionPrompt.showNotification(msg);
             }
           );
+          if (level.difficulty) {
+            enemy.scaleStats(
+              level.difficulty.hpMultiplier,
+              level.difficulty.damageMultiplier
+            );
+          }
           this.entities.push(enemy);
         }
       }
@@ -476,7 +490,8 @@ export class Game {
       }
     }
 
-    return chosen;
+    const playerGs = this.player.getGearScore();
+    return chosen.map((item) => GearScoreService.rollItem(item, playerGs));
   }
 
   public startNewExtractionMatch(): void {
@@ -485,9 +500,14 @@ export class Game {
       this.player.inventory.unequip('offhand');
     }
     this.player.inventory.unequip('key');
-    const newMap = MapGenerator.generate();
+    const playerGearScore = this.player.getGearScore();
+    const newMap = MapGenerator.generate({ playerGearScore });
     this.loadLevel(newMap);
-    this.interactionPrompt.showNotification('NOUVELLE EXPÉDITION DÉMARRÉE !');
+    const diff = newMap.difficulty;
+    const hpPct = diff ? Math.round((diff.hpMultiplier - 1) * 100) : 0;
+    this.interactionPrompt.showNotification(
+      `EXPÉDITION DANS LA CITADELLE (Puissance : ${playerGearScore} ⭐ | Monstres +${hpPct}%)`
+    );
   }
 
   public openHub(tab: 'play' | 'equipment' | 'shop' | 'quests' = 'play'): void {

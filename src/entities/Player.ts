@@ -7,6 +7,7 @@ import { Fireball } from './Fireball';
 import { PurpleOrb } from './PurpleOrb';
 import { Inventory } from './Inventory';
 import { UpgradeManager } from '../core/UpgradeManager';
+import { GearScoreService } from '../core/GearScoreService';
 
 export class Player extends Entity {
   public readonly inventory = new Inventory();
@@ -80,6 +81,10 @@ export class Player extends Entity {
 
   public useKey(keyId?: string): boolean {
     return this.inventory.useKey(keyId);
+  }
+
+  public getGearScore(): number {
+    return GearScoreService.calculatePlayerGearScore(this);
   }
 
   public getEffectiveStats(): Required<ItemStats> {

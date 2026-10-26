@@ -1,6 +1,7 @@
 import type { EquipmentItem, ItemStats } from '../types';
 import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
+import { GearScoreService } from '../core/GearScoreService';
 
 export const ITEM_CARD_STAT_LABELS: Array<{
   key: keyof ItemStats;
@@ -67,6 +68,19 @@ export function fillItemCardElement(card: HTMLElement, item: EquipmentItem): voi
   badgeEl.style.borderColor = rarityColor;
   card.appendChild(badgeEl);
 
+  // Score de puissance / GearScore de l'objet
+  const gs = item.gearScore ?? GearScoreService.calculateItemGearScore(item);
+  const gsEl = document.createElement('div');
+  gsEl.className = 'world-card-gearscore';
+  gsEl.style.color = '#facc15';
+  gsEl.style.fontSize = '8px';
+  gsEl.style.fontWeight = 'bold';
+  gsEl.style.letterSpacing = '1px';
+  gsEl.style.margin = '4px 0 6px 0';
+  gsEl.style.textAlign = 'center';
+  gsEl.textContent = `⭐ PUISSANCE : ${gs}`;
+  card.appendChild(gsEl);
+
   // 3. Stats de l'item en blanc
   const statsContainer = document.createElement('div');
   statsContainer.className = 'world-card-stats';
@@ -81,9 +95,17 @@ export function fillItemCardElement(card: HTMLElement, item: EquipmentItem): voi
     const line = document.createElement('div');
     line.className = 'world-card-stat-line';
     const sign = rawValue > 0 ? '+' : '';
+
+    const range = item.statRanges?.[statDef.key];
+    const rangeText = range
+      ? (statDef.isMultiplier
+          ? ` [${Math.round(range.min * 100)}%-${Math.round(range.max * 100)}%]`
+          : ` [${range.min}-${range.max}]`)
+      : '';
+
     line.textContent = statDef.isMultiplier
-      ? `${sign}${Math.round(rawValue * 100)}% ${statDef.label}`
-      : `${sign}${rawValue} ${statDef.label}`;
+      ? `${sign}${Math.round(rawValue * 100)}% ${statDef.label}${rangeText}`
+      : `${sign}${rawValue} ${statDef.label}${rangeText}`;
     statsContainer.appendChild(line);
   }
 

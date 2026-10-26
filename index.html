@@ -225,136 +225,139 @@
 
     <!-- Hub Central (Lobby / Campement des Aventuriers) -->
     <div id="hub-menu" class="hub-menu hidden">
-      <!-- Barre de navigation supérieure -->
-      <nav class="hub-navbar">
-        <button id="hub-btn-menu" class="hub-nav-btn hub-nav-btn-back" type="button" title="Retour au menu titre">
-          🚪 MENU
-        </button>
-        <div class="hub-nav-tabs">
-          <button id="hub-tab-play" class="hub-nav-tab active" type="button" data-tab="play">
-            ⚔️ JOUER
+      <!-- Scène 16:9 centrale (évite tout étirement sur écran ultra-large) -->
+      <div id="hub-stage" class="hub-stage">
+        <!-- Barre de navigation supérieure -->
+        <nav class="hub-navbar">
+          <button id="hub-btn-menu" class="hub-nav-btn hub-nav-btn-back" type="button" title="Retour au menu titre">
+            🚪 MENU
           </button>
-          <button id="hub-tab-equipment" class="hub-nav-tab" type="button" data-tab="equipment">
-            🛡️ ÉQUIPEMENT
-          </button>
-          <button id="hub-tab-shop" class="hub-nav-tab" type="button" data-tab="shop">
-            🛒 BOUTIQUE
-          </button>
-          <button id="hub-tab-quests" class="hub-nav-tab" type="button" data-tab="quests">
-            📜 QUÊTES
-          </button>
-        </div>
-        <div id="hub-wallet" class="hub-wallet">
-          <img id="hub-coin-icon" class="hub-coin-icon" alt="" />
-          <span id="hub-coin-text" class="hub-coin-text">0</span>
-        </div>
-      </nav>
+          <div class="hub-nav-tabs">
+            <button id="hub-tab-play" class="hub-nav-tab active" type="button" data-tab="play">
+              ⚔️ JOUER
+            </button>
+            <button id="hub-tab-equipment" class="hub-nav-tab" type="button" data-tab="equipment">
+              🛡️ ÉQUIPEMENT
+            </button>
+            <button id="hub-tab-shop" class="hub-nav-tab" type="button" data-tab="shop">
+              🛒 BOUTIQUE
+            </button>
+            <button id="hub-tab-quests" class="hub-nav-tab" type="button" data-tab="quests">
+              📜 QUÊTES
+            </button>
+          </div>
+          <div id="hub-wallet" class="hub-wallet">
+            <img id="hub-coin-icon" class="hub-coin-icon" alt="" />
+            <span id="hub-coin-text" class="hub-coin-text">0</span>
+          </div>
+        </nav>
 
-      <!-- Corps du Hub : Scène Avatar à gauche (Fortnite style) & Interface active à droite -->
-      <div class="hub-body">
-        <!-- Scène du Héros (Fortnite style) : Mage sans fenêtre, debout en superposition directe sur le fond -->
-        <div class="hub-hero-stage">
-          <div class="hub-hero-pedestal">
-            <div class="hub-hero-glow"></div>
-            <img id="hub-avatar-img" class="hub-avatar-img" alt="Avatar" />
+        <!-- Corps du Hub : Scène Avatar à gauche (Fortnite style) & Interface active à droite -->
+        <div class="hub-body">
+          <!-- Scène du Héros (Fortnite style) : Mage sans fenêtre, debout en superposition directe sur le fond -->
+          <div class="hub-hero-stage">
+            <div class="hub-hero-pedestal">
+              <div class="hub-hero-glow"></div>
+              <img id="hub-avatar-img" class="hub-avatar-img" alt="Avatar" />
+            </div>
+
+            <!-- Sélecteur de skin flottant -->
+            <div class="hub-skin-selector">
+              <button id="hub-skin-prev" class="hub-skin-btn" type="button" title="Skin précédent">◄</button>
+              <div class="hub-skin-meta">
+                <span id="hub-skin-name" class="hub-skin-name">Lord Énigmatique</span>
+                <span id="hub-avatar-title" class="hub-avatar-title">SEIGNEUR DES ARCANES</span>
+              </div>
+              <button id="hub-skin-next" class="hub-skin-btn" type="button" title="Skin suivant">►</button>
+            </div>
           </div>
 
-          <!-- Sélecteur de skin flottant -->
-          <div class="hub-skin-selector">
-            <button id="hub-skin-prev" class="hub-skin-btn" type="button" title="Skin précédent">◄</button>
-            <div class="hub-skin-meta">
-              <span id="hub-skin-name" class="hub-skin-name">Lord Énigmatique</span>
-              <span id="hub-avatar-title" class="hub-avatar-title">SEIGNEUR DES ARCANES</span>
-            </div>
-            <button id="hub-skin-next" class="hub-skin-btn" type="button" title="Skin suivant">►</button>
+          <!-- Interfaces flottantes directement sur le background (pas de fenêtre, pas de page défilable) -->
+          <div class="hub-views-container">
+            <!-- Onglet JOUER -->
+            <section id="hub-view-play" class="hub-view active">
+              <div class="hub-play-stage">
+                <div class="hub-play-header">
+                  <h1 class="hub-view-title">⚔️ EXPÉDITION DANS LES CRYPTES</h1>
+                  <p class="hub-view-subtitle">Pénétrez dans la Citadelle oubliée, pillez les trésors anciens et extrayez vivant vos richesses.</p>
+                </div>
+
+                <div class="hub-dungeon-zones">
+                  <div class="hub-zone-card zone-1">
+                    <div class="hub-zone-badge">ZONE 1</div>
+                    <h3>Quartier de Départ</h3>
+                    <p>Blobs toxiques et coffres rouillés. Faible menace.</p>
+                  </div>
+                  <div class="hub-zone-card zone-2">
+                    <div class="hub-zone-badge">ZONE 2</div>
+                    <h3>Anneau Central</h3>
+                    <p>Squelettes archers, Citrouilles maudites et Gobelins au trésor.</p>
+                  </div>
+                  <div class="hub-zone-card zone-3">
+                    <div class="hub-zone-badge">ZONE 3</div>
+                    <h3>Sanctuaire Royal</h3>
+                    <p>Boss impitoyables : Reine de Sang ou Roi Gâteau à la Carotte.</p>
+                  </div>
+                </div>
+
+                <div class="hub-play-warning">
+                  ✦ <strong>RÈGLE D'EXTRACTION</strong> : Les pièces et objets ne sont sécurisés que si vous atteignez un portail d'extraction actif ! En cas de mort, le butin récolté dans la crypte est dissous dans le néant.
+                </div>
+
+                <div class="hub-play-action">
+                  <button id="hub-launch-raid-btn" class="hub-launch-btn" type="button">
+                    ⚔️ ENTRER DANS LA CRYPTE [LANCER LE RAID]
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Onglet ÉQUIPEMENT -->
+            <section id="hub-view-equipment" class="hub-view hidden">
+              <div class="hub-equipment-container">
+                <div class="hub-equipment-column">
+                  <h3 class="hub-sub-title">OBJETS ÉQUIPÉS</h3>
+                  <div id="hub-equipped-slots" class="hub-equipped-slots"></div>
+                </div>
+
+                <div class="hub-stash-column">
+                  <h3 class="hub-sub-title">RÉSERVE D'ÉQUIPEMENT (STASH)</h3>
+                  <div id="hub-stash-list" class="hub-stash-list"></div>
+                </div>
+
+                <div class="hub-stats-column">
+                  <h3 class="hub-sub-title">STATISTIQUES DU HÉROS</h3>
+                  <div id="hub-full-stats" class="hub-full-stats"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Onglet BOUTIQUE -->
+            <section id="hub-view-shop" class="hub-view hidden">
+              <div class="hub-shop-container">
+                <div class="hub-shop-section">
+                  <h3 class="hub-sub-title">✨ AMÉLIORATIONS PERMANENTES (ARBRE DE TALENTS)</h3>
+                  <div id="hub-upgrades-list" class="hub-upgrades-list"></div>
+                </div>
+
+                <div class="hub-shop-section">
+                  <h3 class="hub-sub-title">🛒 ARSENAL DE LA BOUTIQUE</h3>
+                  <div id="hub-shop-items-list" class="hub-shop-items-list"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Onglet QUÊTES -->
+            <section id="hub-view-quests" class="hub-view hidden">
+              <div class="hub-quests-container">
+                <div class="hub-quests-header">
+                  <h2 class="hub-view-title">📜 REGISTRE DES CONTRATS & QUÊTES</h2>
+                  <p class="hub-view-subtitle">Accomplissez des exploits lors de vos expéditions pour décrocher des récompenses en pièces d'or.</p>
+                </div>
+                <div id="hub-quests-list" class="hub-quests-list"></div>
+              </div>
+            </section>
           </div>
-        </div>
-
-        <!-- Interfaces flottantes directement sur le background (pas de fenêtre, pas de page défilable) -->
-        <div class="hub-views-container">
-          <!-- Onglet JOUER -->
-          <section id="hub-view-play" class="hub-view active">
-            <div class="hub-play-stage">
-              <div class="hub-play-header">
-                <h1 class="hub-view-title">⚔️ EXPÉDITION DANS LES CRYPTES</h1>
-                <p class="hub-view-subtitle">Pénétrez dans la Citadelle oubliée, pillez les trésors anciens et extrayez vivant vos richesses.</p>
-              </div>
-
-              <div class="hub-dungeon-zones">
-                <div class="hub-zone-card zone-1">
-                  <div class="hub-zone-badge">ZONE 1</div>
-                  <h3>Quartier de Départ</h3>
-                  <p>Blobs toxiques et coffres rouillés. Faible menace.</p>
-                </div>
-                <div class="hub-zone-card zone-2">
-                  <div class="hub-zone-badge">ZONE 2</div>
-                  <h3>Anneau Central</h3>
-                  <p>Squelettes archers, Citrouilles maudites et Gobelins au trésor.</p>
-                </div>
-                <div class="hub-zone-card zone-3">
-                  <div class="hub-zone-badge">ZONE 3</div>
-                  <h3>Sanctuaire Royal</h3>
-                  <p>Boss impitoyables : Reine de Sang ou Roi Gâteau à la Carotte.</p>
-                </div>
-              </div>
-
-              <div class="hub-play-warning">
-                ✦ <strong>RÈGLE D'EXTRACTION</strong> : Les pièces et objets ne sont sécurisés que si vous atteignez un portail d'extraction actif ! En cas de mort, le butin récolté dans la crypte est dissous dans le néant.
-              </div>
-
-              <div class="hub-play-action">
-                <button id="hub-launch-raid-btn" class="hub-launch-btn" type="button">
-                  ⚔️ ENTRER DANS LA CRYPTE [LANCER LE RAID]
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <!-- Onglet ÉQUIPEMENT -->
-          <section id="hub-view-equipment" class="hub-view hidden">
-            <div class="hub-equipment-container">
-              <div class="hub-equipment-column">
-                <h3 class="hub-sub-title">OBJETS ÉQUIPÉS</h3>
-                <div id="hub-equipped-slots" class="hub-equipped-slots"></div>
-              </div>
-
-              <div class="hub-stash-column">
-                <h3 class="hub-sub-title">RÉSERVE D'ÉQUIPEMENT (STASH)</h3>
-                <div id="hub-stash-list" class="hub-stash-list"></div>
-              </div>
-
-              <div class="hub-stats-column">
-                <h3 class="hub-sub-title">STATISTIQUES DU HÉROS</h3>
-                <div id="hub-full-stats" class="hub-full-stats"></div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Onglet BOUTIQUE -->
-          <section id="hub-view-shop" class="hub-view hidden">
-            <div class="hub-shop-container">
-              <div class="hub-shop-section">
-                <h3 class="hub-sub-title">✨ AMÉLIORATIONS PERMANENTES (ARBRE DE TALENTS)</h3>
-                <div id="hub-upgrades-list" class="hub-upgrades-list"></div>
-              </div>
-
-              <div class="hub-shop-section">
-                <h3 class="hub-sub-title">🛒 ARSENAL DE LA BOUTIQUE</h3>
-                <div id="hub-shop-items-list" class="hub-shop-items-list"></div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Onglet QUÊTES -->
-          <section id="hub-view-quests" class="hub-view hidden">
-            <div class="hub-quests-container">
-              <div class="hub-quests-header">
-                <h2 class="hub-view-title">📜 REGISTRE DES CONTRATS & QUÊTES</h2>
-                <p class="hub-view-subtitle">Accomplissez des exploits lors de vos expéditions pour décrocher des récompenses en pièces d'or.</p>
-              </div>
-              <div id="hub-quests-list" class="hub-quests-list"></div>
-            </div>
-          </section>
         </div>
       </div>
     </div>

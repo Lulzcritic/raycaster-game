@@ -2400,16 +2400,36 @@ body {
 .hub-menu {
   position: fixed;
   inset: 0;
-  background-color: #0b0713;
-  background-size: 100% 100%;
+  background-color: #06040a;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   z-index: 15;
   user-select: none;
   font-family: var(--font-medieval);
   overflow: hidden;
+}
+
+/* Scène 16:9 centrale (évite tout étirement sur écran ultra-large) */
+.hub-stage {
+  position: relative;
+  width: min(100vw, calc(100vh * (16 / 9)));
+  height: min(100vh, calc(100vw * (9 / 16)));
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: auto;
+  box-shadow:
+    0 0 80px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(88, 28, 135, 0.45);
+  background-color: #0b0713;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Barre de navigation supérieure */
@@ -2427,6 +2447,7 @@ body {
   padding: 0 24px;
   box-sizing: border-box;
   z-index: 20;
+  flex-shrink: 0;
 }
 
 .hub-nav-btn {
@@ -2527,7 +2548,7 @@ body {
 .hub-body {
   display: flex;
   flex: 1;
-  height: calc(100vh - 64px);
+  height: calc(100% - 60px);
   padding: 16px 36px 20px 36px;
   gap: 36px;
   box-sizing: border-box;
@@ -2575,7 +2596,7 @@ body {
 
 .hub-avatar-img {
   height: 470px;
-  max-height: calc(100vh - 180px);
+  max-height: calc(100% - 80px);
   width: auto;
   object-fit: contain;
   image-rendering: pixelated;
@@ -2841,7 +2862,7 @@ body {
   display: flex;
   gap: 24px;
   height: 100%;
-  max-height: calc(100vh - 130px);
+  max-height: calc(100% - 10px);
   align-items: stretch;
   box-sizing: border-box;
 }
@@ -2965,7 +2986,7 @@ body {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100% - 35px);
   padding-right: 6px;
 }
 
@@ -3087,7 +3108,7 @@ body {
   display: flex;
   gap: 28px;
   height: 100%;
-  max-height: calc(100vh - 130px);
+  max-height: calc(100% - 10px);
   align-items: stretch;
   box-sizing: border-box;
 }
@@ -3105,7 +3126,7 @@ body {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100% - 35px);
   padding-right: 6px;
 }
 
@@ -3271,7 +3292,7 @@ body {
   flex-direction: column;
   justify-content: center;
   height: 100%;
-  max-height: calc(100vh - 130px);
+  max-height: calc(100% - 10px);
   max-width: 860px;
   gap: 12px;
   box-sizing: border-box;
@@ -3286,7 +3307,7 @@ body {
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
-  max-height: calc(100vh - 220px);
+  max-height: calc(100% - 60px);
   padding-right: 6px;
 }
 
@@ -3422,7 +3443,7 @@ body {
   }
   .hub-avatar-img {
     height: 380px;
-    max-height: calc(100vh - 160px);
+    max-height: calc(100% - 60px);
   }
   .hub-hero-glow {
     width: 210px;
@@ -3440,16 +3461,6 @@ body {
   .hub-launch-btn {
     font-size: 19px;
     padding: 14px 36px;
-  }
-  .hub-equipment-container,
-  .hub-shop-container,
-  .hub-quests-container {
-    max-height: calc(100vh - 110px);
-  }
-  .hub-stash-list,
-  .hub-upgrades-list,
-  .hub-shop-items-list {
-    max-height: calc(100vh - 160px);
   }
 }
 

@@ -59,6 +59,7 @@ const RARITY_COLORS: Record<string, string> = {
 
 export class HubUI {
   private readonly hubElement: HTMLElement | null;
+  private readonly hubStage: HTMLElement | null;
   private readonly navTabs: NodeListOf<HTMLButtonElement>;
   private readonly views: Record<HubTab, HTMLElement | null>;
   private readonly coinIcon: HTMLImageElement | null;
@@ -98,6 +99,7 @@ export class HubUI {
     this.onReturnToMenuCallback = onReturnToMenu;
 
     this.hubElement = document.getElementById('hub-menu');
+    this.hubStage = document.getElementById('hub-stage');
     this.navTabs = document.querySelectorAll('.hub-nav-tab');
     this.coinIcon = document.getElementById('hub-coin-icon') as HTMLImageElement | null;
     this.coinText = document.getElementById('hub-coin-text');
@@ -130,10 +132,19 @@ export class HubUI {
     this.shopItemsListContainer = document.getElementById('hub-shop-items-list');
     this.questsListContainer = document.getElementById('hub-quests-list');
 
-    // Initialisation du fond d'écran (gardé dans son entièreté sans zoom/crop)
+    // Initialisation du fond d'écran 16:9 dans la scène centrale (sans étirement ni zoom)
+    const stageBg = `linear-gradient(rgba(10, 6, 18, 0.15), rgba(8, 4, 14, 0.4)), url('${hubBgUrl}')`;
+    if (this.hubStage) {
+      this.hubStage.style.backgroundImage = stageBg;
+      this.hubStage.style.backgroundSize = '100% 100%';
+      this.hubStage.style.backgroundPosition = 'center';
+      this.hubStage.style.backgroundRepeat = 'no-repeat';
+    }
+
+    // Ambiance d'arrière-plan sur les bordures extérieures (écrans ultra-larges)
     if (this.hubElement) {
-      this.hubElement.style.backgroundImage = `linear-gradient(rgba(10, 6, 18, 0.15), rgba(8, 4, 14, 0.4)), url('${hubBgUrl}')`;
-      this.hubElement.style.backgroundSize = '100% 100%';
+      this.hubElement.style.backgroundImage = `radial-gradient(circle at center, rgba(6, 4, 10, 0.7) 0%, rgba(6, 4, 10, 0.95) 100%), url('${hubBgUrl}')`;
+      this.hubElement.style.backgroundSize = 'cover';
       this.hubElement.style.backgroundPosition = 'center';
       this.hubElement.style.backgroundRepeat = 'no-repeat';
     }

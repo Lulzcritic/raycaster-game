@@ -111,6 +111,7 @@ export const PURPLE_ORB_CONFIG = {
   SPAWN_OFFSET: 0.35,
   MAX_BOUNCES: 6,
   DAMAGE: 18,
+  BOUNCE_DAMAGE_MULTIPLIER: 0.5, // +50% de dégâts bonus par rebond effectué
   HITBOX: 0.14,
   SCALE: 0.32,
   EXPLOSION_SCALE: 0.54,

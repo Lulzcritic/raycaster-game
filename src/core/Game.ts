@@ -1,4 +1,10 @@
-import { INTERACTION_CONFIG, KEYS, TEXTURE_DEFINITIONS, TILE_TYPE } from '../config/constants';
+import {
+  INTERACTION_CONFIG,
+  KEYS,
+  PURPLE_ORB_CONFIG,
+  TEXTURE_DEFINITIONS,
+  TILE_TYPE,
+} from '../config/constants';
 import { getEnemyType } from '../config/enemyTypes';
 import { ItemDatabase } from '../config/ItemDatabase';
 import { BillboardSprite } from '../entities/BillboardSprite';
@@ -641,7 +647,18 @@ export class Game {
       for (const enemy of aliveEnemies) {
         const dist = Math.hypot(orb.x - enemy.x, orb.y - enemy.y);
         if (dist < orb.hitBox + enemy.hitBox) {
-          enemy.takeDamage(orb.damage, orb.angle);
+          const dmg = orb.damage;
+          enemy.takeDamage(dmg, orb.angle);
+          if (orb.bouncesDone >= 1) {
+            const bonusPct = Math.round(
+              orb.bouncesDone * PURPLE_ORB_CONFIG.BOUNCE_DAMAGE_MULTIPLIER * 100
+            );
+            const label =
+              orb.bouncesDone === 1
+                ? `🎯 TRICKSHOT ! (1 rebond : +${bonusPct}% | ${dmg} DÉGÂTS)`
+                : `🎯 TRICKSHOT ×${orb.bouncesDone} ! (+${bonusPct}% | ${dmg} DÉGÂTS)`;
+            this.interactionPrompt.showNotification(label);
+          }
           orb.explode();
           hitTarget = true;
           break;
@@ -656,9 +673,10 @@ export class Game {
       if (orb.canDamageSelf()) {
         const distToPlayer = Math.hypot(orb.x - this.player.x, orb.y - this.player.y);
         if (distToPlayer < orb.hitBox + this.player.hitBox) {
-          this.player.takeDamage(orb.damage);
+          const selfDamage = Math.min(orb.damage, Math.round(orb.baseDamage * 1.5));
+          this.player.takeDamage(selfDamage);
           this.interactionPrompt.showNotification(
-            `VOTRE ORBE MAGIQUE VOUS A TOUCHÉ ! (-${orb.damage} PV)`
+            `VOTRE ORBE MAGIQUE VOUS A TOUCHÉ ! (-${selfDamage} PV)`
           );
           orb.explode();
         }

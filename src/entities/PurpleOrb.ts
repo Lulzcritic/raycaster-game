@@ -8,13 +8,18 @@ export class PurpleOrb extends Entity {
   private static flightFrames: HTMLCanvasElement[] | null = null;
   private static explosionFrames: HTMLCanvasElement[] | null = null;
 
-  public readonly damage: number;
+  public readonly baseDamage: number;
   public bouncesRemaining: number;
   public bouncesDone = 0;
   private state: PurpleOrbState = 'flying';
   private lifetime = 0;
   private animTimer = 0;
   private explosionTimer = 0;
+
+  public get damage(): number {
+    const multiplier = 1 + this.bouncesDone * PURPLE_ORB_CONFIG.BOUNCE_DAMAGE_MULTIPLIER;
+    return Math.round(this.baseDamage * multiplier);
+  }
 
   constructor(
     x: number,
@@ -24,7 +29,7 @@ export class PurpleOrb extends Entity {
     maxBounces: number = PURPLE_ORB_CONFIG.MAX_BOUNCES
   ) {
     super(x, y, angle, PURPLE_ORB_CONFIG.HITBOX);
-    this.damage = damage;
+    this.baseDamage = damage;
     this.bouncesRemaining = maxBounces;
     PurpleOrb.ensureSpritesCreated();
   }
@@ -137,15 +142,17 @@ export class PurpleOrb extends Entity {
     }
 
     const frames = PurpleOrb.flightFrames!;
-    const frameIndex = Math.floor(this.animTimer * 12) % frames.length;
+    const spinSpeed = 12 + this.bouncesDone * 5;
+    const frameIndex = Math.floor(this.animTimer * spinSpeed) % frames.length;
     return frames[frameIndex];
   }
 
   public override getScale(): number {
+    const powerScale = Math.min(0.65, this.bouncesDone * 0.12);
     if (this.state === 'exploding') {
-      return PURPLE_ORB_CONFIG.EXPLOSION_SCALE;
+      return PURPLE_ORB_CONFIG.EXPLOSION_SCALE * (1 + powerScale);
     }
-    return PURPLE_ORB_CONFIG.SCALE;
+    return PURPLE_ORB_CONFIG.SCALE * (1 + powerScale);
   }
 
   private static ensureSpritesCreated(): void {

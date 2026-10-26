@@ -179,8 +179,8 @@ export class Game {
     );
 
     this.hubUI = new HubUI(
-      () => {
-        this.startRaidFromHub();
+      (matchOptions) => {
+        this.startRaidFromHub(matchOptions);
       },
       () => {
         this.returnToMainMenu();
@@ -492,19 +492,24 @@ export class Game {
     return chosen;
   }
 
-  public startNewExtractionMatch(): void {
+  public startNewExtractionMatch(options?: { seed?: number; spawnIndex?: number }): void {
     WalletManager.resetSessionCoins();
     if (this.player.inventory.getItem('offhand')?.id === 'offhand_homonculus') {
       this.player.inventory.unequip('offhand');
     }
     this.player.inventory.unequip('key');
     const playerGearScore = this.player.getGearScore();
-    const newMap = MapGenerator.generate({ playerGearScore });
+    const newMap = MapGenerator.generate({
+      playerGearScore,
+      seed: options?.seed,
+      spawnIndex: options?.spawnIndex,
+    });
     this.loadLevel(newMap);
     const diff = newMap.difficulty;
     const hpPct = diff ? Math.round((diff.hpMultiplier - 1) * 100) : 0;
+    const matchPrefix = options?.seed !== undefined ? 'CONVOI MULTIJOUEUR' : 'EXPÉDITION';
     this.interactionPrompt.showNotification(
-      `EXPÉDITION DANS LA CITADELLE (Puissance : ${playerGearScore} ⭐ | Monstres +${hpPct}%)`
+      `${matchPrefix} DANS LA CITADELLE (Puissance : ${playerGearScore} ⭐ | Monstres +${hpPct}%)`
     );
   }
 
@@ -535,14 +540,14 @@ export class Game {
     this.openHub('play');
   }
 
-  public startRaidFromHub(): void {
+  public startRaidFromHub(options?: { seed?: number; spawnIndex?: number }): void {
     WalletManager.resetSessionCoins();
     this.isInHub = false;
     this.isInMainMenu = false;
     this.hubUI.hide();
     this.mainMenu.hide();
     this.pauseMenu.hide();
-    this.startNewExtractionMatch();
+    this.startNewExtractionMatch(options);
     this.isPaused = false;
     this.worldBillboardOverlay.setVisible(true);
     this.hudOverlay.setVisible(true);

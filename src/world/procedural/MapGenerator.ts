@@ -15,7 +15,17 @@ export interface MapGeneratorOptions {
   size?: number;
   numPlayers?: number;
   seed?: number;
+  spawnIndex?: number;
   playerGearScore?: number;
+}
+
+function createPrng(seed: number): () => number {
+  let s = Math.floor(Math.abs(seed)) % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return function () {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
 }
 
 interface ChunkEnemy {
@@ -422,6 +432,7 @@ export class MapGenerator {
     const size = MapGenerator.DEFAULT_SIZE; // 71
     const playerGearScore = _options.playerGearScore ?? 50;
     const difficulty = GearScoreService.calculateDifficultyScaling(playerGearScore);
+    const rng = _options.seed !== undefined ? createPrng(_options.seed) : Math.random;
 
     // Initialisation de la grille 71×71 entièrement remplie de murs
     const grid: number[][] = Array.from({ length: size }, () =>
@@ -586,7 +597,7 @@ export class MapGenerator {
     // Tri selon la distance au centre (3,3)
     const shuffledZ2 = [...zone2Coords];
     for (let i = shuffledZ2.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(rng() * (i + 1));
       [shuffledZ2[i], shuffledZ2[j]] = [shuffledZ2[j], shuffledZ2[i]];
     }
 
@@ -673,7 +684,7 @@ export class MapGenerator {
     ];
 
     for (let i = 14; i < shuffledZ2.length; i++) {
-      const template = combatPool[Math.floor(Math.random() * combatPool.length)];
+      const template = combatPool[Math.floor(rng() * combatPool.length)];
       chunkRoleMap.set(`${shuffledZ2[i][0]},${shuffledZ2[i][1]}`, template);
     }
 
@@ -710,7 +721,7 @@ export class MapGenerator {
     // B. Placement du Sanctuaire du Boss au centre (3,3)
     const bossTemplate = { ...MapGenerator.BOSS_SANCTUM };
     // Choix aléatoire du Boss final
-    const bossTypeId = Math.random() < 0.6 ? 'carrot_cake_king' : 'blood_queen';
+    const bossTypeId = rng() < 0.6 ? 'carrot_cake_king' : 'blood_queen';
     bossTemplate.enemies = [
       {
         typeId: bossTypeId,
@@ -735,7 +746,7 @@ export class MapGenerator {
     // C. Placement des 44 modules de Zone 2 avec rotations aléatoires (0, 90, 180 ou 270°)
     for (const [cx, cy] of zone2Coords) {
       const template = chunkRoleMap.get(`${cx},${cy}`) ?? MapGenerator.ARENA_COLOSSEUM;
-      const rot = Math.floor(Math.random() * 4) as 0 | 1 | 2 | 3;
+      const rot = Math.floor(rng() * 4) as 0 | 1 | 2 | 3;
       const rotated = MapGenerator.rotateModule(template, rot);
 
       MapGenerator.stampModule(
@@ -831,15 +842,22 @@ export class MapGenerator {
     }
 
     // 9. Sélection du point de réveil du joueur parmi les 4 cryptes
-    const chosenSpawn =
-      playerSpawns[Math.floor(Math.random() * playerSpawns.length)] ?? {
-        x: 2.5,
-        y: 8.5,
-        angle: -Math.PI / 2,
-      };
+    let chosenSpawn = playerSpawns[0];
+    if (_options.spawnIndex !== undefined && playerSpawns.length > 0) {
+      chosenSpawn = playerSpawns[_options.spawnIndex % playerSpawns.length];
+    } else {
+      chosenSpawn =
+        playerSpawns[Math.floor(rng() * playerSpawns.length)] ?? {
+          x: 2.5,
+          y: 8.5,
+          angle: -Math.PI / 2,
+        };
+    }
+
+    const expId = _options.seed !== undefined ? `#${_options.seed}` : `#${Math.floor(1000 + rng() * 9000)}`;
 
     return {
-      name: `Citadelle Royale 71×71 (Expédition #${Math.floor(1000 + Math.random() * 9000)})`,
+      name: `Citadelle Royale 71×71 (Expédition ${expId})`,
       grid,
       floorGrid,
       skyTileId: TILE_TYPE.SKY_1,

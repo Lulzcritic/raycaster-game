@@ -1,6 +1,6 @@
 import hubBgUrl from '../assets/textures/hub.jpg';
-import puzzleLordUrl from '../assets/sprites/player/puzzleLord/sprite-1-1 (3).png';
-import gouterLordUrl from '../assets/sprites/player/gouterLord/sprite-1-1 (4).png';
+import puzzleLordUrl from '../assets/sprites/player/puzzleLord/idle1.png';
+import gouterLordUrl from '../assets/sprites/player/gouterLord/idle.png';
 import { WalletManager } from '../core/WalletManager';
 import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 import {
@@ -15,8 +15,10 @@ import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { ItemTooltip } from './ItemTooltip';
 import { FIREBALL_CONFIG } from '../config/constants';
 import { GearScoreService } from '../core/GearScoreService';
+import { NetworkClient } from '../network/NetworkClient';
 import type { Player } from '../entities/Player';
 import type { EquipmentItem, EquipmentSlot } from '../types';
+import type { MatchFoundPayload, QueueStatusPayload } from '../types/network';
 
 export type HubTab = 'play' | 'equipment' | 'shop' | 'quests';
 
@@ -93,11 +95,19 @@ export class HubUI {
   private currentTab: HubTab = 'play';
   private player: Player | null = null;
 
-  private onStartRaidCallback?: () => void;
+  private onStartRaidCallback?: (options?: { seed?: number; spawnIndex?: number }) => void;
   private onReturnToMenuCallback?: () => void;
 
+  // Multijoueur & Convoi 60s
+  private netDotEl: HTMLElement | null = null;
+  private netStatusTextEl: HTMLElement | null = null;
+  private convoiTimerEl: HTMLElement | null = null;
+  private convoiCountEl: HTMLElement | null = null;
+  private convoiRosterPreviewEl: HTMLElement | null = null;
+  private joinConvoiBtn: HTMLButtonElement | null = null;
+
   constructor(
-    onStartRaid?: () => void,
+    onStartRaid?: (options?: { seed?: number; spawnIndex?: number }) => void,
     onReturnToMenu?: () => void
   ) {
     this.onStartRaidCallback = onStartRaid;
@@ -145,6 +155,14 @@ export class HubUI {
     this.shopItemsListContainer = document.getElementById('hub-shop-items-list');
     this.questsListContainer = document.getElementById('hub-quests-list');
 
+    // Multijoueur & Convoi 60s
+    this.netDotEl = document.querySelector('.hub-net-dot');
+    this.netStatusTextEl = document.getElementById('hub-net-status-text');
+    this.convoiTimerEl = document.getElementById('hub-convoi-timer');
+    this.convoiCountEl = document.getElementById('hub-convoi-count');
+    this.convoiRosterPreviewEl = document.getElementById('hub-convoi-roster-preview');
+    this.joinConvoiBtn = document.getElementById('hub-join-convoi-btn') as HTMLButtonElement | null;
+
     // Initialisation du fond d'écran 16:9 dans la scène centrale (sans étirement ni zoom)
     const stageBg = `linear-gradient(rgba(10, 6, 18, 0.15), rgba(8, 4, 14, 0.4)), url('${hubBgUrl}')`;
     if (this.hubStage) {
@@ -176,6 +194,7 @@ export class HubUI {
     }
 
     this.setupEventListeners();
+    this.setupNetworkListeners();
   }
 
   public setPlayer(player: Player): void {
@@ -306,6 +325,97 @@ export class HubUI {
     WalletManager.subscribe(() => {
       this.updateWalletDisplay();
     });
+  }
+
+  private setupNetworkListeners(): void {
+    const net = NetworkClient.getInstance();
+
+    net.onConnectionChange((connected) => {
+      if (this.netDotEl) {
+        this.netDotEl.className = `hub-net-dot ${connected ? '' : 'offline'}`;
+      }
+      if (this.netStatusTextEl) {
+        this.netStatusTextEl.textContent = connected
+          ? 'SERVEUR EN LIGNE'
+          : 'SERVEUR HORS LIGNE';
+      }
+    });
+
+    net.onQueueStatus((status) => {
+      this.updateQueueStatusUI(status);
+    });
+
+    net.onMatchFound((data) => {
+      this.showMatchFoundNotification(data);
+    });
+
+    net.onMatchStart((data) => {
+      ItemTooltip.getInstance().hide();
+      this.onStartRaidCallback?.({ seed: data.mapSeed, spawnIndex: data.spawnIndex });
+    });
+
+    if (this.joinConvoiBtn) {
+      this.joinConvoiBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const status = net.getLastQueueStatus();
+        if (status && status.isQueued) {
+          net.leaveQueue();
+        } else {
+          const playerName = SKINS[this.currentSkinIndex]?.name ?? 'Lord Aventurier';
+          const gearScore = this.player ? this.player.getGearScore() : 50;
+          net.joinQueue(playerName, gearScore);
+        }
+      };
+    }
+  }
+
+  private updateQueueStatusUI(status: QueueStatusPayload): void {
+    if (this.convoiTimerEl) {
+      this.convoiTimerEl.textContent = `${status.cycleCountdownSec}s`;
+    }
+    if (this.convoiCountEl) {
+      this.convoiCountEl.textContent = `${status.queuedCount} / ${status.maxPlayers}`;
+    }
+    if (this.joinConvoiBtn) {
+      if (status.isQueued) {
+        this.joinConvoiBtn.className = 'hub-btn-convoi in-queue';
+        this.joinConvoiBtn.innerHTML = `❌ QUITTER LA FILE (${status.cycleCountdownSec}s)`;
+      } else {
+        this.joinConvoiBtn.className = 'hub-btn-convoi';
+        this.joinConvoiBtn.innerHTML = `🤝 S'INSCRIRE AU PROCHAIN CONVOI`;
+      }
+    }
+
+    if (this.convoiRosterPreviewEl) {
+      if (status.queuedPlayers.length === 0) {
+        this.convoiRosterPreviewEl.innerHTML = `<span class="hub-convoi-empty-hint">Le convoi partira automatiquement à la fin du chrono avec les inscrits.</span>`;
+      } else {
+        this.convoiRosterPreviewEl.innerHTML = status.queuedPlayers
+          .map(
+            (p) =>
+              `<span class="hub-convoi-player-pill">👤 ${p.name} (GS ${p.gearScore})</span>`
+          )
+          .join('');
+      }
+    }
+  }
+
+  private showMatchFoundNotification(data: MatchFoundPayload): void {
+    const existing = document.querySelector('.hub-match-found-banner');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'hub-match-found-banner';
+    toast.innerHTML = `
+      <div class="hub-mf-title">⚔️ CONVOI EN ROUTE !</div>
+      <div class="hub-mf-desc">Téléportation vers la Citadelle dans <strong>${data.countdownSec}s</strong></div>
+      <div class="hub-mf-crypt">Crypte assignée : Angle #${data.spawnIndex + 1} (${data.totalPlayers} aventurier(s))</div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.remove();
+    }, (data.countdownSec + 1) * 1000);
   }
 
   private saveSkin(): void {

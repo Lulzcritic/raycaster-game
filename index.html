@@ -311,8 +311,41 @@
                     <div id="hub-play-stats-list" class="hub-play-stats-vlist"></div>
 
                     <div class="hub-play-action">
-                      <button id="hub-launch-raid-btn" class="hub-launch-btn" type="button">
-                        ⚔️ ENTRER DANS LA CITADELLE
+                      <!-- Panneau Convoi Multijoueur (Départ cadencé 60s) -->
+                      <div id="hub-multiplayer-panel" class="hub-multiplayer-card">
+                        <div class="hub-multiplayer-header">
+                          <div class="hub-net-status" id="hub-net-status">
+                            <span class="hub-net-dot offline"></span>
+                            <span id="hub-net-status-text">CONNEXION SERVEUR...</span>
+                          </div>
+                          <div class="hub-convoi-timer-badge">
+                            ⏱️ DÉPART DANS : <strong id="hub-convoi-timer">--s</strong>
+                          </div>
+                        </div>
+
+                        <div class="hub-multiplayer-content">
+                          <div class="hub-convoi-info-row">
+                            <span class="hub-convoi-info-label">👤 Aventuriers prêts :</span>
+                            <strong id="hub-convoi-count" class="hub-convoi-count">0 / 4</strong>
+                          </div>
+                          <div id="hub-convoi-roster-preview" class="hub-convoi-roster-preview">
+                            <span class="hub-convoi-empty-hint">Le convoi partira automatiquement à la fin du chrono avec les inscrits.</span>
+                          </div>
+                        </div>
+
+                        <div class="hub-multiplayer-actions">
+                          <button id="hub-join-convoi-btn" class="hub-btn-convoi" type="button">
+                            🤝 S'INSCRIRE AU PROCHAIN CONVOI
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="hub-action-separator">
+                        <span>OU PARTIR SEUL SANS ATTENDRE</span>
+                      </div>
+
+                      <button id="hub-launch-raid-btn" class="hub-launch-btn solo-btn" type="button">
+                        ⚔️ EXPÉDITION EN SOLO
                       </button>
                     </div>
                   </div>

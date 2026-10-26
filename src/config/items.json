@@ -197,5 +197,155 @@
     },
     "effect": "Détecte les coffres les plus proches à travers les murs. Ne peut pas être extrait du niveau.",
     "description": "Créature alchimique tenue en main gauche. Elle frissonne et pointe obstinément vers les coffres cachés. Liée aux énergies des cryptes, elle se dissout si vous tentez de l'extraire du niveau."
+  },
+  {
+    "id": "weapon_gnarled_cemetery_branch",
+    "name": "Branche Noueuse du Cimetière",
+    "slot": "weapon",
+    "rarity": "uncommon",
+    "stats": {
+      "damage": 6,
+      "magicPower": 4,
+      "castSpeed": 0.08
+    },
+    "effect": "Fouette l'air avec le bruit sec d'un os qui craque.",
+    "description": "Arrachée à un if séculaire qui se nourrit des cadavres de la fosse commune. Légèrement gluante de sève pourpre."
+  },
+  {
+    "id": "weapon_crypt_grave_digger_shovel",
+    "name": "Pelle Affûtée du Fossoyeur Fanatique",
+    "slot": "weapon",
+    "rarity": "rare",
+    "stats": {
+      "damage": 9,
+      "defense": 3,
+      "magicPower": 5
+    },
+    "effect": "Les impacts sonnent comme une pelletée de terre fraîche jetée sur un cercueil.",
+    "description": "Le manche est poli par des décennies de besogne nocturne. Le tranchant a décapité plus d'une goule récalcitrante."
+  },
+  {
+    "id": "armor_iron_inquisitor_hauberk",
+    "name": "Haubert d'Inquisiteur Ébréché",
+    "slot": "armor",
+    "rarity": "rare",
+    "stats": {
+      "defense": 8,
+      "maxHealth": 20,
+      "castSpeed": -0.05
+    },
+    "effect": "Les mailles d'acier béni tintent pour dissiper les apparitions spectrales mineures.",
+    "description": "Forgé dans un atelier de pénitence. Porte encore les cicatrices noircies des flammes purificatrices."
+  },
+  {
+    "id": "hat_plague_doctor_beak",
+    "name": "Masque à Bec du Médecin Pestilentiel",
+    "slot": "hat",
+    "rarity": "epic",
+    "stats": {
+      "magicPower": 10,
+      "defense": 5,
+      "stealth": 8,
+      "maxHealth": -10
+    },
+    "effect": "Filtre les miasmes putrides mais vous fait respirer avec un râle d'agonie terrifiant.",
+    "description": "Le cuir bouilli est imbibé de vinaigre des quatre voleurs et d'herbes séchées qui n'ont rien guéri du tout."
+  },
+  {
+    "id": "weapon_soul_reaper_athame",
+    "name": "Athamé du Moissonneur d'Âmes",
+    "slot": "weapon",
+    "rarity": "epic",
+    "stats": {
+      "damage": 13,
+      "magicPower": 8,
+      "castSpeed": 0.12,
+      "stealth": 6
+    },
+    "effect": "Les victimes laissent échapper un gémissement fantomatique qui emplit vos fioles.",
+    "description": "Une dague rituelle en argent noir gravée de runes de reliure spirituelle. Elle vibre d'impatience au contact de la chair."
+  },
+  {
+    "id": "boots_specter_phase_treads",
+    "name": "Bottes de Phase Spectrale",
+    "slot": "boots",
+    "rarity": "epic",
+    "stats": {
+      "moveSpeed": 0.35,
+      "stealth": 12,
+      "defense": 4
+    },
+    "effect": "Laisse une traînée de brume ectoplasmique glaciale qui trouble les poursuivants.",
+    "description": "Tissées avec des linceuls d'âmes en peine. Elles ne touchent jamais tout à fait le sol des cryptes."
+  },
+  {
+    "id": "hat_crown_of_thousand_skulls",
+    "name": "Diadème Cornu du Prince des Morts-Vivants",
+    "slot": "hat",
+    "rarity": "legendary",
+    "stats": {
+      "magicPower": 14,
+      "maxHealth": 35,
+      "defense": 6,
+      "castSpeed": 0.10
+    },
+    "effect": "Une aura de terreur nécrotique émane de votre front, intimidant les monstres proches.",
+    "description": "Couronne forgée dans l'or noirci d'anciennes tombes royales, sertie d'un rubis qui palpite comme un cœur gelé."
+  },
+  {
+    "id": "boots_hellfire_conqueror_greaves",
+    "name": "Grèves de Conquérant du Brasier Maudit",
+    "slot": "boots",
+    "rarity": "legendary",
+    "stats": {
+      "moveSpeed": 0.45,
+      "defense": 8,
+      "damage": 4,
+      "maxHealth": 20
+    },
+    "effect": "Chaque foulée laisse une flaque de braises spectrales sur les dalles sépulcrales.",
+    "description": "D'épaisses plaques de fer forgé dans les flammes des catacombes les plus profondes. Lourdes mais furieusement stables."
+  },
+  {
+    "id": "armor_aegis_of_the_undying",
+    "name": "Cuirasse Titanesque de l'Immorteux",
+    "slot": "armor",
+    "rarity": "artifact",
+    "stats": {
+      "defense": 22,
+      "maxHealth": 55,
+      "magicPower": 8,
+      "moveSpeed": -0.05
+    },
+    "effect": "Une cage thoracique d'obsidienne absorbe les coups mortels et régénère votre souffle vital.",
+    "description": "Forgée avant l'effondrement de la Première Citadelle par des artisans oubliés. Protège son porteur même par-delà le trépas."
+  },
+  {
+    "id": "hat_halo_of_the_void_sovereign",
+    "name": "Auréole Brisée du Souverain du Néant",
+    "slot": "hat",
+    "rarity": "artifact",
+    "stats": {
+      "magicPower": 20,
+      "castSpeed": 0.20,
+      "defense": 10,
+      "stealth": 10
+    },
+    "effect": "Des éclats cosmiques lévitent au-dessus de votre crâne, amplifiant considérablement vos sorts.",
+    "description": "Relique cosmique arrachée à une divinité déchue. Sa lueur violacée résonne avec les lois de l'univers lui-même."
+  },
+  {
+    "id": "boots_void_strider_sandals",
+    "name": "Sandales Célestes de l'Arpenteur Astral",
+    "slot": "boots",
+    "rarity": "artifact",
+    "stats": {
+      "moveSpeed": 0.50,
+      "castSpeed": 0.15,
+      "stealth": 15,
+      "defense": 6
+    },
+    "effect": "Vous marchez sur les courants éthérés, réduisant les frottements physiques à néant.",
+    "description": "Tressées avec des filaments d'étoiles mortes. Marcher avec procure l'impression troublante de glisser au-dessus des siècles."
   }
 ]

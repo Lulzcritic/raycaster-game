@@ -4,6 +4,8 @@ import type {
   ItemStats,
   StatRollRange,
   DifficultyScaling,
+  GearScoreDropTier,
+  RarityDropRate,
 } from '../types';
 import type { Player } from '../entities/Player';
 import { UpgradeManager } from './UpgradeManager';
@@ -17,7 +19,233 @@ const RARITY_BASE_SCORE: Record<ItemRarity, number> = {
   artifact: 280,
 };
 
+export const GEAR_SCORE_RARITY_TABLE: readonly GearScoreDropTier[] = [
+  {
+    minScore: 0,
+    maxScore: 49,
+    label: 'Débutant',
+    rates: {
+      common: 85.0,
+      uncommon: 14.0,
+      rare: 0.95,
+      epic: 0.04,
+      legendary: 0.01,
+      artifact: 0.0,
+    },
+  },
+  {
+    minScore: 50,
+    maxScore: 99,
+    label: 'Novice',
+    rates: {
+      common: 65.0,
+      uncommon: 28.0,
+      rare: 6.0,
+      epic: 0.9,
+      legendary: 0.1,
+      artifact: 0.0,
+    },
+  },
+  {
+    minScore: 100,
+    maxScore: 199,
+    label: 'Initié',
+    rates: {
+      common: 40.0,
+      uncommon: 42.0,
+      rare: 15.0,
+      epic: 2.7,
+      legendary: 0.29,
+      artifact: 0.01,
+    },
+  },
+  {
+    minScore: 200,
+    maxScore: 349,
+    label: 'Aventurier',
+    rates: {
+      common: 20.0,
+      uncommon: 45.0,
+      rare: 26.0,
+      epic: 7.5,
+      legendary: 1.4,
+      artifact: 0.1,
+    },
+  },
+  {
+    minScore: 350,
+    maxScore: 549,
+    label: 'Vétéran',
+    rates: {
+      common: 8.0,
+      uncommon: 30.0,
+      rare: 42.0,
+      epic: 16.0,
+      legendary: 3.6,
+      artifact: 0.4,
+    },
+  },
+  {
+    minScore: 550,
+    maxScore: 799,
+    label: 'Champion',
+    rates: {
+      common: 3.0,
+      uncommon: 17.0,
+      rare: 40.0,
+      epic: 28.0,
+      legendary: 10.5,
+      artifact: 1.5,
+    },
+  },
+  {
+    minScore: 800,
+    maxScore: 1199,
+    label: 'Maître',
+    rates: {
+      common: 1.0,
+      uncommon: 9.0,
+      rare: 30.0,
+      epic: 40.0,
+      legendary: 17.0,
+      artifact: 3.0,
+    },
+  },
+  {
+    minScore: 1200,
+    maxScore: Infinity,
+    label: 'Légende (Endgame)',
+    rates: {
+      common: 0.5,
+      uncommon: 4.5,
+      rare: 20.0,
+      epic: 42.0,
+      legendary: 27.0,
+      artifact: 6.0,
+    },
+  },
+];
+
 export class GearScoreService {
+  /**
+   * Retourne le tableau de progression Gear Score -> Raretés
+   */
+  public static getRarityProgressionTable(): readonly GearScoreDropTier[] {
+    return GEAR_SCORE_RARITY_TABLE;
+  }
+
+  /**
+   * Calcule les pourcentages exacts de chances de drop par rareté pour un Gear Score donné,
+   * avec interpolation continue et scaling infini au-delà de 1200 GS.
+   */
+  public static getRarityDropRates(
+    playerGearScore: number,
+    bonusScore: number = 0
+  ): RarityDropRate {
+    const gs = Math.max(0, playerGearScore + bonusScore);
+
+    // Scaling infini au-delà de 1200 GS
+    if (gs >= 1200) {
+      const extra1k = (gs - 1200) / 1000;
+      const artifact = Math.min(15.0, 6.0 + extra1k * 3.0);
+      const legendary = Math.min(35.0, 27.0 + extra1k * 2.5);
+      const common = Math.max(0.1, 0.5 - extra1k * 0.1);
+      const uncommon = Math.max(0.5, 4.5 - extra1k * 1.0);
+      const remainder = 100 - (artifact + legendary + common + uncommon);
+      const rare = remainder * 0.35;
+      const epic = remainder * 0.65;
+      return { common, uncommon, rare, epic, legendary, artifact };
+    }
+
+    const anchors = [
+      { gs: 25, rates: GEAR_SCORE_RARITY_TABLE[0].rates },
+      { gs: 75, rates: GEAR_SCORE_RARITY_TABLE[1].rates },
+      { gs: 150, rates: GEAR_SCORE_RARITY_TABLE[2].rates },
+      { gs: 275, rates: GEAR_SCORE_RARITY_TABLE[3].rates },
+      { gs: 450, rates: GEAR_SCORE_RARITY_TABLE[4].rates },
+      { gs: 675, rates: GEAR_SCORE_RARITY_TABLE[5].rates },
+      { gs: 1000, rates: GEAR_SCORE_RARITY_TABLE[6].rates },
+      { gs: 1200, rates: GEAR_SCORE_RARITY_TABLE[7].rates },
+    ];
+
+    if (gs <= anchors[0].gs) {
+      return { ...anchors[0].rates };
+    }
+
+    for (let i = 0; i < anchors.length - 1; i++) {
+      const a1 = anchors[i];
+      const a2 = anchors[i + 1];
+      if (gs >= a1.gs && gs <= a2.gs) {
+        const t = (gs - a1.gs) / (a2.gs - a1.gs);
+        return {
+          common: a1.rates.common + (a2.rates.common - a1.rates.common) * t,
+          uncommon: a1.rates.uncommon + (a2.rates.uncommon - a1.rates.uncommon) * t,
+          rare: a1.rates.rare + (a2.rates.rare - a1.rates.rare) * t,
+          epic: a1.rates.epic + (a2.rates.epic - a1.rates.epic) * t,
+          legendary: a1.rates.legendary + (a2.rates.legendary - a1.rates.legendary) * t,
+          artifact: a1.rates.artifact + (a2.rates.artifact - a1.rates.artifact) * t,
+        };
+      }
+    }
+
+    return { ...anchors[anchors.length - 1].rates };
+  }
+
+  /**
+   * Tire une rareté d'objet basée sur le Gear Score actuel du joueur
+   */
+  public static rollRarityForGearScore(
+    playerGearScore: number,
+    bonusScore: number = 0
+  ): ItemRarity {
+    const rates = this.getRarityDropRates(playerGearScore, bonusScore);
+    const roll = Math.random() * 100;
+
+    let cumulative = 0;
+    cumulative += rates.common;
+    if (roll < cumulative) return 'common';
+
+    cumulative += rates.uncommon;
+    if (roll < cumulative) return 'uncommon';
+
+    cumulative += rates.rare;
+    if (roll < cumulative) return 'rare';
+
+    cumulative += rates.epic;
+    if (roll < cumulative) return 'epic';
+
+    cumulative += rates.legendary;
+    if (roll < cumulative) return 'legendary';
+
+    return 'artifact';
+  }
+
+  /**
+   * Tire une rareté garantie Rare ou supérieure (Rare, Épique, Légendaire, Artéfact)
+   * normalisée selon le Gear Score du joueur (pour le Gobelin au Trésor).
+   */
+  public static rollGuaranteedRareRarity(
+    playerGearScore: number,
+    bonusScore: number = 0
+  ): ItemRarity {
+    const rates = this.getRarityDropRates(playerGearScore, bonusScore);
+    const total = rates.rare + rates.epic + rates.legendary + rates.artifact;
+    if (total <= 0) return 'rare';
+
+    const roll = Math.random() * total;
+    let cumulative = 0;
+
+    cumulative += rates.rare;
+    if (roll < cumulative) return 'rare';
+
+    cumulative += rates.epic;
+    if (roll < cumulative) return 'epic';
+
+    cumulative += rates.legendary;
+    if (roll < cumulative) return 'legendary';
+
+    return 'artifact';
+  }
   /**
    * Calcule le score d'équipement intrinsèque d'une pièce d'équipement
    */

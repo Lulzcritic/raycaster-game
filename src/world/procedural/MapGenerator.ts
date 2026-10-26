@@ -5,6 +5,7 @@ import type {
   DoorSpawnData,
   EnemySpawnData,
   EquipmentItem,
+  EquipmentSlot,
   ExtractionSpawnData,
   LevelData,
   SpriteSpawnData,
@@ -677,12 +678,6 @@ export class MapGenerator {
     }
 
     // 6. Placement des modules et gravure dans la grille 71×71
-    const catalogTemplates = [...ItemDatabase.getChestLootPool()];
-    const catalogItems = catalogTemplates.map((tpl) =>
-      GearScoreService.rollItem(tpl, playerGearScore)
-    );
-    let itemCursor = 0;
-
     // A. Placement des 4 cryptes de départ
     for (const corner of cornerSpawns) {
       const rotated = MapGenerator.rotateModule(
@@ -699,11 +694,8 @@ export class MapGenerator {
         sprites,
         extractions,
         chestLoots,
-        catalogItems,
-        itemCursor,
         playerGearScore
       );
-      itemCursor += 2;
 
       // Calcul du point de réveil du joueur dans cette crypte
       if (rotated.spawnPoint) {
@@ -737,11 +729,8 @@ export class MapGenerator {
       sprites,
       extractions,
       chestLoots,
-      catalogItems,
-      itemCursor,
       playerGearScore
     );
-    itemCursor += 2;
 
     // C. Placement des 44 modules de Zone 2 avec rotations aléatoires (0, 90, 180 ou 270°)
     for (const [cx, cy] of zone2Coords) {
@@ -759,11 +748,8 @@ export class MapGenerator {
         sprites,
         extractions,
         chestLoots,
-        catalogItems,
-        itemCursor,
         playerGearScore
       );
-      itemCursor += 3;
     }
 
     // 7. Percement des portes et passages entre les modules connectés
@@ -974,6 +960,67 @@ export class MapGenerator {
   }
 
   /**
+   * Génère le butin dynamique d'un coffre selon son tier et le Gear Score du joueur,
+   * en tirant les raretés depuis la table de progression continue.
+   */
+  private static generateChestLoot(
+    tier: 'starter' | 'standard' | 'high' | 'royal' | undefined,
+    playerGearScore: number,
+    fixedLoot?: string[]
+  ): EquipmentItem[] {
+    const lootList: EquipmentItem[] = [];
+
+    if (fixedLoot) {
+      for (const rawId of fixedLoot) {
+        const tpl = ItemDatabase.getItemById(rawId);
+        if (tpl) {
+          lootList.push(GearScoreService.rollItem(tpl, playerGearScore));
+        }
+      }
+      // 1 objet bonus adapté au Gear Score
+      const bonusRarity = GearScoreService.rollRarityForGearScore(playerGearScore, 0);
+      const bonusTpl = ItemDatabase.getRandomItemByRarity(bonusRarity);
+      if (bonusTpl) {
+        lootList.push(GearScoreService.rollItem(bonusTpl, playerGearScore));
+      }
+      return lootList;
+    }
+
+    let count = 2;
+    let bonusScore = 0;
+
+    if (tier === 'starter') {
+      count = 1;
+      bonusScore = -20;
+    } else if (tier === 'royal') {
+      count = 2;
+      bonusScore = 100;
+    } else if (tier === 'high') {
+      count = 3;
+      bonusScore = 40;
+    } else {
+      count = 2;
+      bonusScore = 0;
+    }
+
+    const standardSlots: EquipmentSlot[] = ['weapon', 'armor', 'hat', 'boots'];
+    const shuffledSlots = [...standardSlots].sort(() => Math.random() - 0.5);
+
+    for (let k = 0; k < count; k++) {
+      const preferredSlot = shuffledSlots[k % shuffledSlots.length];
+      const rarity = GearScoreService.rollRarityForGearScore(playerGearScore, bonusScore);
+      const tpl =
+        ItemDatabase.getRandomItemByRarity(rarity, preferredSlot) ??
+        ItemDatabase.getRandomItemByRarity(rarity);
+      if (tpl) {
+        lootList.push(GearScoreService.rollItem(tpl, playerGearScore));
+      }
+    }
+
+    return lootList;
+  }
+
+  /**
    * Estampe un module 11×11 dans la carte globale à l'emplacement de chunk (cx, cy)
    */
   private static stampModule(
@@ -986,8 +1033,6 @@ export class MapGenerator {
     sprites: SpriteSpawnData[],
     extractions: ExtractionSpawnData[],
     chestLoots: Record<string, EquipmentItem[]>,
-    catalogItems: EquipmentItem[],
-    itemCursor: number,
     playerGearScore: number = 50
   ): void {
     const ox = cx * MapGenerator.CHUNK_STEP;
@@ -1039,58 +1084,11 @@ export class MapGenerator {
         grid[gy][gx] = TILE_TYPE.CHEST;
 
         const keyCoord = `${gx},${gy}`;
-        if (c.fixedLoot) {
-          const lootList: EquipmentItem[] = [];
-          for (const rawId of c.fixedLoot) {
-            const tpl = ItemDatabase.getItemById(rawId);
-            if (tpl) {
-              lootList.push(GearScoreService.rollItem(tpl, playerGearScore));
-            }
-          }
-          const bonusItem =
-            catalogItems[(itemCursor + i) % catalogItems.length] ??
-            catalogItems[0];
-          if (bonusItem) {
-            lootList.push(bonusItem);
-          }
-          chestLoots[keyCoord] = lootList;
-        } else if (c.tier === 'starter') {
-          const starterIds = [
-            'weapon_splintered_apprentice_wand',
-            'armor_tattered_gambeson',
-            'hat_myopic_necromancer',
-            'boots_cobbled_grave_treaders',
-          ];
-          const chosenId = starterIds[Math.floor(Math.random() * starterIds.length)];
-          const tpl = ItemDatabase.getItemById(chosenId);
-          if (tpl) {
-            chestLoots[keyCoord] = [GearScoreService.rollItem(tpl, playerGearScore)];
-          }
-        } else if (c.tier === 'royal') {
-          const royalIds = [
-            'weapon_crooked_phylactery_dagger',
-            'armor_shrunk_black_mass_robe',
-            'weapon_arthritic_lich_staff',
-            'armor_cursed_bone_carapace',
-          ];
-          const tpl1 = ItemDatabase.getItemById(royalIds[(itemCursor + i) % royalIds.length]);
-          const tpl2 = ItemDatabase.getItemById(
-            royalIds[(itemCursor + i + 1) % royalIds.length]
-          );
-          const loot: EquipmentItem[] = [];
-          if (tpl1) loot.push(GearScoreService.rollItem(tpl1, playerGearScore));
-          if (tpl2) loot.push(GearScoreService.rollItem(tpl2, playerGearScore));
-          chestLoots[keyCoord] = loot;
-        } else {
-          // Standard / High tier
-          const count = c.tier === 'high' ? 3 : 2;
-          const loot: EquipmentItem[] = [];
-          for (let k = 0; k < count; k++) {
-            const item = catalogItems[(itemCursor + k) % catalogItems.length];
-            if (item) loot.push(item);
-          }
-          chestLoots[keyCoord] = loot;
-        }
+        chestLoots[keyCoord] = MapGenerator.generateChestLoot(
+          c.tier,
+          playerGearScore,
+          c.fixedLoot
+        );
       }
     }
 

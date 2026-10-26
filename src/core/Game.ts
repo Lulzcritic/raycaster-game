@@ -16,7 +16,12 @@ import { Fireball } from '../entities/Fireball';
 import { Player } from '../entities/Player';
 import { Renderer } from '../graphics/Renderer';
 import { TextureManager } from '../graphics/TextureManager';
-import type { EquipmentItem, LevelData, TextureDefinition } from '../types';
+import type {
+  EquipmentItem,
+  EquipmentSlot,
+  LevelData,
+  TextureDefinition,
+} from '../types';
 import { InteractionPrompt } from '../ui/InteractionPrompt';
 import { PauseMenu } from '../ui/PauseMenu';
 import { MainMenu } from '../ui/MainMenu';
@@ -243,9 +248,8 @@ export class Game {
       ])
     );
 
-    const catalogItems = ItemDatabase.getChestLootPool();
+    const playerGS = this.player ? this.player.getGearScore() : 50;
     let chestIndex = 0;
-    let itemCursor = 0;
 
     // 1. Détection automatique des IDs de tuiles et sprites placés directement dans la grille du niveau
     for (let row = 0; row < level.grid.length; row++) {
@@ -278,12 +282,17 @@ export class Game {
                 (item): item is EquipmentItem =>
                   item !== undefined && item.id !== 'offhand_homonculus'
               );
-          } else if (tileId === TILE_TYPE.CHEST && catalogItems.length > 0) {
+          } else if (tileId === TILE_TYPE.CHEST) {
             const lootCount = chestIndex % 2 === 0 ? 2 : 3;
-            chestLoot = Array.from(
-              { length: lootCount },
-              () => catalogItems[itemCursor++ % catalogItems.length]
-            );
+            const items: EquipmentItem[] = [];
+            for (let k = 0; k < lootCount; k++) {
+              const rarity = GearScoreService.rollRarityForGearScore(playerGS);
+              const tpl = ItemDatabase.getRandomItemByRarity(rarity);
+              if (tpl) {
+                items.push(GearScoreService.rollItem(tpl, playerGS));
+              }
+            }
+            chestLoot = items;
           }
 
           chestIndex++;
@@ -327,15 +336,21 @@ export class Game {
         const lootCount = chestIndex % 2 === 0 ? 2 : 3;
         const singleItem =
           s.item ?? (s.itemId ? ItemDatabase.getItemById(s.itemId) : undefined);
-        // Un coffre ne peut jamais recevoir l'Homonculus ; seuls les sprites d'items libres (s.textureId !== CHEST) portent leur item unique
-        const chestLoot = s.textureId === TILE_TYPE.CHEST
-          ? (catalogItems.length > 0
-              ? Array.from(
-                  { length: lootCount },
-                  () => catalogItems[itemCursor++ % catalogItems.length]
-                )
-              : undefined)
-          : (singleItem ? [singleItem] : undefined);
+
+        let chestLoot: EquipmentItem[] | undefined;
+        if (s.textureId === TILE_TYPE.CHEST) {
+          const items: EquipmentItem[] = [];
+          for (let k = 0; k < lootCount; k++) {
+            const rarity = GearScoreService.rollRarityForGearScore(playerGS);
+            const tpl = ItemDatabase.getRandomItemByRarity(rarity);
+            if (tpl) {
+              items.push(GearScoreService.rollItem(tpl, playerGS));
+            }
+          }
+          chestLoot = items;
+        } else if (singleItem) {
+          chestLoot = [singleItem];
+        }
 
         chestIndex++;
 
@@ -454,44 +469,27 @@ export class Game {
   private generateMerchantItems(x: number, y: number): EquipmentItem[] {
     const center = Math.floor(MapGenerator.DEFAULT_SIZE / 2);
     const distFromCenter = Math.hypot(x - center, y - center);
-    const pool = [...ItemDatabase.getChestLootPool()];
+    const playerGs = this.player ? this.player.getGearScore() : 50;
 
-    // Zone 3 (Sanctuaire central, r <= 6) : privilégie les objets rares, épiques, légendaires et artéfacts
-    if (distFromCenter <= 6) {
-      const rarityRank: Record<string, number> = {
-        artifact: 5,
-        legendary: 4,
-        epic: 3,
-        rare: 2,
-        uncommon: 1,
-        common: 0,
-      };
-      pool.sort((a, b) => (rarityRank[b.rarity] ?? 0) - (rarityRank[a.rarity] ?? 0));
-    } else {
-      // Zone 2 : mélange aléatoire
-      pool.sort(() => Math.random() - 0.5);
-    }
+    // Bonus pour le marchand plus proche du sanctuaire central (Zone 3)
+    const bonusScore = distFromCenter <= 12 ? 40 : 0;
+
+    const standardSlots: EquipmentSlot[] = ['weapon', 'armor', 'hat', 'boots'];
+    const shuffledSlots = [...standardSlots].sort(() => Math.random() - 0.5);
 
     const chosen: EquipmentItem[] = [];
-    const usedSlots = new Set<string>();
-
-    for (const item of pool) {
-      if (chosen.length >= 3) break;
-      if (!usedSlots.has(item.slot)) {
-        chosen.push(item);
-        usedSlots.add(item.slot);
+    for (let i = 0; i < 3; i++) {
+      const slot = shuffledSlots[i % shuffledSlots.length];
+      const rarity = GearScoreService.rollRarityForGearScore(playerGs, bonusScore);
+      const tpl =
+        ItemDatabase.getRandomItemByRarity(rarity, slot) ??
+        ItemDatabase.getRandomItemByRarity(rarity);
+      if (tpl) {
+        chosen.push(GearScoreService.rollItem(tpl, playerGs));
       }
     }
 
-    for (const item of pool) {
-      if (chosen.length >= 3) break;
-      if (!chosen.includes(item)) {
-        chosen.push(item);
-      }
-    }
-
-    const playerGs = this.player.getGearScore();
-    return chosen.map((item) => GearScoreService.rollItem(item, playerGs));
+    return chosen;
   }
 
   public startNewExtractionMatch(): void {

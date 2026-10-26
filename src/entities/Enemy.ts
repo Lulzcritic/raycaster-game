@@ -357,9 +357,12 @@ export class Enemy extends Entity {
         }
 
         // 2. Butin au moins RARE garanti (rare, epic, legendary, artifact)
-        const rarePool = ItemDatabase.getRareOrBetterLootPool();
-        if (rarePool.length > 0) {
-          const rawPrize = rarePool[Math.floor(Math.random() * rarePool.length)];
+        // La rareté est pondérée dynamiquement selon le Gear Score du joueur
+        const prizeRarity = GearScoreService.rollGuaranteedRareRarity(
+          this.player.getGearScore()
+        );
+        const rawPrize = ItemDatabase.getRandomItemByRarity(prizeRarity);
+        if (rawPrize) {
           const prize = GearScoreService.rollItem(
             rawPrize,
             this.player.getGearScore()

@@ -26,6 +26,22 @@ export type ItemRarity =
   | 'legendary'
   | 'artifact';
 
+export interface RarityDropRate {
+  common: number;
+  uncommon: number;
+  rare: number;
+  epic: number;
+  legendary: number;
+  artifact: number;
+}
+
+export interface GearScoreDropTier {
+  minScore: number;
+  maxScore: number;
+  label: string;
+  rates: RarityDropRate;
+}
+
 export interface ItemStats {
   damage?: number;
   defense?: number;

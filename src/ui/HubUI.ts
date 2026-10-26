@@ -130,9 +130,12 @@ export class HubUI {
     this.shopItemsListContainer = document.getElementById('hub-shop-items-list');
     this.questsListContainer = document.getElementById('hub-quests-list');
 
-    // Initialisation du fond d'écran
+    // Initialisation du fond d'écran (gardé dans son entièreté sans zoom/crop)
     if (this.hubElement) {
-      this.hubElement.style.backgroundImage = `linear-gradient(rgba(10, 6, 18, 0.2), rgba(8, 4, 14, 0.5)), url('${hubBgUrl}')`;
+      this.hubElement.style.backgroundImage = `linear-gradient(rgba(10, 6, 18, 0.15), rgba(8, 4, 14, 0.4)), url('${hubBgUrl}')`;
+      this.hubElement.style.backgroundSize = '100% 100%';
+      this.hubElement.style.backgroundPosition = 'center';
+      this.hubElement.style.backgroundRepeat = 'no-repeat';
     }
 
     if (this.coinIcon) {

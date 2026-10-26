@@ -194,6 +194,7 @@ export class HubUI {
     StashManager.init();
 
     this.hubElement.classList.remove('hidden');
+    this.hubElement.style.display = 'flex';
     this.updateWalletDisplay();
     this.switchTab(tab);
     this.renderAvatar();
@@ -201,7 +202,10 @@ export class HubUI {
 
   public hide(): void {
     ItemTooltip.getInstance().hide();
-    this.hubElement?.classList.add('hidden');
+    if (this.hubElement) {
+      this.hubElement.classList.add('hidden');
+      this.hubElement.style.display = 'none';
+    }
   }
 
   public isVisible(): boolean {
@@ -493,6 +497,17 @@ export class HubUI {
         `
         )
         .join('');
+    }
+
+    // 3. Liaison du bouton de lancement de raid
+    const launchBtn = document.getElementById('hub-launch-raid-btn');
+    if (launchBtn) {
+      launchBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ItemTooltip.getInstance().hide();
+        this.onStartRaidCallback?.();
+      };
     }
   }
 

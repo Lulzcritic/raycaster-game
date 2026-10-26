@@ -135,6 +135,7 @@ export class InputManager {
 
   public lockPointer(): void {
     if (document.pointerLockElement !== this.canvas) {
+      this.canvas.focus();
       this.canvas.requestPointerLock();
     }
   }

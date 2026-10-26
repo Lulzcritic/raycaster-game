@@ -514,9 +514,11 @@ export class Game {
   public startRaidFromHub(): void {
     WalletManager.resetSessionCoins();
     this.isInHub = false;
-    this.hubUI.hide();
-    this.startNewExtractionMatch();
     this.isInMainMenu = false;
+    this.hubUI.hide();
+    this.mainMenu.hide();
+    this.pauseMenu.hide();
+    this.startNewExtractionMatch();
     this.isPaused = false;
     this.worldBillboardOverlay.setVisible(true);
     this.hudOverlay.setVisible(true);

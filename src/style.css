@@ -442,6 +442,30 @@ body {
   transition: opacity 0.12s ease-out;
 }
 
+/* Infobulle d'item du Hub suivant le curseur de la souris */
+.world-item-card.hub-item-tooltip {
+  position: fixed !important;
+  z-index: 99999 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  margin: 0 !important;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s ease-out, visibility 0.1s ease-out;
+  box-shadow:
+    0 0 0 2px #000000,
+    inset 0 0 0 2px #0a0814,
+    6px 6px 0 rgba(0, 0, 0, 0.85),
+    0 14px 34px rgba(0, 0, 0, 0.95) !important;
+}
+
+.world-item-card.hub-item-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
 .world-card-icon-wrapper {
   width: 46px;
   height: 46px;

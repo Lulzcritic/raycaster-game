@@ -5,27 +5,11 @@ import { DroppedItemOrb } from '../entities/DroppedItemOrb';
 import { Enemy } from '../entities/Enemy';
 import { ExtractionPortal } from '../entities/ExtractionPortal';
 import { Merchant } from '../entities/Merchant';
-import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
-import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
+import { createItemCardElement } from './ItemTooltip';
 import { TILE_TYPE } from '../config/constants';
 import type { Player } from '../entities/Player';
 import type { Renderer } from '../graphics/Renderer';
-import type { EquipmentItem, ItemStats } from '../types';
-
-const STAT_LABELS: Array<{
-  key: keyof ItemStats;
-  label: string;
-  isMultiplier?: boolean;
-}> = [
-  { key: 'damage', label: 'Degats' },
-  { key: 'magicPower', label: 'Puissance magique' },
-  { key: 'defense', label: 'Defense' },
-  { key: 'maxHealth', label: 'Sante max' },
-  { key: 'moveSpeed', label: 'Vitesse de deplacement', isMultiplier: true },
-  { key: 'castSpeed', label: "Vitesse d'incantation", isMultiplier: true },
-  { key: 'stealth', label: 'Discretion' },
-  { key: 'charisma', label: 'Charisme' },
-];
+import type { EquipmentItem } from '../types';
 
 /**
  * Gestionnaire d'affichage haute résolution dans le monde 3D :
@@ -848,83 +832,7 @@ export class WorldBillboardOverlay {
   }
 
   private createCardElement(item: EquipmentItem): HTMLElement {
-    const card = document.createElement('div');
-    card.className = 'world-item-card';
-
-    const rarityColor = RARITY_COLORS[item.rarity] ?? RARITY_COLORS.common;
-    card.style.borderColor = rarityColor;
-    card.style.boxShadow = `0 0 0 2px #000, inset 0 0 0 2px #0a0814, 5px 5px 0 #000`;
-
-    // 1. Image de l'item en haut
-    const iconWrapper = document.createElement('div');
-    iconWrapper.className = 'world-card-icon-wrapper';
-    iconWrapper.style.borderColor = rarityColor;
-    iconWrapper.style.boxShadow = `0 0 0 2px #000, inset 0 0 0 1px #000, 3px 3px 0 #000`;
-
-    const iconCanvas = document.createElement('canvas');
-    iconCanvas.className = 'world-card-icon';
-    iconCanvas.width = 36;
-    iconCanvas.height = 36;
-    ItemSpriteManager.renderToCanvas(iconCanvas, item);
-    iconWrapper.appendChild(iconCanvas);
-    card.appendChild(iconWrapper);
-
-    // 2. Nom de l'item avec la couleur liée à sa rareté
-    const nameEl = document.createElement('div');
-    nameEl.className = 'world-card-name';
-    nameEl.textContent = item.name;
-    nameEl.style.color = rarityColor;
-    card.appendChild(nameEl);
-
-    // Badge de rareté rétro pixel-art
-    const badgeEl = document.createElement('div');
-    badgeEl.className = 'world-card-rarity';
-    badgeEl.textContent = `[ ${RARITY_LABELS[item.rarity] ?? 'OBJET'} ]`;
-    badgeEl.style.color = rarityColor;
-    badgeEl.style.borderColor = rarityColor;
-    card.appendChild(badgeEl);
-
-    // 3. Stats de l'item en blanc
-    const statsContainer = document.createElement('div');
-    statsContainer.className = 'world-card-stats';
-
-    let hasStat = false;
-    for (const statDef of STAT_LABELS) {
-      const rawValue = item.stats[statDef.key];
-      if (rawValue === undefined || rawValue === 0) {
-        continue;
-      }
-      hasStat = true;
-      const line = document.createElement('div');
-      line.className = 'world-card-stat-line';
-      const sign = rawValue > 0 ? '+' : '';
-      line.textContent = statDef.isMultiplier
-        ? `${sign}${Math.round(rawValue * 100)}% ${statDef.label}`
-        : `${sign}${rawValue} ${statDef.label}`;
-      statsContainer.appendChild(line);
-    }
-
-    if (hasStat) {
-      card.appendChild(statsContainer);
-    }
-
-    // 4. Effet de l'item en vert s'il en a un
-    if (item.effect && item.effect.trim().length > 0) {
-      const effectEl = document.createElement('div');
-      effectEl.className = 'world-card-effect';
-      effectEl.innerHTML = `<span class="world-card-effect-tag">✦ Effet :</span> ${item.effect}`;
-      card.appendChild(effectEl);
-    }
-
-    // 5. Petite description en jaune
-    if (item.description && item.description.trim().length > 0) {
-      const descEl = document.createElement('div');
-      descEl.className = 'world-card-description';
-      descEl.textContent = `« ${item.description} »`;
-      card.appendChild(descEl);
-    }
-
-    return card;
+    return createItemCardElement(item);
   }
 
   // =========================================================================

@@ -12,6 +12,7 @@ import { QuestManager } from '../core/QuestManager';
 import { StashManager } from '../core/StashManager';
 import { ItemDatabase } from '../config/ItemDatabase';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
+import { ItemTooltip } from './ItemTooltip';
 import type { Player } from '../entities/Player';
 import type { EquipmentItem, EquipmentSlot } from '../types';
 
@@ -199,6 +200,7 @@ export class HubUI {
   }
 
   public hide(): void {
+    ItemTooltip.getInstance().hide();
     this.hubElement?.classList.add('hidden');
   }
 
@@ -211,6 +213,7 @@ export class HubUI {
   }
 
   public switchTab(tab: HubTab): void {
+    ItemTooltip.getInstance().hide();
     this.currentTab = tab;
 
     // Mise à jour des boutons de navigation
@@ -261,11 +264,13 @@ export class HubUI {
 
     // Lancement du raid
     this.launchRaidBtn?.addEventListener('click', () => {
+      ItemTooltip.getInstance().hide();
       this.onStartRaidCallback?.();
     });
 
     // Retour au menu principal
     this.menuBtn?.addEventListener('click', () => {
+      ItemTooltip.getInstance().hide();
       this.onReturnToMenuCallback?.();
     });
 
@@ -281,6 +286,15 @@ export class HubUI {
       this.saveSkin();
       this.renderAvatar();
     });
+
+    // Infobulles d'objets suivant le curseur sur les équipements du menu Jouer
+    const playSlots: EquipmentSlot[] = ['hat', 'weapon', 'armor', 'boots', 'offhand'];
+    for (const slot of playSlots) {
+      const slotEl = this.playBodySlots[slot];
+      if (slotEl) {
+        ItemTooltip.getInstance().attach(slotEl, () => this.player?.inventory.getItem(slot));
+      }
+    }
 
     // Écoute des variations du solde de pièces
     WalletManager.subscribe(() => {
@@ -398,7 +412,7 @@ export class HubUI {
       const rarityClass = item ? `rarity-${item.rarity}` : 'empty';
 
       container.className = `hub-play-body-slot slot-${slot} ${rarityClass}`;
-      container.title = item ? `${item.name} (${SLOT_LABELS[slot]}) - Cliquez pour aller à l'équipement` : `${SLOT_LABELS[slot]} (Vide) - Cliquez pour équiper`;
+      container.title = '';
       container.innerHTML = `
         <div class="hub-body-slot-badge">${SLOT_LABELS[slot]}</div>
         <div class="hub-body-slot-icon-box">
@@ -415,6 +429,7 @@ export class HubUI {
       `;
 
       container.onclick = () => {
+        ItemTooltip.getInstance().hide();
         this.switchTab('equipment');
       };
     }
@@ -514,9 +529,11 @@ export class HubUI {
         `;
 
         if (item) {
+          ItemTooltip.getInstance().attach(card, () => this.player?.inventory.getItem(slot));
           const unequipBtn = card.querySelector('.hub-unequip-btn');
           unequipBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
+            ItemTooltip.getInstance().hide();
             const removed = this.player?.inventory.unequip(slot);
             if (removed) {
               StashManager.addItem(removed);
@@ -561,8 +578,11 @@ export class HubUI {
             <button class="hub-equip-btn" type="button">ÉQUIPER</button>
           `;
 
+          ItemTooltip.getInstance().attach(itemCard, () => item);
+
           const equipBtn = itemCard.querySelector('.hub-equip-btn');
           equipBtn?.addEventListener('click', () => {
+            ItemTooltip.getInstance().hide();
             const removed = StashManager.removeItem(item.id);
             if (removed && this.player) {
               const previous = this.player.pickupItem(removed);

@@ -41,6 +41,13 @@ export class InputManager {
         return;
       }
 
+      if (
+        document.activeElement &&
+        (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')
+      ) {
+        return;
+      }
+
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (e.type === 'keydown') {
         if (!e.repeat && !this.keyPressed.get(key)) {
@@ -57,11 +64,25 @@ export class InputManager {
       if (this.paused) {
         return;
       }
+
+      if (
+        document.activeElement &&
+        (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')
+      ) {
+        return;
+      }
       this.mouseDeltaX += e.movementX;
     };
 
     this.handleMouseDown = (e: MouseEvent) => {
       if (this.paused) {
+        return;
+      }
+
+      if (
+        document.activeElement &&
+        (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')
+      ) {
         return;
       }
 

@@ -3,6 +3,7 @@ import { RARITY_COLORS } from '../entities/ItemCardBillboard';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 import { WalletManager } from '../core/WalletManager';
+import type { SquadSummaryPayload } from '../types/network';
 
 const SLOT_NAMES: Record<string, string> = {
   weapon: 'ARME',
@@ -34,15 +35,21 @@ export class HUDOverlay {
   private readonly extractionStats: HTMLElement | null;
   private readonly extractionLootList: HTMLElement | null;
   private readonly extractionRestartBtn: HTMLElement | null;
+  private readonly extractionSquadSection: HTMLElement | null;
 
   private readonly deathScreen: HTMLElement | null;
   private readonly deathRespawnBtn: HTMLElement | null;
+  private readonly deathSpectateBtn: HTMLElement | null;
+  private readonly deathSquadSection: HTMLElement | null;
+
+  private readonly spectatorBanner: HTMLElement | null;
+  private readonly spectatorTargetName: HTMLElement | null;
 
   private isExtractedScreenShown = false;
   private isDeathScreenShown = false;
   private isPaused = false;
 
-  constructor(onRestart: () => void) {
+  constructor(onRestart: () => void, onSpectate?: () => void) {
     this.playerHud = document.getElementById('player-hud');
     this.healthFill = document.getElementById('hud-health-fill');
     this.healthText = document.getElementById('hud-health-text');
@@ -66,9 +73,21 @@ export class HUDOverlay {
     this.extractionStats = document.getElementById('extraction-stats');
     this.extractionLootList = document.getElementById('extraction-loot-list');
     this.extractionRestartBtn = document.getElementById('extraction-restart-btn');
+    this.extractionSquadSection = document.getElementById('extraction-squad-section');
 
     this.deathScreen = document.getElementById('death-screen');
     this.deathRespawnBtn = document.getElementById('death-respawn-btn');
+    this.deathSpectateBtn = document.getElementById('death-spectate-btn');
+    this.deathSquadSection = document.getElementById('death-squad-section');
+
+    this.spectatorBanner = document.getElementById('spectator-banner');
+    this.spectatorTargetName = document.getElementById('spectator-target-name');
+
+    if (this.deathSpectateBtn && onSpectate) {
+      this.deathSpectateBtn.addEventListener('click', () => {
+        onSpectate();
+      });
+    }
 
     if (this.extractionRestartBtn) {
       this.extractionRestartBtn.addEventListener('click', () => {
@@ -91,6 +110,8 @@ export class HUDOverlay {
     this.lastCoins = -1;
     this.extractionScreen?.classList.add('hidden');
     this.deathScreen?.classList.add('hidden');
+    this.deathSpectateBtn?.classList.add('hidden');
+    this.hideSpectatorBanner();
     this.spellPrimaryOverlay?.classList.add('hidden');
     this.spellPrimarySlot?.classList.remove('on-cooldown');
     this.spellCooldownOverlay?.classList.add('hidden');
@@ -104,9 +125,22 @@ export class HUDOverlay {
     player: Player,
     raidTimerSec: number,
     isExtracted: boolean,
-    lostHomonculusOnExtract = false
+    lostHomonculusOnExtract = false,
+    squadSummary?: SquadSummaryPayload | null,
+    canSpectate = false,
+    isSpectating = false
   ): void {
     const isAlive = player.isAlive();
+
+    // Mode spectateur actif (Phase 4)
+    if (isSpectating) {
+      this.deathScreen?.classList.add('hidden');
+      this.extractionScreen?.classList.add('hidden');
+      if (this.playerHud) this.playerHud.style.display = 'none';
+      return;
+    }
+
+    this.hideSpectatorBanner();
 
     // 1. Écran de Mort
     if (!isAlive && !isExtracted) {
@@ -114,6 +148,12 @@ export class HUDOverlay {
         this.isDeathScreenShown = true;
         this.deathScreen?.classList.remove('hidden');
         if (this.playerHud) this.playerHud.style.display = 'none';
+      }
+      this.renderSquadSection(this.deathSquadSection, squadSummary);
+      if (canSpectate) {
+        this.deathSpectateBtn?.classList.remove('hidden');
+      } else {
+        this.deathSpectateBtn?.classList.add('hidden');
       }
       return;
     }
@@ -131,6 +171,7 @@ export class HUDOverlay {
         this.extractionScreen?.classList.remove('hidden');
         if (this.playerHud) this.playerHud.style.display = 'none';
       }
+      this.renderSquadSection(this.extractionSquadSection, squadSummary);
       return;
     }
 
@@ -327,5 +368,57 @@ export class HUDOverlay {
         this.extractionLootList.appendChild(emptyNotice);
       }
     }
+  }
+
+  public renderSquadSection(
+    container: HTMLElement | null,
+    squadSummary?: SquadSummaryPayload | null
+  ): void {
+    if (!container || !squadSummary || squadSummary.players.length === 0) {
+      if (container) container.classList.add('hidden');
+      return;
+    }
+
+    container.classList.remove('hidden');
+    container.innerHTML = `
+      <div class="extraction-loot-title" style="margin-top: 12px; margin-bottom: 8px;">--- BILAN DE L'ESCOUADE ---</div>
+      <div class="extraction-squad-grid" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+        ${squadSummary.players
+          .map((p) => {
+            const isExt = p.status === 'extracted';
+            const isDead = p.status === 'dead';
+            const statusHtml = isExt
+              ? `<span style="color: #34d399; font-weight: bold;">🏆 EXTRAIT (${p.portalName ?? 'Portail'})</span>`
+              : isDead
+              ? `<span style="color: #f87171; font-weight: bold;">💀 MORT</span>`
+              : `<span style="color: #60a5fa; font-weight: bold;">⚔️ EN DONJON</span>`;
+
+            return `
+              <div class="extraction-squad-card ${p.status}" style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 12, 28, 0.7); border: 1px solid rgba(255, 255, 255, 0.15); padding: 6px 12px;">
+                <div class="squad-card-name" style="font-weight: bold; color: #e0e7ff;">
+                  🧙 ${p.name} <span style="color: #facc15; font-size: 11px; margin-left: 6px;">⭐ ${p.gearScore}</span>
+                </div>
+                <div class="squad-card-status" style="font-size: 12px;">${statusHtml}</div>
+              </div>
+            `;
+          })
+          .join('')}
+      </div>
+    `;
+  }
+
+  public showSpectatorBanner(targetName: string): void {
+    if (this.spectatorBanner) {
+      this.spectatorBanner.classList.remove('hidden');
+    }
+    if (this.spectatorTargetName) {
+      this.spectatorTargetName.textContent = targetName;
+    }
+    this.deathScreen?.classList.add('hidden');
+    this.extractionScreen?.classList.add('hidden');
+  }
+
+  public hideSpectatorBanner(): void {
+    this.spectatorBanner?.classList.add('hidden');
   }
 }

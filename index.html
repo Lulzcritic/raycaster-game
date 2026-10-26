@@ -60,6 +60,7 @@
         <h1 class="pause-title extraction-title">👑 EXTRACTION REUSSIE ! 👑</h1>
         <p class="extraction-subtitle">Vous avez survécu et sécurisé votre butin.</p>
         <div id="extraction-stats" class="extraction-stats"></div>
+        <div id="extraction-squad-section" class="extraction-squad-section hidden"></div>
         <div class="extraction-loot-title">--- BUTIN EXTRAIT DU DONJON ---</div>
         <div id="extraction-loot-list" class="extraction-loot-list"></div>
         <button id="extraction-restart-btn" class="pause-btn extraction-restart-btn" type="button">RETOURNER AU CAMPEMENT [R]</button>
@@ -68,9 +69,23 @@
 
     <div id="death-screen" class="pause-menu hidden">
       <div class="pause-box death-box">
-        <h1 class="pause-title death-title">💀 VOUS ETES MORT</h1>
-        <p class="death-subtitle">La gelatine sombre vous a terrasse...</p>
-        <button id="death-respawn-btn" class="pause-btn death-respawn-btn" type="button">RETOURNER AU CAMPEMENT [R]</button>
+        <h1 class="pause-title death-title">💀 VOUS ÊTES MORT</h1>
+        <p class="death-subtitle">La Citadelle a réclamé votre âme...</p>
+        <div id="death-squad-section" class="extraction-squad-section hidden"></div>
+        <div class="death-buttons-row" style="display: flex; gap: 10px; width: 100%;">
+          <button id="death-spectate-btn" class="pause-btn death-spectate-btn hidden" type="button" style="background: #4338ca; border-color: #818cf8;">👁️ REGARDER L'ESCOUADE [V]</button>
+          <button id="death-respawn-btn" class="pause-btn death-respawn-btn" type="button">RETOURNER AU CAMPEMENT [R]</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bannière Mode Spectateur -->
+    <div id="spectator-banner" class="spectator-banner hidden">
+      <div class="spectator-banner-content">
+        <span class="spectator-icon">👁️</span>
+        <span class="spectator-title">MODE SPECTATEUR :</span>
+        <span id="spectator-target-name" class="spectator-target-name">Aventurier</span>
+        <span class="spectator-help">(Flèches [◀] / [▶] pour changer d'équipier | [R] Retour au campement)</span>
       </div>
     </div>
 

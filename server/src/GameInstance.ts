@@ -1,6 +1,7 @@
 import type { WebSocket } from 'ws';
 import type {
   BossDefeatedPayload,
+  ChatMessagePayload,
   ChestOpenedPayload,
   DoorOpenedPayload,
   InstancePlayersPayload,
@@ -14,6 +15,7 @@ import type {
   PlayerShootPayload,
   PlayerUpdatePayload,
   RemoteBossDefeatedPayload,
+  RemoteChatMessagePayload,
   RemoteChestOpenedPayload,
   RemoteDoorOpenedPayload,
   RemoteItemDroppedPayload,
@@ -23,6 +25,8 @@ import type {
   RemotePlayerExtractedPayload,
   RemotePlayerPingPayload,
   RemoteShootPayload,
+  SquadMemberSummary,
+  SquadSummaryPayload,
 } from '../../src/types/network';
 
 export interface PlayerSession {
@@ -39,6 +43,9 @@ export interface PlayerSession {
   isAttacking: boolean;
   hp: number;
   maxHp: number;
+  status: 'in_raid' | 'extracted' | 'dead';
+  portalName?: string;
+  coins: number;
   lastUpdate: number;
 }
 
@@ -84,6 +91,7 @@ export class GameInstance {
 
     // Démarrage de la boucle de synchronisation temps réel (20 Hz / 50ms)
     this.tickInterval = setInterval(() => this.tick(), 50);
+    this.broadcastSquadSummary();
   }
 
   private tick(): void {
@@ -117,6 +125,14 @@ export class GameInstance {
   private broadcastToOthers(senderWs: WebSocket, message: string): void {
     for (const p of this.players) {
       if (p.ws !== senderWs && p.ws.readyState === p.ws.OPEN) {
+        p.ws.send(message);
+      }
+    }
+  }
+
+  private broadcastToAll(message: string): void {
+    for (const p of this.players) {
+      if (p.ws.readyState === p.ws.OPEN) {
         p.ws.send(message);
       }
     }
@@ -220,18 +236,27 @@ export class GameInstance {
     const player = this.players.find((p) => p.ws === ws);
     if (!player) return;
 
+    player.status = 'extracted';
+    player.portalName = payload.portalName;
+    player.coins = payload.coins ?? player.coins;
+
     const remotePayload: RemotePlayerExtractedPayload = {
       playerId: player.id,
       playerName: player.name,
       portalName: payload.portalName,
+      coins: player.coins,
     };
 
     this.broadcastToOthers(ws, JSON.stringify({ type: 'REMOTE_PLAYER_EXTRACTED', payload: remotePayload }));
+    this.broadcastSquadSummary();
   }
 
   public handlePlayerDied(ws: WebSocket, payload: PlayerDiedPayload): void {
     const player = this.players.find((p) => p.ws === ws);
     if (!player) return;
+
+    player.status = 'dead';
+    player.hp = 0;
 
     const remotePayload: RemotePlayerDiedPayload = {
       playerId: player.id,
@@ -242,6 +267,7 @@ export class GameInstance {
     };
 
     this.broadcastToOthers(ws, JSON.stringify({ type: 'REMOTE_PLAYER_DIED', payload: remotePayload }));
+    this.broadcastSquadSummary();
   }
 
   public handleBossDefeated(ws: WebSocket, payload: BossDefeatedPayload): void {
@@ -267,6 +293,37 @@ export class GameInstance {
     this.broadcastToOthers(ws, JSON.stringify({ type: 'REMOTE_PLAYER_PING', payload: remotePayload }));
   }
 
+  public handleChatMessage(ws: WebSocket, payload: ChatMessagePayload): void {
+    const sender = this.players.find((p) => p.ws === ws);
+    if (!sender) return;
+
+    const remotePayload: RemoteChatMessagePayload = {
+      senderId: sender.id,
+      senderName: sender.name,
+      text: payload.text,
+      timestamp: Date.now(),
+      isSystem: false,
+    };
+
+    // Le message de chat est diffusé à TOUS les joueurs (y compris l'expéditeur pour confirmation)
+    this.broadcastToAll(JSON.stringify({ type: 'REMOTE_CHAT_MESSAGE', payload: remotePayload }));
+  }
+
+  public broadcastSquadSummary(): void {
+    const squadMembers: SquadMemberSummary[] = this.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      skinId: p.skinId,
+      gearScore: p.gearScore,
+      status: p.status,
+      portalName: p.portalName,
+      coins: p.coins,
+    }));
+
+    const payload: SquadSummaryPayload = { players: squadMembers };
+    this.broadcastToAll(JSON.stringify({ type: 'SQUAD_SUMMARY', payload }));
+  }
+
   public removePlayer(playerId: string): void {
     const idx = this.players.findIndex((p) => p.id === playerId);
     if (idx !== -1) {
@@ -282,6 +339,7 @@ export class GameInstance {
           p.ws.send(leftMsg);
         }
       }
+      this.broadcastSquadSummary();
     }
 
     if (this.players.length === 0) {

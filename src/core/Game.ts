@@ -29,6 +29,9 @@ import { HubUI } from '../ui/HubUI';
 import { WorldBillboardOverlay } from '../ui/WorldBillboardOverlay';
 import { HUDOverlay } from '../ui/HUDOverlay';
 import { PlayerHandOverlay } from '../ui/PlayerHandOverlay';
+import { ChatUI } from '../ui/ChatUI';
+import { SquadHUD } from '../ui/SquadHUD';
+import type { SquadSummaryPayload } from '../types/network';
 import { GameMap } from '../world/GameMap';
 import { MapGenerator } from '../world/procedural/MapGenerator';
 import { DroppedItemOrb } from '../entities/DroppedItemOrb';
@@ -84,13 +87,18 @@ export class Game {
   private lostHomonculusOnExtract = false;
   private lastHitWaveId = -1;
 
-  // Multijoueur temps réel (Phase 2 & Phase 3)
+  // Multijoueur temps réel (Phases 2, 3, 4)
   private currentInstanceId: string | null = null;
   private localPlayerId: string | null = null;
   private networkTickTimer = 0;
   private readonly remotePlayers = new Map<string, RemotePlayer>();
   private hasSentDeathNotification = false;
   private hasSentBossDefeated = false;
+  private readonly chatUI: ChatUI;
+  private readonly squadHUD: SquadHUD;
+  private currentSquadSummary: SquadSummaryPayload | null = null;
+  private isSpectating = false;
+  private spectatedPlayerIndex = 0;
 
   constructor(canvas: HTMLCanvasElement, initialLevel?: LevelData) {
     const startLevel = initialLevel ?? MapGenerator.generate();
@@ -99,9 +107,22 @@ export class Game {
     const initialFovDeg =
       !Number.isNaN(savedFov) && savedFov >= 60 && savedFov <= 110 ? savedFov : 75;
 
+    this.squadHUD = new SquadHUD();
+    this.chatUI = new ChatUI((text) => {
+      if (this.currentInstanceId) {
+        NetworkClient.getInstance().sendChatMessage({
+          instanceId: this.currentInstanceId,
+          text,
+        });
+      }
+    });
+
     this.interactionPrompt = new InteractionPrompt();
     this.worldBillboardOverlay = new WorldBillboardOverlay();
-    this.hudOverlay = new HUDOverlay(() => this.returnToHub());
+    this.hudOverlay = new HUDOverlay(
+      () => this.returnToHub(),
+      () => this.startSpectatorMode()
+    );
     this.playerHandOverlay = new PlayerHandOverlay();
     this.merchantUI = new MerchantUI();
     this.mainMenu = new MainMenu(
@@ -297,6 +318,7 @@ export class Game {
         remote.active = false;
         this.remotePlayers.delete(data.playerId);
         this.interactionPrompt.showNotification(`👤 ${remote.name} a quitté la Citadelle.`);
+        this.chatUI.addMessage('SYSTÈME', `👤 ${remote.name} a quitté la Citadelle.`, true);
       }
     });
 
@@ -336,11 +358,11 @@ export class Game {
         }
       }
 
-      this.interactionPrompt.showNotification(
-        data.isMimic
-          ? `⚠️ ${data.openerName.toUpperCase()} A RÉVEILLÉ UN MIMIC !`
-          : `🎁 ${data.openerName.toUpperCase()} A OUVERT UN COFFRE !`
-      );
+      const notif = data.isMimic
+        ? `⚠️ ${data.openerName.toUpperCase()} A RÉVEILLÉ UN MIMIC !`
+        : `🎁 ${data.openerName.toUpperCase()} A OUVERT UN COFFRE !`;
+      this.interactionPrompt.showNotification(notif);
+      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemoteItemPickedUp((data) => {
@@ -358,9 +380,9 @@ export class Game {
         orb.active = false;
       }
 
-      this.interactionPrompt.showNotification(
-        `💎 ${data.pickerName} A RAMASSÉ : ${data.itemName.toUpperCase()} !`
-      );
+      const notif = `💎 ${data.pickerName} A RAMASSÉ : ${data.itemName.toUpperCase()} !`;
+      this.interactionPrompt.showNotification(notif);
+      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemoteItemDropped((data) => {
@@ -380,9 +402,9 @@ export class Game {
       this.attachItemOrbCallbacks(orb);
       this.entities.push(orb);
 
-      this.interactionPrompt.showNotification(
-        `📦 ${data.dropperName} A LAISSÉ : ${data.item.name.toUpperCase()} AU SOL.`
-      );
+      const notif = `📦 ${data.dropperName} A DÉPOSÉ : ${data.item.name.toUpperCase()} AU SOL.`;
+      this.interactionPrompt.showNotification(notif);
+      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemoteDoorOpened((data) => {
@@ -399,9 +421,9 @@ export class Game {
         door.openFromRemote();
       }
 
-      this.interactionPrompt.showNotification(
-        `🚪 ${data.openerName.toUpperCase()} A DÉVERROUILLÉ UNE GRANDE PORTE !`
-      );
+      const notif = `🚪 ${data.openerName.toUpperCase()} A DÉVERROUILLÉ UNE GRANDE PORTE !`;
+      this.interactionPrompt.showNotification(notif);
+      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemotePlayerExtracted((data) => {
@@ -413,9 +435,9 @@ export class Game {
         this.remotePlayers.delete(data.playerId);
       }
 
-      this.interactionPrompt.showNotification(
-        `🏆 ${data.playerName.toUpperCase()} S'EST EXTRAIT AVEC SUCCÈS (${data.portalName.toUpperCase()}) !`
-      );
+      const notif = `🏆 ${data.playerName.toUpperCase()} S'EST EXTRAIT AVEC SUCCÈS (${data.portalName.toUpperCase()}) !`;
+      this.interactionPrompt.showNotification(notif);
+      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemotePlayerDied((data) => {
@@ -426,9 +448,9 @@ export class Game {
         remote.active = false;
       }
 
-      this.interactionPrompt.showNotification(
-        `💀 ${data.playerName.toUpperCase()} A PÉRI DANS LA CITADELLE...`
-      );
+      const notif = `💀 ${data.playerName.toUpperCase()} A PÉRI DANS LA CITADELLE...`;
+      this.interactionPrompt.showNotification(notif);
+      this.chatUI.addMessage('SYSTÈME', notif, true);
 
       if (data.droppedItems && data.droppedItems.length > 0) {
         const positions = findSpacedDropPositions(
@@ -469,9 +491,9 @@ export class Game {
         }
       }
 
-      this.interactionPrompt.showNotification(
-        `👑 LE BOSS DU SANCTUAIRE (${data.bossName.toUpperCase()}) A ÉTÉ TERRASSÉ ! LE PORTAIL ROYAL EST OUVERT !`
-      );
+      const notif = `👑 LE BOSS DU SANCTUAIRE (${data.bossName.toUpperCase()}) A ÉTÉ TERRASSÉ ! LE PORTAIL ROYAL EST OUVERT !`;
+      this.interactionPrompt.showNotification(notif);
+      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemotePlayerPing((data) => {
@@ -479,11 +501,24 @@ export class Game {
 
       this.worldBillboardOverlay.addTacticalPing(data.x, data.y, data.senderName, data.label);
       this.interactionPrompt.showNotification(`📍 ${data.senderName} SIGNALE UN LIEU D'INTÉRÊT !`);
+      this.chatUI.addMessage('SYSTÈME', `📍 ${data.senderName} signale un lieu d'intérêt.`, true);
+    });
+
+    net.onRemoteChatMessage((data) => {
+      if (!this.currentInstanceId) return;
+      this.chatUI.addMessage(data.senderName, data.text, false, data.badgeColor);
+    });
+
+    net.onSquadSummary((data) => {
+      if (!this.currentInstanceId) return;
+      this.currentSquadSummary = data;
     });
   }
 
   private attachItemOrbCallbacks(orb: DroppedItemOrb): void {
     orb.onPickupCallback = (item, x, y, replaced, dropTargetX, dropTargetY) => {
+      this.chatUI.addMessage('SYSTÈME', `💎 Vous avez ramassé : ${item.name.toUpperCase()}`, true);
+
       if (this.currentInstanceId) {
         NetworkClient.getInstance().sendItemPickedUp({
           instanceId: this.currentInstanceId,
@@ -494,6 +529,7 @@ export class Game {
         });
 
         if (replaced && dropTargetX !== undefined && dropTargetY !== undefined) {
+          this.chatUI.addMessage('SYSTÈME', `📦 Vous avez déposé : ${replaced.name.toUpperCase()} au sol.`, true);
           NetworkClient.getInstance().sendItemDropped({
             instanceId: this.currentInstanceId,
             item: replaced,
@@ -588,6 +624,7 @@ export class Game {
                 tileY,
               });
             }
+            this.chatUI.addMessage('SYSTÈME', '🚪 Vous avez déverrouillé une grande porte de la crypte !', true);
           };
           this.entities.push(door);
           continue;
@@ -651,6 +688,11 @@ export class Game {
                   dropPositions,
                 });
               }
+              this.chatUI.addMessage(
+                'SYSTÈME',
+                isMimic ? '⚠️ Attention ! Vous avez réveillé un Mimic !' : '🎁 Vous avez ouvert un coffre.',
+                true
+              );
             };
           }
           this.entities.push(sprite);
@@ -789,6 +831,12 @@ export class Game {
         ? `EXTRACTION : L'HOMONCULUS N'A PAS PU QUITTER LE NIVEAU !`
         : `EXTRACTION RÉUSSIE : ${portal.name.toUpperCase()} !`
     );
+
+    this.chatUI.addMessage(
+      'SYSTÈME',
+      `🏆 Vous vous êtes extrait avec succès (${portal.name.toUpperCase()}) !`,
+      true
+    );
   }
 
   private openMerchant(merchant: Merchant): void {
@@ -896,6 +944,8 @@ export class Game {
       this.remotePlayers.clear();
     }
 
+    this.isSpectating = false;
+    this.currentSquadSummary = null;
     this.isInMainMenu = false;
     this.isInHub = true;
     this.isPaused = true;
@@ -904,9 +954,12 @@ export class Game {
     this.pauseMenu.hide();
     this.merchantUI.close();
     this.interactionPrompt.clear();
+    this.chatUI.hide();
+    this.squadHUD.hide();
     this.worldBillboardOverlay.setVisible(false);
     this.hudOverlay.setVisible(false);
     this.hudOverlay.reset();
+    this.hudOverlay.hideSpectatorBanner();
     this.playerHandOverlay.setVisible(false);
     this.hubUI.setPlayer(this.player);
     this.hubUI.show(tab);
@@ -941,6 +994,10 @@ export class Game {
     this.remotePlayers.clear();
     this.currentInstanceId = options?.instanceId ?? null;
     this.localPlayerId = options?.localPlayerId ?? null;
+    this.isSpectating = false;
+    this.spectatedPlayerIndex = 0;
+    this.currentSquadSummary = null;
+    this.hudOverlay.hideSpectatorBanner();
 
     this.startNewExtractionMatch(options);
     this.isPaused = false;
@@ -948,6 +1005,15 @@ export class Game {
     this.hudOverlay.setVisible(true);
     this.playerHandOverlay.setVisible(true);
     this.input.setPaused(false);
+
+    this.chatUI.clear();
+    this.chatUI.show();
+    this.chatUI.addMessage(
+      'SYSTÈME',
+      "Expédition lancée. Appuyez sur [Entrée] pour discuter avec votre escouade.",
+      true
+    );
+    this.squadHUD.show();
   }
 
   public startGameFromMenu(): void {
@@ -965,18 +1031,41 @@ export class Game {
       this.remotePlayers.clear();
     }
 
+    this.isSpectating = false;
+    this.currentSquadSummary = null;
     this.isInMainMenu = true;
     this.isInHub = false;
     this.hubUI.hide();
     this.pauseMenu.hide();
     this.merchantUI.close();
     this.interactionPrompt.clear();
+    this.chatUI.hide();
+    this.squadHUD.hide();
     this.isPaused = true;
     this.worldBillboardOverlay.setVisible(false);
     this.hudOverlay.setVisible(false);
+    this.hudOverlay.hideSpectatorBanner();
     this.playerHandOverlay.setVisible(false);
     this.input.setPaused(true, false);
     this.mainMenu.show();
+  }
+
+  public startSpectatorMode(): void {
+    const living = this.getLivingRemotePlayers();
+    if (living.length === 0) {
+      this.interactionPrompt.showNotification('Aucun coéquipier vivant à observer.');
+      return;
+    }
+    this.isSpectating = true;
+    this.spectatedPlayerIndex = 0;
+    const target = living[this.spectatedPlayerIndex];
+    this.hudOverlay.showSpectatorBanner(target.name);
+    this.playerHandOverlay.setVisible(false);
+    this.interactionPrompt.clear();
+  }
+
+  private getLivingRemotePlayers(): RemotePlayer[] {
+    return Array.from(this.remotePlayers.values()).filter((p) => p.active && p.hp > 0);
   }
 
   public start(): void {
@@ -1017,16 +1106,60 @@ export class Game {
           y: this.player.y,
           droppedItems: equipped,
         });
+        this.chatUI.addMessage('SYSTÈME', '💀 Vous avez succombé dans la Citadelle...', true);
       }
 
-      // Si le joueur est mort ou s'est extrait, touches R ou Espace pour retourner au campement
-      if (
-        this.input.consumeKeyPress('r') ||
-        this.input.consumeKeyPress(' ') ||
-        this.input.consumeKeyPress(KEYS.SHOOT)
-      ) {
-        this.returnToHub();
+      const living = this.getLivingRemotePlayers();
+
+      if (this.isSpectating) {
+        if (living.length === 0) {
+          this.isSpectating = false;
+          this.hudOverlay.hideSpectatorBanner();
+        } else {
+          this.spectatedPlayerIndex =
+            ((this.spectatedPlayerIndex % living.length) + living.length) % living.length;
+          const target = living[this.spectatedPlayerIndex];
+          this.hudOverlay.showSpectatorBanner(target.name);
+
+          if (this.input.consumeKeyPress('arrowleft') || this.input.consumeKeyPress('q')) {
+            this.spectatedPlayerIndex =
+              (this.spectatedPlayerIndex - 1 + living.length) % living.length;
+            this.hudOverlay.showSpectatorBanner(living[this.spectatedPlayerIndex].name);
+          }
+
+          if (this.input.consumeKeyPress('arrowright') || this.input.consumeKeyPress('d')) {
+            this.spectatedPlayerIndex =
+              (this.spectatedPlayerIndex + 1) % living.length;
+            this.hudOverlay.showSpectatorBanner(living[this.spectatedPlayerIndex].name);
+          }
+
+          if (this.input.consumeKeyPress('r') || this.input.consumeKeyPress('escape')) {
+            this.isSpectating = false;
+            this.hudOverlay.hideSpectatorBanner();
+            this.returnToHub();
+            return;
+          }
+        }
+      } else {
+        if (living.length > 0 && this.input.consumeKeyPress('v')) {
+          this.startSpectatorMode();
+          return;
+        }
+
+        if (
+          this.input.consumeKeyPress('r') ||
+          this.input.consumeKeyPress(' ') ||
+          this.input.consumeKeyPress(KEYS.SHOOT)
+        ) {
+          this.returnToHub();
+          return;
+        }
       }
+
+      for (const entity of this.entities) {
+        entity.update(deltaTime, this.map);
+      }
+      this.squadHUD.update(this.player, Array.from(this.remotePlayers.values()), this.currentSquadSummary);
       return;
     }
 
@@ -1061,6 +1194,7 @@ export class Game {
         });
       }
       this.interactionPrompt.showNotification('📍 SIGNAL TACTIQUE PLACÉ !');
+      this.chatUI.addMessage('SYSTÈME', '📍 Vous avez placé un signal tactique.', true);
     }
 
     // Envoi de la position locale au serveur à 20 Hz (50ms)
@@ -1100,6 +1234,11 @@ export class Game {
           instanceId: this.currentInstanceId,
           bossName: boss.type.name,
         });
+        this.chatUI.addMessage(
+          'SYSTÈME',
+          `👑 Vous avez terrassé le Boss (${boss.type.name}) ! Le Portail Royal est ouvert !`,
+          true
+        );
       }
       for (const ent of this.entities) {
         if (ent instanceof ExtractionPortal && ent.name.includes('Royal')) {
@@ -1274,6 +1413,13 @@ export class Game {
 
     // Nettoyage des projectiles / entités terminés
     this.entities = this.entities.filter((entity) => entity.active);
+
+    // Mise à jour de l'affichage de l'escouade
+    this.squadHUD.update(
+      this.player,
+      Array.from(this.remotePlayers.values()),
+      this.currentSquadSummary
+    );
   }
 
   private updateInteraction(): void {
@@ -1331,15 +1477,36 @@ export class Game {
   }
 
   private render(): void {
-    this.renderer.render(this.player, this.map, this.entities);
+    const living = this.getLivingRemotePlayers();
+    let renderPlayer = this.player;
+    let renderEntities = this.entities;
+
+    if (this.isSpectating && living.length > 0) {
+      const target = living[this.spectatedPlayerIndex % living.length];
+      renderPlayer = Object.create(this.player, {
+        x: { value: target.x },
+        y: { value: target.y },
+        angle: { value: target.angle },
+        damageFlashTimer: { value: 0 },
+      }) as Player;
+      renderEntities = this.entities.filter((e) => e !== target);
+    }
+
+    this.renderer.render(renderPlayer, this.map, renderEntities);
+
     if (!this.isInMainMenu && !this.isInHub) {
-      this.playerHandOverlay.update(this.player, this.renderer, this.isExtracted);
-      this.worldBillboardOverlay.update(this.entities, this.player, this.renderer);
+      if (!this.isSpectating) {
+        this.playerHandOverlay.update(this.player, this.renderer, this.isExtracted);
+      }
+      this.worldBillboardOverlay.update(renderEntities, renderPlayer, this.renderer);
       this.hudOverlay.update(
         this.player,
         this.raidTimer,
         this.isExtracted,
-        this.lostHomonculusOnExtract
+        this.lostHomonculusOnExtract,
+        this.currentSquadSummary,
+        living.length > 0,
+        this.isSpectating
       );
     }
   }

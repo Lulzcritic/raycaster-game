@@ -145,6 +145,13 @@ export class Matchmaker {
         }
         break;
       }
+      case 'CHAT_MESSAGE': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handleChatMessage(ws, message.payload);
+        }
+        break;
+      }
     }
   }
 
@@ -234,6 +241,8 @@ export class Matchmaker {
       isAttacking: false,
       hp: 100,
       maxHp: 100,
+      status: 'in_raid',
+      coins: 0,
       lastUpdate: Date.now(),
     }));
 

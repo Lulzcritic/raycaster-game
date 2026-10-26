@@ -1,5 +1,6 @@
 import type {
   BossDefeatedPayload,
+  ChatMessagePayload,
   ChestOpenedPayload,
   ClientMessage,
   DoorOpenedPayload,
@@ -16,6 +17,7 @@ import type {
   PlayerUpdatePayload,
   QueueStatusPayload,
   RemoteBossDefeatedPayload,
+  RemoteChatMessagePayload,
   RemoteChestOpenedPayload,
   RemoteDoorOpenedPayload,
   RemoteItemDroppedPayload,
@@ -25,6 +27,7 @@ import type {
   RemotePlayerPingPayload,
   RemoteShootPayload,
   ServerMessage,
+  SquadSummaryPayload,
 } from '../types/network';
 
 export class NetworkClient {
@@ -52,6 +55,8 @@ export class NetworkClient {
   private remotePlayerDiedListeners: Array<(data: RemotePlayerDiedPayload) => void> = [];
   private remoteBossDefeatedListeners: Array<(data: RemoteBossDefeatedPayload) => void> = [];
   private remotePlayerPingListeners: Array<(data: RemotePlayerPingPayload) => void> = [];
+  private remoteChatMessageListeners: Array<(data: RemoteChatMessagePayload) => void> = [];
+  private squadSummaryListeners: Array<(data: SquadSummaryPayload) => void> = [];
 
   private constructor() {
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
@@ -204,6 +209,18 @@ export class NetworkClient {
         }
         break;
 
+      case 'REMOTE_CHAT_MESSAGE':
+        for (const listener of this.remoteChatMessageListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'SQUAD_SUMMARY':
+        for (const listener of this.squadSummaryListeners) {
+          listener(msg.payload);
+        }
+        break;
+
       case 'PONG':
         // Heartbeat
         break;
@@ -296,6 +313,13 @@ export class NetworkClient {
   public sendPlayerPing(payload: PlayerPingPayload): void {
     this.send({
       type: 'PLAYER_PING',
+      payload,
+    });
+  }
+
+  public sendChatMessage(payload: ChatMessagePayload): void {
+    this.send({
+      type: 'CHAT_MESSAGE',
       payload,
     });
   }
@@ -410,6 +434,20 @@ export class NetworkClient {
     this.remotePlayerPingListeners.push(callback);
     return () => {
       this.remotePlayerPingListeners = this.remotePlayerPingListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemoteChatMessage(callback: (data: RemoteChatMessagePayload) => void): () => void {
+    this.remoteChatMessageListeners.push(callback);
+    return () => {
+      this.remoteChatMessageListeners = this.remoteChatMessageListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onSquadSummary(callback: (data: SquadSummaryPayload) => void): () => void {
+    this.squadSummaryListeners.push(callback);
+    return () => {
+      this.squadSummaryListeners = this.squadSummaryListeners.filter((l) => l !== callback);
     };
   }
 

@@ -4238,4 +4238,374 @@ body {
 .hub-gear-mini-slot.legendary { border-color: #eab308; }
 .hub-gear-mini-slot.artifact { border-color: #ef4444; }
 
+/* =========================================================================
+   CADRE D'ESCOUADE EN DIRECT (HUD MULTIJOUEUR PHASE 4)
+   ========================================================================= */
+.squad-hud {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 260px;
+  pointer-events: none;
+  font-family: 'Alagard', monospace;
+}
+
+.squad-hud-header {
+  font-size: 13px;
+  font-weight: bold;
+  color: #c7d2fe;
+  background: rgba(15, 12, 28, 0.85);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 0 #000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.squad-hud-members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.squad-member-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(18, 14, 32, 0.88);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-left: 3px solid #6366f1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  transition: all 0.2s ease;
+}
+
+.squad-member-card.is-dead {
+  border-color: rgba(239, 68, 68, 0.5);
+  border-left-color: #ef4444;
+  opacity: 0.7;
+}
+
+.squad-member-card.is-extracted {
+  border-color: rgba(52, 211, 153, 0.5);
+  border-left-color: #34d399;
+}
+
+.squad-member-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.squad-member-name {
+  color: #f1f5f9;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.squad-member-gs {
+  font-size: 11px;
+  color: #facc15;
+  margin-left: 4px;
+}
+
+.squad-member-dir {
+  font-size: 12px;
+  color: #38bdf8;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+}
+
+.squad-member-badge {
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.squad-member-badge.extracted {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.squad-member-badge.dead {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.squad-member-hp-track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.squad-member-hp-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  transition: width 0.2s ease-out;
+}
+
+.squad-member-card.is-dead .squad-member-hp-fill {
+  background: #64748b;
+}
+
+.squad-member-hp-text {
+  position: relative;
+  font-size: 10px;
+  color: #ffffff;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+  z-index: 1;
+}
+
+/* =========================================================================
+   TCHAT D'ESCOUADE EN DIRECT & FIL D'ACTUALITÉ (PHASE 4)
+   ========================================================================= */
+.chat-container {
+  position: absolute;
+  bottom: 24px;
+  left: 20px;
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: 'Alagard', monospace;
+  pointer-events: none;
+}
+
+.chat-messages {
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(10, 8, 20, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.4s ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+.chat-messages.faded {
+  opacity: 0.2;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 2px;
+}
+
+.chat-message-line {
+  font-size: 13px;
+  line-height: 1.35;
+  word-break: break-word;
+  text-shadow: 1px 1px 0 #000;
+  animation: chatMsgFadeIn 0.2s ease-out;
+}
+
+@keyframes chatMsgFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-message-line.is-system {
+  color: #fde047;
+  font-style: italic;
+  background: rgba(234, 179, 8, 0.1);
+  padding: 2px 6px;
+  border-left: 2px solid #eab308;
+  border-radius: 2px;
+}
+
+.chat-system-tag {
+  color: #eab308;
+  font-weight: bold;
+}
+
+.chat-system-text {
+  color: #fef08a;
+}
+
+.chat-sender-name {
+  color: #818cf8;
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.chat-message-text {
+  color: #f1f5f9;
+}
+
+.chat-input-bar {
+  pointer-events: auto;
+  width: 100%;
+}
+
+.chat-input {
+  width: 100%;
+  background: rgba(15, 12, 28, 0.95);
+  border: 2px solid #6366f1;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4), inset 0 0 6px rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: 'Alagard', monospace;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.chat-input::placeholder {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.chat-input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 16px rgba(129, 140, 248, 0.6);
+}
+
+/* =========================================================================
+   BANNIÈRE DU MODE SPECTATEUR (PHASE 4)
+   ========================================================================= */
+.spectator-banner {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  pointer-events: none;
+  font-family: 'Alagard', monospace;
+}
+
+.spectator-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 12, 32, 0.9);
+  border: 2px solid #818cf8;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.5), inset 0 0 10px rgba(99, 102, 241, 0.2);
+  padding: 8px 18px;
+  border-radius: 6px;
+  text-shadow: 1px 1px 0 #000;
+  animation: spectatorPulse 2.4s infinite ease-in-out;
+}
+
+@keyframes spectatorPulse {
+  0%, 100% { border-color: #818cf8; box-shadow: 0 0 20px rgba(99, 102, 241, 0.5); }
+  50% { border-color: #c084fc; box-shadow: 0 0 26px rgba(192, 132, 252, 0.7); }
+}
+
+.spectator-icon {
+  font-size: 18px;
+}
+
+.spectator-title {
+  color: #c7d2fe;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.spectator-target-name {
+  color: #facc15;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.spectator-help {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+/* =========================================================================
+   BILAN D'ESCOUADE DANS LES ÉCRANS D'EXTRACTION / MORT (PHASE 4)
+   ========================================================================= */
+.extraction-squad-section {
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  font-family: 'Alagard', monospace;
+}
+
+.extraction-squad-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.extraction-squad-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 12, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 6px 12px;
+}
+
+.extraction-squad-card.extracted {
+  border-left: 3px solid #34d399;
+}
+
+.extraction-squad-card.dead {
+  border-left: 3px solid #f87171;
+}
+
+.extraction-squad-card.in_raid {
+  border-left: 3px solid #60a5fa;
+}
+
+.death-spectate-btn {
+  background:
+    linear-gradient(#4338ca, #312e81) padding-box,
+    repeating-conic-gradient(#818cf8 0% 25%, #1e1b4b 0% 50%) 0 0 / 4px 4px border-box;
+  border-color: #818cf8;
+  color: #e0e7ff;
+}
+
+.death-spectate-btn:hover {
+  background:
+    linear-gradient(#4f46e5, #3730a3) padding-box,
+    repeating-conic-gradient(#a5b4fc 0% 25%, #312e81 0% 50%) 0 0 / 4px 4px border-box;
+  border-color: #c7d2fe;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+
 

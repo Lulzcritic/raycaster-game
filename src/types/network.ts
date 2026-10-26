@@ -22,7 +22,8 @@ export type ClientMessageType =
   | 'PLAYER_EXTRACTED'
   | 'PLAYER_DIED'
   | 'BOSS_DEFEATED'
-  | 'PLAYER_PING';
+  | 'PLAYER_PING'
+  | 'CHAT_MESSAGE';
 
 export interface JoinQueuePayload {
   playerName: string;
@@ -89,6 +90,7 @@ export interface DoorOpenedPayload {
 export interface PlayerExtractedPayload {
   instanceId: string;
   portalName: string;
+  coins?: number;
 }
 
 export interface PlayerDiedPayload {
@@ -110,6 +112,11 @@ export interface PlayerPingPayload {
   label: string;
 }
 
+export interface ChatMessagePayload {
+  instanceId: string;
+  text: string;
+}
+
 export type ClientMessage =
   | { type: 'JOIN_QUEUE'; payload: JoinQueuePayload }
   | { type: 'LEAVE_QUEUE' }
@@ -124,7 +131,8 @@ export type ClientMessage =
   | { type: 'PLAYER_EXTRACTED'; payload: PlayerExtractedPayload }
   | { type: 'PLAYER_DIED'; payload: PlayerDiedPayload }
   | { type: 'BOSS_DEFEATED'; payload: BossDefeatedPayload }
-  | { type: 'PLAYER_PING'; payload: PlayerPingPayload };
+  | { type: 'PLAYER_PING'; payload: PlayerPingPayload }
+  | { type: 'CHAT_MESSAGE'; payload: ChatMessagePayload };
 
 export type ServerMessageType =
   | 'QUEUE_STATUS'
@@ -141,6 +149,8 @@ export type ServerMessageType =
   | 'REMOTE_PLAYER_DIED'
   | 'REMOTE_BOSS_DEFEATED'
   | 'REMOTE_PLAYER_PING'
+  | 'REMOTE_CHAT_MESSAGE'
+  | 'SQUAD_SUMMARY'
   | 'PONG'
   | 'ERROR';
 
@@ -242,6 +252,7 @@ export interface RemotePlayerExtractedPayload {
   playerId: string;
   playerName: string;
   portalName: string;
+  coins?: number;
 }
 
 export interface RemotePlayerDiedPayload {
@@ -264,6 +275,29 @@ export interface RemotePlayerPingPayload {
   label: string;
 }
 
+export interface RemoteChatMessagePayload {
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: number;
+  badgeColor?: string;
+  isSystem?: boolean;
+}
+
+export interface SquadMemberSummary {
+  id: string;
+  name: string;
+  skinId: string;
+  gearScore: number;
+  status: 'in_raid' | 'extracted' | 'dead';
+  portalName?: string;
+  coins: number;
+}
+
+export interface SquadSummaryPayload {
+  players: SquadMemberSummary[];
+}
+
 export type ServerMessage =
   | { type: 'QUEUE_STATUS'; payload: QueueStatusPayload }
   | { type: 'MATCH_FOUND'; payload: MatchFoundPayload }
@@ -279,5 +313,7 @@ export type ServerMessage =
   | { type: 'REMOTE_PLAYER_DIED'; payload: RemotePlayerDiedPayload }
   | { type: 'REMOTE_BOSS_DEFEATED'; payload: RemoteBossDefeatedPayload }
   | { type: 'REMOTE_PLAYER_PING'; payload: RemotePlayerPingPayload }
+  | { type: 'REMOTE_CHAT_MESSAGE'; payload: RemoteChatMessagePayload }
+  | { type: 'SQUAD_SUMMARY'; payload: SquadSummaryPayload }
   | { type: 'PONG'; payload: { timestamp: number } }
   | { type: 'ERROR'; payload: { message: string } };

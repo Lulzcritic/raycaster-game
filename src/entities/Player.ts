@@ -120,6 +120,10 @@ export class Player extends Entity {
     );
   }
 
+  public getPrimaryCooldown(): number {
+    return this.shootCooldown;
+  }
+
   public getSecondaryCooldown(): number {
     return this.secondaryCooldown;
   }

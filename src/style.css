@@ -385,7 +385,7 @@ body {
 
 .interaction-prompt {
   position: fixed;
-  bottom: 32px;
+  bottom: 96px;
   left: 50%;
   transform: translateX(-50%);
   clip-path: var(--pixel-notch-small);
@@ -572,8 +572,9 @@ body {
 
 .hud-health-panel {
   position: absolute;
-  top: 18px;
-  left: 18px;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
   clip-path: var(--pixel-notch-small);
   filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000);
   background: radial-gradient(circle at center, #1e192c 0%, #100d18 100%);
@@ -584,16 +585,18 @@ body {
     inset 0 -3px 0 0 rgba(0, 0, 0, 0.8),
     inset -2px 0 0 0 rgba(0, 0, 0, 0.7),
     inset 0 0 0 1px #000000;
-  padding: 8px 14px;
+  padding: 6px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
+  z-index: 7;
 }
 
 .hud-health-track {
-  width: 200px;
-  height: 18px;
+  width: min(600px, 48vw);
+  min-width: 360px;
+  height: 22px;
   background: #0c0a12;
   border: 2px solid #000000;
   box-shadow: inset 1px 1px 0 #000000;
@@ -635,31 +638,33 @@ body {
 
 .hud-health-text {
   font-family: var(--font-medieval);
-  font-size: 15px;
+  font-size: 14px;
   color: #ffffff;
   text-shadow: 2px 2px 0 #000000;
-  margin-top: 6px;
+  margin-top: 3px;
   letter-spacing: 0.5px;
 }
 
 /* =========================================================================
-   PANEL DES SORTS DU JOUEUR (CLIC GAUCHE / CLIC DROIT)
+   PANEL DES SORTS DU JOUEUR (EN BAS AU MILIEU)
    ========================================================================= */
 .hud-spell-panel {
   position: absolute;
-  top: 86px;
-  left: 18px;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 8px;
+  gap: 14px;
   pointer-events: auto;
+  z-index: 7;
 }
 
 .hud-spell-slot {
-  width: 54px;
-  height: 56px;
+  width: 62px;
+  height: 64px;
   position: relative;
   clip-path: var(--pixel-notch-small);
-  filter: drop-shadow(0 3px 0 #000000) drop-shadow(3px 0 0 #000000);
+  filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000);
   background: radial-gradient(circle at center, #1e1330 0%, #0d0818 100%);
   border: 2px solid #6b21a8;
   box-shadow:
@@ -674,13 +679,17 @@ body {
   justify-content: center;
   box-sizing: border-box;
   overflow: hidden;
-  transition: border-color 0.15s ease, filter 0.15s ease;
+  transition: border-color 0.15s ease, filter 0.15s ease, transform 0.1s ease;
+}
+
+.hud-spell-slot:hover {
+  transform: translateY(-2px);
 }
 
 .hud-spell-badge {
-  font-size: 20px;
+  font-size: 24px;
   line-height: 1;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
   user-select: none;
 }
 
@@ -715,7 +724,7 @@ body {
 .hud-spell-cooldown-text {
   position: absolute;
   font-family: var(--font-medieval);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: bold;
   color: #fbcfe8;
   text-shadow: 2px 2px 0 #000000, 0 0 4px #db2777;
@@ -748,9 +757,9 @@ body {
 
 .hud-zone-panel {
   position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 14px;
+  left: 18px;
+  transform: none;
   clip-path: var(--pixel-notch-small);
   filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000);
   background: radial-gradient(circle at center, #141f2e 0%, #0a111a 100%);
@@ -761,33 +770,33 @@ body {
     inset 0 -3px 0 0 #082f49,
     inset -2px 0 0 0 #082f49,
     inset 0 0 0 1px #000000;
-  padding: 8px 20px;
+  padding: 6px 14px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 2px;
   box-sizing: border-box;
-  text-align: center;
+  text-align: left;
 }
 
 .hud-zone-title {
   font-family: var(--font-medieval);
-  font-size: 16px;
+  font-size: 14px;
   color: #38bdf8;
   text-shadow: 2px 2px 0 #000000;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .hud-raid-timer {
   font-family: var(--font-medieval);
-  font-size: 14px;
+  font-size: 13px;
   color: #94a3b8;
   text-shadow: 1px 1px 0 #000000;
 }
 
 .hud-coin-panel {
   position: absolute;
-  top: 18px;
+  top: 14px;
   right: 18px;
   clip-path: var(--pixel-notch-small);
   filter: drop-shadow(0 4px 0 #000000) drop-shadow(4px 0 0 #000000);

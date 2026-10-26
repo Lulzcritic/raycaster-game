@@ -23,6 +23,8 @@ export class HUDOverlay {
   private readonly coinPanel: HTMLElement | null;
   private readonly coinText: HTMLElement | null;
   private readonly coinIcon: HTMLImageElement | null;
+  private readonly spellPrimarySlot: HTMLElement | null;
+  private readonly spellPrimaryOverlay: HTMLElement | null;
   private readonly spellSecondarySlot: HTMLElement | null;
   private readonly spellCooldownOverlay: HTMLElement | null;
   private readonly spellCooldownText: HTMLElement | null;
@@ -50,6 +52,8 @@ export class HUDOverlay {
     this.coinPanel = document.getElementById('hud-coin-panel');
     this.coinText = document.getElementById('hud-coin-text');
     this.coinIcon = document.getElementById('hud-coin-icon') as HTMLImageElement | null;
+    this.spellPrimarySlot = document.getElementById('hud-spell-primary');
+    this.spellPrimaryOverlay = document.getElementById('hud-spell-primary-overlay');
     this.spellSecondarySlot = document.getElementById('hud-spell-secondary');
     this.spellCooldownOverlay = document.getElementById('hud-spell-cooldown-overlay');
     this.spellCooldownText = document.getElementById('hud-spell-cooldown-text');
@@ -87,6 +91,8 @@ export class HUDOverlay {
     this.lastCoins = -1;
     this.extractionScreen?.classList.add('hidden');
     this.deathScreen?.classList.add('hidden');
+    this.spellPrimaryOverlay?.classList.add('hidden');
+    this.spellPrimarySlot?.classList.remove('on-cooldown');
     this.spellCooldownOverlay?.classList.add('hidden');
     if (this.spellCooldownText) {
       this.spellCooldownText.textContent = '';
@@ -203,7 +209,21 @@ export class HUDOverlay {
       this.lastCoins = currentCoins;
     }
 
-    // 4. Sort secondaire (Orbe violette rebondissante)
+    // 4. Sorts & Cooldowns
+    const primaryCd = player.getPrimaryCooldown();
+    if (primaryCd > 0) {
+      if (this.spellPrimaryOverlay) {
+        this.spellPrimaryOverlay.classList.remove('hidden');
+        const ratio = Math.max(0, Math.min(1, primaryCd / 0.45));
+        this.spellPrimaryOverlay.style.height = `${Math.round(ratio * 100)}%`;
+      }
+      this.spellPrimarySlot?.classList.add('on-cooldown');
+    } else {
+      this.spellPrimaryOverlay?.classList.add('hidden');
+      this.spellPrimarySlot?.classList.remove('on-cooldown');
+    }
+
+    // Sort secondaire (Orbe violette rebondissante)
     const secondaryCd = player.getSecondaryCooldown();
     const maxCd = player.getMaxSecondaryCooldown();
     if (secondaryCd > 0) {

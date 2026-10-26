@@ -1,12 +1,28 @@
 import type {
+  BossDefeatedPayload,
+  ChestOpenedPayload,
   ClientMessage,
+  DoorOpenedPayload,
   InstancePlayersPayload,
+  ItemDroppedPayload,
+  ItemPickedUpPayload,
   MatchFoundPayload,
   MatchStartPayload,
+  PlayerDiedPayload,
+  PlayerExtractedPayload,
   PlayerLeftPayload,
+  PlayerPingPayload,
   PlayerShootPayload,
   PlayerUpdatePayload,
   QueueStatusPayload,
+  RemoteBossDefeatedPayload,
+  RemoteChestOpenedPayload,
+  RemoteDoorOpenedPayload,
+  RemoteItemDroppedPayload,
+  RemoteItemPickedUpPayload,
+  RemotePlayerDiedPayload,
+  RemotePlayerExtractedPayload,
+  RemotePlayerPingPayload,
   RemoteShootPayload,
   ServerMessage,
 } from '../types/network';
@@ -28,6 +44,14 @@ export class NetworkClient {
   private instancePlayersListeners: Array<(data: InstancePlayersPayload) => void> = [];
   private remoteShootListeners: Array<(data: RemoteShootPayload) => void> = [];
   private playerLeftListeners: Array<(data: PlayerLeftPayload) => void> = [];
+  private remoteChestOpenedListeners: Array<(data: RemoteChestOpenedPayload) => void> = [];
+  private remoteItemPickedUpListeners: Array<(data: RemoteItemPickedUpPayload) => void> = [];
+  private remoteItemDroppedListeners: Array<(data: RemoteItemDroppedPayload) => void> = [];
+  private remoteDoorOpenedListeners: Array<(data: RemoteDoorOpenedPayload) => void> = [];
+  private remotePlayerExtractedListeners: Array<(data: RemotePlayerExtractedPayload) => void> = [];
+  private remotePlayerDiedListeners: Array<(data: RemotePlayerDiedPayload) => void> = [];
+  private remoteBossDefeatedListeners: Array<(data: RemoteBossDefeatedPayload) => void> = [];
+  private remotePlayerPingListeners: Array<(data: RemotePlayerPingPayload) => void> = [];
 
   private constructor() {
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
@@ -132,6 +156,54 @@ export class NetworkClient {
         }
         break;
 
+      case 'REMOTE_CHEST_OPENED':
+        for (const listener of this.remoteChestOpenedListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'REMOTE_ITEM_PICKED_UP':
+        for (const listener of this.remoteItemPickedUpListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'REMOTE_ITEM_DROPPED':
+        for (const listener of this.remoteItemDroppedListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'REMOTE_DOOR_OPENED':
+        for (const listener of this.remoteDoorOpenedListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'REMOTE_PLAYER_EXTRACTED':
+        for (const listener of this.remotePlayerExtractedListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'REMOTE_PLAYER_DIED':
+        for (const listener of this.remotePlayerDiedListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'REMOTE_BOSS_DEFEATED':
+        for (const listener of this.remoteBossDefeatedListeners) {
+          listener(msg.payload);
+        }
+        break;
+
+      case 'REMOTE_PLAYER_PING':
+        for (const listener of this.remotePlayerPingListeners) {
+          listener(msg.payload);
+        }
+        break;
+
       case 'PONG':
         // Heartbeat
         break;
@@ -169,6 +241,62 @@ export class NetworkClient {
     this.send({
       type: 'LEAVE_MATCH',
       payload: { instanceId },
+    });
+  }
+
+  public sendChestOpened(payload: ChestOpenedPayload): void {
+    this.send({
+      type: 'CHEST_OPENED',
+      payload,
+    });
+  }
+
+  public sendItemPickedUp(payload: ItemPickedUpPayload): void {
+    this.send({
+      type: 'ITEM_PICKED_UP',
+      payload,
+    });
+  }
+
+  public sendItemDropped(payload: ItemDroppedPayload): void {
+    this.send({
+      type: 'ITEM_DROPPED',
+      payload,
+    });
+  }
+
+  public sendDoorOpened(payload: DoorOpenedPayload): void {
+    this.send({
+      type: 'DOOR_OPENED',
+      payload,
+    });
+  }
+
+  public sendPlayerExtracted(payload: PlayerExtractedPayload): void {
+    this.send({
+      type: 'PLAYER_EXTRACTED',
+      payload,
+    });
+  }
+
+  public sendPlayerDied(payload: PlayerDiedPayload): void {
+    this.send({
+      type: 'PLAYER_DIED',
+      payload,
+    });
+  }
+
+  public sendBossDefeated(payload: BossDefeatedPayload): void {
+    this.send({
+      type: 'BOSS_DEFEATED',
+      payload,
+    });
+  }
+
+  public sendPlayerPing(payload: PlayerPingPayload): void {
+    this.send({
+      type: 'PLAYER_PING',
+      payload,
     });
   }
 
@@ -226,6 +354,62 @@ export class NetworkClient {
     this.playerLeftListeners.push(callback);
     return () => {
       this.playerLeftListeners = this.playerLeftListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemoteChestOpened(callback: (data: RemoteChestOpenedPayload) => void): () => void {
+    this.remoteChestOpenedListeners.push(callback);
+    return () => {
+      this.remoteChestOpenedListeners = this.remoteChestOpenedListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemoteItemPickedUp(callback: (data: RemoteItemPickedUpPayload) => void): () => void {
+    this.remoteItemPickedUpListeners.push(callback);
+    return () => {
+      this.remoteItemPickedUpListeners = this.remoteItemPickedUpListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemoteItemDropped(callback: (data: RemoteItemDroppedPayload) => void): () => void {
+    this.remoteItemDroppedListeners.push(callback);
+    return () => {
+      this.remoteItemDroppedListeners = this.remoteItemDroppedListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemoteDoorOpened(callback: (data: RemoteDoorOpenedPayload) => void): () => void {
+    this.remoteDoorOpenedListeners.push(callback);
+    return () => {
+      this.remoteDoorOpenedListeners = this.remoteDoorOpenedListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemotePlayerExtracted(callback: (data: RemotePlayerExtractedPayload) => void): () => void {
+    this.remotePlayerExtractedListeners.push(callback);
+    return () => {
+      this.remotePlayerExtractedListeners = this.remotePlayerExtractedListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemotePlayerDied(callback: (data: RemotePlayerDiedPayload) => void): () => void {
+    this.remotePlayerDiedListeners.push(callback);
+    return () => {
+      this.remotePlayerDiedListeners = this.remotePlayerDiedListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemoteBossDefeated(callback: (data: RemoteBossDefeatedPayload) => void): () => void {
+    this.remoteBossDefeatedListeners.push(callback);
+    return () => {
+      this.remoteBossDefeatedListeners = this.remoteBossDefeatedListeners.filter((l) => l !== callback);
+    };
+  }
+
+  public onRemotePlayerPing(callback: (data: RemotePlayerPingPayload) => void): () => void {
+    this.remotePlayerPingListeners.push(callback);
+    return () => {
+      this.remotePlayerPingListeners = this.remotePlayerPingListeners.filter((l) => l !== callback);
     };
   }
 

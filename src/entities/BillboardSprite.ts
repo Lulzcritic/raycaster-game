@@ -25,6 +25,14 @@ export class BillboardSprite extends Entity {
   private lastRenderedLift = -1;
   private openedCanvas: HTMLCanvasElement | null = null;
 
+  public onChestOpenedCallback?: (
+    x: number,
+    y: number,
+    isMimic: boolean,
+    items: EquipmentItem[],
+    dropPositions: Array<{ startX: number; startY: number; targetX: number; targetY: number }>
+  ) => void;
+
   constructor(
     x: number,
     y: number,
@@ -168,6 +176,7 @@ export class BillboardSprite extends Entity {
     if (isMimic) {
       this.active = false;
       this.lootItems = [];
+      this.onChestOpenedCallback?.(this.x, this.y, true, [], []);
 
       if (this.onSpawnEntity) {
         const mimicType = ENEMY_TYPES.mimic;
@@ -200,6 +209,15 @@ export class BillboardSprite extends Entity {
         map
       );
 
+      const dropPositions = positions.map((p) => ({
+        startX: this.x,
+        startY: this.y,
+        targetX: p.x,
+        targetY: p.y,
+      }));
+
+      this.onChestOpenedCallback?.(this.x, this.y, false, this.lootItems, dropPositions);
+
       for (let i = 0; i < this.lootItems.length; i++) {
         const item = this.lootItems[i];
         const targetPos = positions[i] ?? { x: this.x, y: this.y };
@@ -218,6 +236,46 @@ export class BillboardSprite extends Entity {
     const count = this.lootItems.length;
     this.lootItems = [];
     return count > 1 ? `${count} OBJETS TOMBENT AU SOL !` : null;
+  }
+
+  public openFromRemote(
+    isMimic: boolean,
+    items: EquipmentItem[],
+    dropPositions: Array<{ startX: number; startY: number; targetX: number; targetY: number }>,
+    player: Player
+  ): void {
+    if (this.isOpened || !this.active) return;
+
+    if (isMimic) {
+      this.active = false;
+      this.lootItems = [];
+      if (this.onSpawnEntity) {
+        const mimicType = ENEMY_TYPES.mimic;
+        const mimic = new Enemy(this.x, this.y, mimicType, player, this.onSpawnEntity);
+        mimic.state = 'aggro';
+        mimic.setAttackCooldown(0.5);
+        this.onSpawnEntity(mimic);
+      }
+      return;
+    }
+
+    this.isOpened = true;
+    if (this.onSpawnEntity) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const pos = dropPositions[i] ?? { startX: this.x, startY: this.y, targetX: this.x, targetY: this.y };
+        const orb = new DroppedItemOrb(
+          pos.startX,
+          pos.startY,
+          pos.targetX,
+          pos.targetY,
+          item,
+          this.onSpawnEntity
+        );
+        this.onSpawnEntity(orb);
+      }
+    }
+    this.lootItems = [];
   }
 
   /**

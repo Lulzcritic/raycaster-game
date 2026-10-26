@@ -50,6 +50,7 @@ import { FrostingPuddle } from '../entities/FrostingPuddle';
 import { RemotePlayer } from '../entities/RemotePlayer';
 import { PlayerSpriteManager } from '../graphics/PlayerSpriteManager';
 import { NetworkClient } from '../network/NetworkClient';
+import { findSpacedDropPositions } from '../utils/dropSpread';
 import { WalletManager } from './WalletManager';
 import { GearScoreService } from './GearScoreService';
 import { QuestManager } from './QuestManager';
@@ -83,11 +84,13 @@ export class Game {
   private lostHomonculusOnExtract = false;
   private lastHitWaveId = -1;
 
-  // Multijoueur temps réel (Phase 2)
+  // Multijoueur temps réel (Phase 2 & Phase 3)
   private currentInstanceId: string | null = null;
   private localPlayerId: string | null = null;
   private networkTickTimer = 0;
   private readonly remotePlayers = new Map<string, RemotePlayer>();
+  private hasSentDeathNotification = false;
+  private hasSentBossDefeated = false;
 
   constructor(canvas: HTMLCanvasElement, initialLevel?: LevelData) {
     const startLevel = initialLevel ?? MapGenerator.generate();
@@ -296,6 +299,212 @@ export class Game {
         this.interactionPrompt.showNotification(`👤 ${remote.name} a quitté la Citadelle.`);
       }
     });
+
+    net.onRemoteChestOpened((data) => {
+      if (!this.currentInstanceId) return;
+
+      const chest = this.entities.find(
+        (e): e is BillboardSprite =>
+          e instanceof BillboardSprite &&
+          Math.hypot(e.x - data.x, e.y - data.y) < 0.6
+      );
+
+      if (chest) {
+        chest.openFromRemote(data.isMimic, data.items, data.dropPositions, this.player);
+      } else if (!data.isMimic && data.items.length > 0) {
+        for (let i = 0; i < data.items.length; i++) {
+          const item = data.items[i];
+          const pos = data.dropPositions[i] ?? {
+            startX: data.x,
+            startY: data.y,
+            targetX: data.x,
+            targetY: data.y,
+          };
+          const orb = new DroppedItemOrb(
+            pos.startX,
+            pos.startY,
+            pos.targetX,
+            pos.targetY,
+            item,
+            (newEnt) => {
+              if (newEnt instanceof DroppedItemOrb) this.attachItemOrbCallbacks(newEnt);
+              this.entities.push(newEnt);
+            }
+          );
+          this.attachItemOrbCallbacks(orb);
+          this.entities.push(orb);
+        }
+      }
+
+      this.interactionPrompt.showNotification(
+        data.isMimic
+          ? `⚠️ ${data.openerName.toUpperCase()} A RÉVEILLÉ UN MIMIC !`
+          : `🎁 ${data.openerName.toUpperCase()} A OUVERT UN COFFRE !`
+      );
+    });
+
+    net.onRemoteItemPickedUp((data) => {
+      if (!this.currentInstanceId) return;
+
+      const orb = this.entities.find(
+        (e): e is DroppedItemOrb =>
+          e instanceof DroppedItemOrb &&
+          e.active &&
+          ((e.item.instanceId && e.item.instanceId === data.itemInstanceId) ||
+            Math.hypot(e.x - data.x, e.y - data.y) < 0.45)
+      );
+
+      if (orb) {
+        orb.active = false;
+      }
+
+      this.interactionPrompt.showNotification(
+        `💎 ${data.pickerName} A RAMASSÉ : ${data.itemName.toUpperCase()} !`
+      );
+    });
+
+    net.onRemoteItemDropped((data) => {
+      if (!this.currentInstanceId) return;
+
+      const orb = new DroppedItemOrb(
+        data.startX,
+        data.startY,
+        data.targetX,
+        data.targetY,
+        data.item,
+        (newEnt) => {
+          if (newEnt instanceof DroppedItemOrb) this.attachItemOrbCallbacks(newEnt);
+          this.entities.push(newEnt);
+        }
+      );
+      this.attachItemOrbCallbacks(orb);
+      this.entities.push(orb);
+
+      this.interactionPrompt.showNotification(
+        `📦 ${data.dropperName} A LAISSÉ : ${data.item.name.toUpperCase()} AU SOL.`
+      );
+    });
+
+    net.onRemoteDoorOpened((data) => {
+      if (!this.currentInstanceId) return;
+
+      const door = this.entities.find(
+        (e): e is Door =>
+          e instanceof Door &&
+          e.tileX === data.tileX &&
+          e.tileY === data.tileY
+      );
+
+      if (door) {
+        door.openFromRemote();
+      }
+
+      this.interactionPrompt.showNotification(
+        `🚪 ${data.openerName.toUpperCase()} A DÉVERROUILLÉ UNE GRANDE PORTE !`
+      );
+    });
+
+    net.onRemotePlayerExtracted((data) => {
+      if (!this.currentInstanceId) return;
+
+      const remote = this.remotePlayers.get(data.playerId);
+      if (remote) {
+        remote.active = false;
+        this.remotePlayers.delete(data.playerId);
+      }
+
+      this.interactionPrompt.showNotification(
+        `🏆 ${data.playerName.toUpperCase()} S'EST EXTRAIT AVEC SUCCÈS (${data.portalName.toUpperCase()}) !`
+      );
+    });
+
+    net.onRemotePlayerDied((data) => {
+      if (!this.currentInstanceId) return;
+
+      const remote = this.remotePlayers.get(data.playerId);
+      if (remote) {
+        remote.active = false;
+      }
+
+      this.interactionPrompt.showNotification(
+        `💀 ${data.playerName.toUpperCase()} A PÉRI DANS LA CITADELLE...`
+      );
+
+      if (data.droppedItems && data.droppedItems.length > 0) {
+        const positions = findSpacedDropPositions(
+          data.x,
+          data.y,
+          this.player.x,
+          this.player.y,
+          data.droppedItems.length,
+          this.map
+        );
+
+        for (let i = 0; i < data.droppedItems.length; i++) {
+          const item = data.droppedItems[i];
+          const pos = positions[i] ?? { x: data.x, y: data.y };
+          const orb = new DroppedItemOrb(
+            data.x,
+            data.y,
+            pos.x,
+            pos.y,
+            item,
+            (newEnt) => {
+              if (newEnt instanceof DroppedItemOrb) this.attachItemOrbCallbacks(newEnt);
+              this.entities.push(newEnt);
+            }
+          );
+          this.attachItemOrbCallbacks(orb);
+          this.entities.push(orb);
+        }
+      }
+    });
+
+    net.onRemoteBossDefeated((data) => {
+      if (!this.currentInstanceId) return;
+
+      for (const ent of this.entities) {
+        if (ent instanceof ExtractionPortal && ent.name.includes('Royal')) {
+          ent.activateNow();
+        }
+      }
+
+      this.interactionPrompt.showNotification(
+        `👑 LE BOSS DU SANCTUAIRE (${data.bossName.toUpperCase()}) A ÉTÉ TERRASSÉ ! LE PORTAIL ROYAL EST OUVERT !`
+      );
+    });
+
+    net.onRemotePlayerPing((data) => {
+      if (!this.currentInstanceId) return;
+
+      this.worldBillboardOverlay.addTacticalPing(data.x, data.y, data.senderName, data.label);
+      this.interactionPrompt.showNotification(`📍 ${data.senderName} SIGNALE UN LIEU D'INTÉRÊT !`);
+    });
+  }
+
+  private attachItemOrbCallbacks(orb: DroppedItemOrb): void {
+    orb.onPickupCallback = (item, x, y, replaced, dropTargetX, dropTargetY) => {
+      if (this.currentInstanceId) {
+        NetworkClient.getInstance().sendItemPickedUp({
+          instanceId: this.currentInstanceId,
+          itemInstanceId: item.instanceId ?? item.id,
+          itemName: item.name,
+          x,
+          y,
+        });
+
+        if (replaced && dropTargetX !== undefined && dropTargetY !== undefined) {
+          NetworkClient.getInstance().sendItemDropped({
+            instanceId: this.currentInstanceId,
+            item: replaced,
+            startX: this.player.x,
+            startY: this.player.y,
+            targetX: dropTargetX,
+            targetY: dropTargetY,
+          });
+        }
+      }
+    };
   }
 
   public getCurrentLevel(): LevelData {
@@ -326,6 +535,8 @@ export class Game {
     this.raidTimer = 0;
     this.isExtracted = false;
     this.lostHomonculusOnExtract = false;
+    this.hasSentDeathNotification = false;
+    this.hasSentBossDefeated = false;
     this.map = new GameMap(level.grid, level.floorGrid, level.skyTileId);
     this.player.x = level.playerSpawn.x;
     this.player.y = level.playerSpawn.y;
@@ -369,6 +580,15 @@ export class Game {
           const doorConfig = level.doors?.find((d) => d.x === col && d.y === row);
           const requiredKey = doorConfig?.requiredKeyId ?? 'key_crypt_skull';
           const door = new Door(col, row, this.textures, requiredKey);
+          door.onDoorOpenedCallback = (tileX, tileY) => {
+            if (this.currentInstanceId) {
+              NetworkClient.getInstance().sendDoorOpened({
+                instanceId: this.currentInstanceId,
+                tileX,
+                tileY,
+              });
+            }
+          };
           this.entities.push(door);
           continue;
         }
@@ -413,9 +633,26 @@ export class Game {
             def.scale ?? 0.42,
             chestLoot,
             (newEntity) => {
+              if (newEntity instanceof DroppedItemOrb) {
+                this.attachItemOrbCallbacks(newEntity);
+              }
               this.entities.push(newEntity);
             }
           );
+          if (tileId === TILE_TYPE.CHEST) {
+            sprite.onChestOpenedCallback = (x, y, isMimic, items, dropPositions) => {
+              if (this.currentInstanceId) {
+                NetworkClient.getInstance().sendChestOpened({
+                  instanceId: this.currentInstanceId,
+                  x,
+                  y,
+                  isMimic,
+                  items,
+                  dropPositions,
+                });
+              }
+            };
+          }
           this.entities.push(sprite);
         }
       }
@@ -488,6 +725,9 @@ export class Game {
             typeDef,
             this.player,
             (newEntity) => {
+              if (newEntity instanceof DroppedItemOrb) {
+                this.attachItemOrbCallbacks(newEntity);
+              }
               this.entities.push(newEntity);
             },
             (msg) => {
@@ -528,6 +768,13 @@ export class Game {
     }
     this.isExtracted = true;
 
+    if (this.currentInstanceId) {
+      NetworkClient.getInstance().sendPlayerExtracted({
+        instanceId: this.currentInstanceId,
+        portalName: portal.name,
+      });
+    }
+
     // L'Homonculus ne peut pas être extrait du niveau : il se dissout immédiatement dans le vortex
     this.lostHomonculusOnExtract = this.player.inventory.hasItem('offhand');
     if (this.lostHomonculusOnExtract) {
@@ -555,15 +802,32 @@ export class Game {
       (item) => {
         const replaced = this.player.pickupItem(item);
         if (replaced) {
+          const dropTargetX = merchant.x + (Math.random() - 0.5) * 0.4;
+          const dropTargetY = merchant.y + (Math.random() - 0.5) * 0.4;
           const dropOrb = new DroppedItemOrb(
             this.player.x,
             this.player.y,
-            merchant.x + (Math.random() - 0.5) * 0.4,
-            merchant.y + (Math.random() - 0.5) * 0.4,
+            dropTargetX,
+            dropTargetY,
             replaced,
-            (newEnt) => this.entities.push(newEnt)
+            (newEnt) => {
+              if (newEnt instanceof DroppedItemOrb) this.attachItemOrbCallbacks(newEnt);
+              this.entities.push(newEnt);
+            }
           );
+          this.attachItemOrbCallbacks(dropOrb);
           this.entities.push(dropOrb);
+
+          if (this.currentInstanceId) {
+            NetworkClient.getInstance().sendItemDropped({
+              instanceId: this.currentInstanceId,
+              item: replaced,
+              startX: this.player.x,
+              startY: this.player.y,
+              targetX: dropTargetX,
+              targetY: dropTargetY,
+            });
+          }
         }
         this.interactionPrompt.showNotification(`OBTENU : ${item.name.toUpperCase()} !`);
       },
@@ -743,8 +1007,30 @@ export class Game {
   };
 
   private update(deltaTime: number): void {
-    if (!this.player.isAlive() || this.isExtracted) {
+    if (!this.player.isAlive()) {
+      if (this.currentInstanceId && !this.hasSentDeathNotification) {
+        this.hasSentDeathNotification = true;
+        const equipped = this.player.inventory.getAllEquipped();
+        NetworkClient.getInstance().sendPlayerDied({
+          instanceId: this.currentInstanceId,
+          x: this.player.x,
+          y: this.player.y,
+          droppedItems: equipped,
+        });
+      }
+
       // Si le joueur est mort ou s'est extrait, touches R ou Espace pour retourner au campement
+      if (
+        this.input.consumeKeyPress('r') ||
+        this.input.consumeKeyPress(' ') ||
+        this.input.consumeKeyPress(KEYS.SHOOT)
+      ) {
+        this.returnToHub();
+      }
+      return;
+    }
+
+    if (this.isExtracted) {
       if (
         this.input.consumeKeyPress('r') ||
         this.input.consumeKeyPress(' ') ||
@@ -759,6 +1045,23 @@ export class Game {
 
     this.player.update(deltaTime, this.map);
     this.interactionPrompt.update(deltaTime);
+
+    // Détection du signal tactique rapide (Touche T)
+    if (this.input.consumeKeyPress(KEYS.PING)) {
+      const pingDist = 3.2;
+      const pingX = this.player.x + Math.cos(this.player.angle) * pingDist;
+      const pingY = this.player.y + Math.sin(this.player.angle) * pingDist;
+      this.worldBillboardOverlay.addTacticalPing(pingX, pingY, 'Vous', 'Signal');
+      if (this.currentInstanceId) {
+        NetworkClient.getInstance().sendPlayerPing({
+          instanceId: this.currentInstanceId,
+          x: pingX,
+          y: pingY,
+          label: 'Signal',
+        });
+      }
+      this.interactionPrompt.showNotification('📍 SIGNAL TACTIQUE PLACÉ !');
+    }
 
     // Envoi de la position locale au serveur à 20 Hz (50ms)
     if (this.currentInstanceId) {
@@ -791,6 +1094,13 @@ export class Game {
           e.type.id === 'carrot_cake_king')
     );
     if (boss && !boss.isAlive()) {
+      if (this.currentInstanceId && !this.hasSentBossDefeated) {
+        this.hasSentBossDefeated = true;
+        NetworkClient.getInstance().sendBossDefeated({
+          instanceId: this.currentInstanceId,
+          bossName: boss.type.name,
+        });
+      }
       for (const ent of this.entities) {
         if (ent instanceof ExtractionPortal && ent.name.includes('Royal')) {
           ent.activateNow();

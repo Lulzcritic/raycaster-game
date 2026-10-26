@@ -89,6 +89,62 @@ export class Matchmaker {
         }
         break;
       }
+      case 'CHEST_OPENED': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handleChestOpened(ws, message.payload);
+        }
+        break;
+      }
+      case 'ITEM_PICKED_UP': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handleItemPickedUp(ws, message.payload);
+        }
+        break;
+      }
+      case 'ITEM_DROPPED': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handleItemDropped(ws, message.payload);
+        }
+        break;
+      }
+      case 'DOOR_OPENED': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handleDoorOpened(ws, message.payload);
+        }
+        break;
+      }
+      case 'PLAYER_EXTRACTED': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handlePlayerExtracted(ws, message.payload);
+        }
+        break;
+      }
+      case 'PLAYER_DIED': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handlePlayerDied(ws, message.payload);
+        }
+        break;
+      }
+      case 'BOSS_DEFEATED': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handleBossDefeated(ws, message.payload);
+        }
+        break;
+      }
+      case 'PLAYER_PING': {
+        const instance = this.activeInstances.get(message.payload.instanceId);
+        if (instance) {
+          instance.handlePlayerPing(ws, message.payload);
+        }
+        break;
+      }
     }
   }
 

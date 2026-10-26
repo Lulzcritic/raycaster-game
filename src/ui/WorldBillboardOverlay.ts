@@ -30,6 +30,14 @@ export class WorldBillboardOverlay {
   private readonly merchantMap = new Map<Merchant, HTMLElement>();
   private readonly doorMap = new Map<Door, HTMLElement>();
   private readonly remotePlayerMap = new Map<RemotePlayer, HTMLElement>();
+  private tacticalPings: Array<{
+    x: number;
+    y: number;
+    senderName: string;
+    label: string;
+    expiresAt: number;
+    element: HTMLElement;
+  }> = [];
   private edgeBeaconEl: HTMLElement | null = null;
 
   constructor() {
@@ -690,6 +698,83 @@ export class WorldBillboardOverlay {
       el.style.top = `${screenPixelY}px`;
       el.style.transform = `translate(-50%, -100%) scale(${scale})`;
     }
+
+    // =========================================================================
+    // 7. SIGNAUX TACTIQUES / PINGS MULTIJOUEUR
+    // =========================================================================
+    const now = Date.now();
+    for (let i = this.tacticalPings.length - 1; i >= 0; i--) {
+      const ping = this.tacticalPings[i];
+      if (now > ping.expiresAt) {
+        ping.element.remove();
+        this.tacticalPings.splice(i, 1);
+        continue;
+      }
+
+      const dx = ping.x - player.x;
+      const dy = ping.y - player.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < 0.2 || distance > 28.0) {
+        ping.element.style.display = 'none';
+        continue;
+      }
+
+      let angleDiff = Math.atan2(dy, dx) - player.angle;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+      if (Math.abs(angleDiff) > player.fov / 2 + 0.18) {
+        ping.element.style.display = 'none';
+        continue;
+      }
+
+      const canvasX = (0.5 + angleDiff / player.fov) * 320;
+      const screenCol = Math.floor(canvasX);
+
+      // Z-buffer occlusion
+      if (screenCol >= 0 && screenCol < 320) {
+        const ray = rayHits[screenCol];
+        if (ray && ray.hit && distance > ray.distance + 0.2) {
+          ping.element.style.display = 'none';
+          continue;
+        }
+      }
+
+      const fullWallHeight = focalLength / distance;
+      const floorScreenY = (240 + fullWallHeight) / 2;
+      const topOfPingY = floorScreenY - fullWallHeight * 0.65;
+
+      const screenPixelX =
+        canvasRect.left + (canvasX / 320) * canvasRect.width;
+      const screenPixelY =
+        canvasRect.top + (topOfPingY / 240) * canvasRect.height;
+
+      const scale = Math.max(0.7, Math.min(1.3, 1.6 / Math.sqrt(distance)));
+
+      ping.element.style.display = 'flex';
+      ping.element.style.left = `${screenPixelX}px`;
+      ping.element.style.top = `${screenPixelY}px`;
+      ping.element.style.transform = `translate(-50%, -100%) scale(${scale})`;
+    }
+  }
+
+  public addTacticalPing(x: number, y: number, senderName: string, label: string): void {
+    if (!this.container) return;
+
+    const el = document.createElement('div');
+    el.className = 'world-tactical-ping';
+    el.innerHTML = `<div class="tactical-ping-badge">📍 ${senderName} : ${label}</div>`;
+    this.container.appendChild(el);
+
+    this.tacticalPings.push({
+      x,
+      y,
+      senderName,
+      label,
+      expiresAt: Date.now() + 6000,
+      element: el,
+    });
   }
 
   public setVisible(visible: boolean): void {
@@ -733,6 +818,11 @@ export class WorldBillboardOverlay {
       playerEl.remove();
     }
     this.remotePlayerMap.clear();
+
+    for (const ping of this.tacticalPings) {
+      ping.element.remove();
+    }
+    this.tacticalPings = [];
 
     if (this.edgeBeaconEl) {
       this.edgeBeaconEl.remove();

@@ -87,6 +87,7 @@ export const KEYS = {
   TURN_RIGHT: 'ArrowRight',
   SHOOT: ' ',
   INTERACT: 'f',
+  PING: 't',
 } as const;
 
 export const INTERACTION_CONFIG = {

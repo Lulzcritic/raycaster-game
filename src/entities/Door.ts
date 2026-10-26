@@ -6,6 +6,7 @@ import { Entity } from './Entity';
 import type { Player } from './Player';
 
 export class Door extends Entity {
+  public onDoorOpenedCallback?: (tileX: number, tileY: number) => void;
   public readonly tileX: number;
   public readonly tileY: number;
   public readonly requiredKeyId: string;
@@ -57,10 +58,17 @@ export class Door extends Entity {
       player.useKey(this.requiredKeyId);
       this.isOpening = true;
       this.openProgress = 0;
+      this.onDoorOpenedCallback?.(this.tileX, this.tileY);
       return 'PORTE DÉVERROUILLÉE !';
     }
 
     return `PORTE VERROUILLÉE ! IL VOUS FAUT : ${keyName}.`;
+  }
+
+  public openFromRemote(): void {
+    if (this.isOpened || this.isOpening) return;
+    this.isOpening = true;
+    this.openProgress = 0;
   }
 
   public override update(deltaTime: number, map: GameMap): void {

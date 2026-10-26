@@ -8,6 +8,14 @@ import type { Player } from './Player';
  * Objet d'équipement au sol dont le sprite reflète fidèlement l'apparence et la rareté
  */
 export class DroppedItemOrb extends Entity {
+  public onPickupCallback?: (
+    item: EquipmentItem,
+    x: number,
+    y: number,
+    replaced: EquipmentItem | null,
+    dropTargetX?: number,
+    dropTargetY?: number
+  ) => void;
   public readonly item: EquipmentItem;
   private readonly startX: number;
   private readonly startY: number;
@@ -102,10 +110,10 @@ export class DroppedItemOrb extends Entity {
     this.active = false;
 
     if (replaced) {
-      if (this.onSpawnEntity) {
-        let dropTargetX = this.x;
-        let dropTargetY = this.y;
+      let dropTargetX = this.x;
+      let dropTargetY = this.y;
 
+      if (this.onSpawnEntity) {
         // Si le joueur est presque sur l'orbe (< 0.45), on propulse l'ancien objet légèrement devant lui
         const distToPlayer = Math.hypot(player.x - dropTargetX, player.y - dropTargetY);
         if (distToPlayer < 0.45) {
@@ -136,9 +144,11 @@ export class DroppedItemOrb extends Entity {
         this.onSpawnEntity(replacementOrb);
       }
 
+      this.onPickupCallback?.(this.item, this.x, this.y, replaced, dropTargetX, dropTargetY);
       return `REMPLACÉ : ${this.item.name.toUpperCase()} (ANCIEN AU SOL)`;
     }
 
+    this.onPickupCallback?.(this.item, this.x, this.y, null);
     return `OBTENU : ${this.item.name.toUpperCase()}`;
   }
 }

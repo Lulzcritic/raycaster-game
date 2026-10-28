@@ -67,10 +67,18 @@ export class NetworkClient {
       const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
       const protocol = isHttps ? 'wss:' : 'ws:';
       const locPort = typeof window !== 'undefined' ? window.location.port : '';
-      // En dev Vite local (port 5173), connexion au port 3001 du serveur backend
-      // En production, réutilise automatiquement le même port que la page (3001, 80 ou 443)
       const portSuffix = locPort === '5173' ? ':3001' : (locPort ? `:${locPort}` : '');
-      this.url = `${protocol}//${host}${portSuffix}`;
+
+      // Supporte l'hébergement à la racine ou sous un sous-dossier (ex: /toc/)
+      let basePath = '/';
+      if (typeof window !== 'undefined') {
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0 && !pathParts[0].includes('.')) {
+          basePath = `/${pathParts[0]}/`;
+        }
+      }
+
+      this.url = `${protocol}//${host}${portSuffix}${basePath}`;
     }
 
     this.connect();

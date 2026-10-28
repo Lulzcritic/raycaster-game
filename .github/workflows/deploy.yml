@@ -34,75 +34,35 @@ jobs:
   deploy:
     name: 🚀 Déploiement Serveur Docker
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: 🔍 Vérification des secrets SSH requis
+      - name: 🐳 Déploiement et redémarrage Docker
         run: |
-          MISSING=0
-          if [ -z "${{ secrets.SSH_HOST }}" ]; then
-            echo "❌ Le secret 'SSH_HOST' est manquant dans GitHub Settings > Secrets and variables > Actions."
-            MISSING=1
+          set -e
+          APP_DIR="$HOME/raycaster-game"
+          echo "📂 Navigation vers $APP_DIR..."
+          if [ ! -d "$APP_DIR" ]; then
+            echo "Clonage initial du dépôt..."
+            git clone https://github.com/Lulzcritic/raycaster-game.git "$APP_DIR"
           fi
-          if [ -z "${{ secrets.SSH_USER }}" ]; then
-            echo "❌ Le secret 'SSH_USER' est manquant dans GitHub Settings > Secrets and variables > Actions."
-            MISSING=1
-          fi
-          if [ -z "${{ secrets.SSH_KEY }}" ] && [ -z "${{ secrets.SSH_PASSWORD }}" ]; then
-            echo "❌ Vous devez renseigner au moins 'SSH_KEY' (clé privée) OU 'SSH_PASSWORD' (mot de passe de votre utilisateur Linux) dans GitHub Secrets."
-            MISSING=1
-          fi
-          if [ $MISSING -eq 1 ]; then
-            echo "Consultez DEPLOYMENT.md pour configurer ces secrets."
-            exit 1
-          fi
-          echo "✅ Secrets de connexion SSH configurés !"
+          cd "$APP_DIR"
 
-      - name: 🌐 Connexion SSH et déploiement Docker
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          timeout: 30s
-          command_timeout: 8m
-          script: |
-            set -e
-            export GIT_TERMINAL_PROMPT=0
+          echo "📥 Récupération du code le plus récent..."
+          git fetch origin main
+          git reset --hard origin/main
 
-            APP_DIR="${{ secrets.SERVER_PATH }}"
-            if [ -z "$APP_DIR" ]; then
-              APP_DIR="$HOME/raycaster-game"
-            else
-              APP_DIR="${APP_DIR/#\~/$HOME}"
-            fi
+          echo "🐳 Reconstruction et redémarrage du conteneur Docker..."
+          docker compose down -t 5 --remove-orphans || true
+          docker compose build
+          docker compose up -d
 
-            echo "📂 Navigation vers $APP_DIR..."
-            if [ ! -d "$APP_DIR" ]; then
-              echo "❌ Le répertoire $APP_DIR n'existe pas sur votre serveur !"
-              echo "Exécutez d'abord : git clone git@github.com:Lulzcritic/raycaster-game.git $APP_DIR"
-              exit 1
-            fi
-            cd "$APP_DIR"
+          echo "🩺 Vérification de l'état de santé du serveur..."
+          sleep 5
+          docker compose ps
+          curl -f http://localhost:3001/health || (echo "❌ Échec du healthcheck !" && docker compose logs --tail=40 && exit 1)
 
-            echo "📥 Récupération du code le plus récent..."
-            git fetch origin main
-            git reset --hard origin/main
-
-            echo "🐳 Reconstruction et redémarrage du conteneur Docker..."
-            docker compose down -t 5 --remove-orphans || true
-            docker compose build
-            docker compose up -d
-
-            echo "🩺 Vérification de l'état de santé du serveur..."
-            sleep 5
-            docker compose ps
-            curl -f http://localhost:3001/health || (echo "❌ Échec du healthcheck !" && docker compose logs --tail=40 && exit 1)
-
-            echo "✅ Déploiement automatique réussi avec succès !"
+          echo "✅ Déploiement automatique réussi avec succès !"
 

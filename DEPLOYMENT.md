@@ -1,65 +1,59 @@
 # 🚀 Guide de Déploiement Continu Automatique (CI/CD)
 
-Ce projet dispose d'un pipeline d'intégration et de déploiement continu (**GitHub Actions**) qui :
-1. **Passe les tests et le build** sur chaque push (`main`).
-2. **Se connecte en SSH** à votre serveur Linux avec Docker.
-3. **Met à jour le code**, **reconstruit l'image Docker** et **redémarre le serveur** sans interruption.
-4. **Valide le démarrage** via le healthcheck HTTP `/health`.
+Ce projet utilise **GitHub Actions** pour le déploiement continu :
+1. **Tests & Build automatisés** sur le cloud GitHub (`ubuntu-latest`).
+2. **Déploiement direct sur votre serveur** via le **Runner GitHub officiel** (`runs-on: self-hosted`).
+
+Grâce au Runner officiel GitHub :
+- **0 port à ouvrir sur votre box** (pas besoin de rediriger le port 22 ni 2222).
+- **Aucun risque de timeout ou de blocage opérateur**.
+- **Aucune clé SSH ni mot de passe à stocker dans GitHub Secrets**.
+- Le déploiement s'exécute localement à la vitesse maximale.
 
 ---
 
-## 1. Configuration Initiale sur votre Serveur Linux
+## 1. Installation du Runner GitHub sur votre Serveur (2 minutes)
 
-Si ce n'est pas déjà fait sur votre serveur distant :
+Sur votre machine Linux (`lulz@lulzserv`) :
 
-### A. Installer Docker & Docker Compose
+### A. Obtenir le script d'installation officiel
+1. Dans votre navigateur, rendez-vous sur votre dépôt GitHub :
+   👉 **Settings** ➔ **Actions** ➔ **Runners**
+2. Cliquez sur le bouton vert **"New self-hosted runner"**.
+3. Sélectionnez **Linux** (Architecture: **x64**).
+
+### B. Copier-coller les commandes dans votre terminal Linux
+GitHub vous génère automatiquement les commandes avec votre jeton temporaire personnel.
+Exécutez-les simplement dans votre terminal :
+
 ```bash
-sudo apt update
-sudo apt install -y docker.io docker-compose-plugin
-sudo usermod -aG docker $USER
-```
-*(Déconnectez-vous puis reconnectez-vous au SSH pour appliquer les permissions Docker).*
+# 1. Créer le dossier du runner
+mkdir actions-runner && cd actions-runner
 
-### B. Cloner le projet une première fois
+# 2. Télécharger le package officiel (utilisez le lien fourni par GitHub)
+curl -o actions-runner-linux-x64.tar.gz -L <LIEN_FOURNI_PAR_GITHUB>
+tar xzf ./actions-runner-linux-x64.tar.gz
+
+# 3. Configurer le runner (GitHub vous donne le token pré-rempli)
+./config.sh --url https://github.com/Lulzcritic/raycaster-game --token <VOTRE_TOKEN_GITHUB>
+```
+*(Appuyez sur Entrée pour accepter les valeurs par défaut lorsqu'il demande le nom du runner).*
+
+### C. Activer le service en arrière-plan (permanent)
+Pour que le runner reste toujours actif même après un redémarrage du serveur :
 ```bash
-cd ~
-git clone https://github.com/Lulzcritic/raycaster-game.git
-cd raycaster-game
+sudo ./svc.sh install
+sudo ./svc.sh start
 ```
 
 ---
 
-## 2. Configuration des Secrets GitHub
+## 2. Déploiement Automatique
 
-Dans votre dépôt GitHub, rendez-vous dans :
-👉 **Settings** ➔ **Secrets and variables** ➔ **Actions** ➔ **New repository secret**
-
-Ajoutez les secrets suivants :
-
-| Secret | Description | Exemple |
-| :--- | :--- | :--- |
-| `SSH_HOST` | Adresse IP publique ou nom de domaine de votre serveur | `51.15.20.123` ou `game.mondomaine.com` |
-| `SSH_USER` | Utilisateur SSH de connexion | `ubuntu` ou `debian` ou `root` |
-| `SSH_KEY` *(au choix avec SSH_PASSWORD)* | Contenu de la **clé privée SSH** (`~/.ssh/id_rsa` ou `id_ed25519`) | `-----BEGIN OPENSSH PRIVATE KEY----- ...` |
-| `SSH_PASSWORD` *(au choix avec SSH_KEY)* | **Mot de passe de votre utilisateur Linux** (si vous n'utilisez pas de clé SSH) | `MonMotDePasseFort123` |
-| `SSH_PORT` *(optionnel)* | Port SSH de votre serveur (défaut : 22) | `22` |
-| `SERVER_PATH` *(optionnel)* | Chemin absolu du dossier sur le serveur (défaut : `~/raycaster-game`) | `/home/ubuntu/raycaster-game` |
-
-> [!TIP]
-> **Créer une clé SSH dédiée au déploiement (recommandé) :**
-> ```bash
-> ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy -N ""
-> cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
-> ```
-> * Copiez le contenu de `~/.ssh/github_deploy` dans le secret GitHub `SSH_KEY`.
-> * La clé publique est déjà autorisée dans `~/.ssh/authorized_keys`.
-
----
-
-## 3. Fonctionnement Automatique
-
-Dès que vous effectuez un push sur la branche `main` :
-1. **GitHub Actions** déclenche le workflow `.github/workflows/deploy.yml`.
-2. Le job **`test`** installe les dépendances, compile le code TypeScript + Vite (`npm run build`) et passe les tests automatisés (`npm test`).
-3. Si tous les tests sont au vert, le job **`deploy`** prend le relais, met à jour le serveur via Docker Compose et vérifie que le port `3001` répond `{"status":"ok"}`.
-4. Votre jeu est immédiatement accessible et jouable sur `http://<VOTRE-IP-OU-DOMAINE>:3001` !
+C'est tout ! Dès que vous faites :
+```bash
+git push origin main
+```
+1. GitHub lance les tests et vérifie le build.
+2. Votre serveur reçoit instantanément l'ordre de déploiement via GitHub.
+3. Le serveur met à jour le code, reconstruit les conteneurs Docker et vérifie `/health`.

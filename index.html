@@ -326,41 +326,8 @@
                     <div id="hub-play-stats-list" class="hub-play-stats-vlist"></div>
 
                     <div class="hub-play-action">
-                      <!-- Panneau Convoi Multijoueur (Départ cadencé 60s) -->
-                      <div id="hub-multiplayer-panel" class="hub-multiplayer-card">
-                        <div class="hub-multiplayer-header">
-                          <div class="hub-net-status" id="hub-net-status">
-                            <span class="hub-net-dot offline"></span>
-                            <span id="hub-net-status-text">CONNEXION SERVEUR...</span>
-                          </div>
-                          <div class="hub-convoi-timer-badge">
-                            ⏱️ DÉPART DANS : <strong id="hub-convoi-timer">--s</strong>
-                          </div>
-                        </div>
-
-                        <div class="hub-multiplayer-content">
-                          <div class="hub-convoi-info-row">
-                            <span class="hub-convoi-info-label">👤 Aventuriers prêts :</span>
-                            <strong id="hub-convoi-count" class="hub-convoi-count">0 / 4</strong>
-                          </div>
-                          <div id="hub-convoi-roster-preview" class="hub-convoi-roster-preview">
-                            <span class="hub-convoi-empty-hint">Le convoi partira automatiquement à la fin du chrono avec les inscrits.</span>
-                          </div>
-                        </div>
-
-                        <div class="hub-multiplayer-actions">
-                          <button id="hub-join-convoi-btn" class="hub-btn-convoi" type="button">
-                            🤝 S'INSCRIRE AU PROCHAIN CONVOI
-                          </button>
-                        </div>
-                      </div>
-
-                      <div class="hub-action-separator">
-                        <span>OU PARTIR SEUL SANS ATTENDRE</span>
-                      </div>
-
-                      <button id="hub-launch-raid-btn" class="hub-launch-btn solo-btn" type="button">
-                        ⚔️ EXPÉDITION EN SOLO
+                      <button id="hub-launch-game-btn" class="hub-launch-btn" type="button">
+                        ⚔️ LANCER LA PARTIE
                       </button>
                     </div>
                   </div>
@@ -413,6 +380,51 @@
                 <div id="hub-quests-list" class="hub-quests-list"></div>
               </div>
             </section>
+          </div>
+        </div>
+
+        <!-- Nouvelle Interface de File d'Attente Multijoueur (Modal Overlay) -->
+        <div id="hub-queue-overlay" class="hub-queue-overlay hidden">
+          <div class="hub-queue-box">
+            <div class="hub-queue-header">
+              <div class="hub-queue-tag">🏰 CITADELLE • CONVOI MULTIJOUEUR</div>
+              <h2 class="hub-queue-title">PRÉPARATION DU CONVOI</h2>
+              <p class="hub-queue-subtitle">
+                Le convoi vers la Citadelle part toutes les minutes. Tous les aventuriers en attente seront téléportés ensemble dans la même session.
+              </p>
+            </div>
+
+            <!-- Compteur compte à rebours dynamique -->
+            <div class="hub-queue-countdown-card">
+              <div class="hub-queue-timer-circle">
+                <span class="hub-queue-timer-icon">⏱️</span>
+                <span id="hub-queue-timer-text" class="hub-queue-timer-val">60s</span>
+              </div>
+              <div class="hub-queue-countdown-info">
+                <div id="hub-queue-status-text" class="hub-queue-status-text">RECHERCHE D'AVENTURIERS EN COURS...</div>
+                <div class="hub-queue-countdown-sub">
+                  Départ garanti dès l'expiration du chrono (même en solitaire).
+                </div>
+              </div>
+            </div>
+
+            <!-- Roster de l'escouade en file -->
+            <div class="hub-queue-roster-wrap">
+              <div class="hub-queue-roster-top">
+                <span class="hub-queue-roster-title">🛡️ AVENTURIERS DANS LE CONVOI</span>
+                <span id="hub-queue-roster-count" class="hub-queue-roster-count">1 / 4 PRÊTS</span>
+              </div>
+              <div id="hub-queue-slots-list" class="hub-queue-slots-grid">
+                <!-- 4 cartes générées dynamiquement -->
+              </div>
+            </div>
+
+            <!-- Bouton d'annulation / retour au campement -->
+            <div class="hub-queue-action-row">
+              <button id="hub-queue-cancel-btn" class="hub-queue-cancel-btn" type="button">
+                ✕ ANNULER ET RETOURNER AU CAMPEMENT [ÉCHAP]
+              </button>
+            </div>
           </div>
         </div>
       </div>

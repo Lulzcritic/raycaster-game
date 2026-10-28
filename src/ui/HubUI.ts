@@ -70,7 +70,7 @@ export class HubUI {
   private readonly coinIcon: HTMLImageElement | null;
   private readonly coinText: HTMLElement | null;
   private readonly menuBtn: HTMLButtonElement | null;
-  private readonly launchRaidBtn: HTMLButtonElement | null;
+  private readonly launchGameBtn: HTMLButtonElement | null;
 
   // Éléments de l'avatar (panneau gauche)
   private readonly avatarImg: HTMLImageElement | null;
@@ -103,13 +103,13 @@ export class HubUI {
   }) => void;
   private onReturnToMenuCallback?: () => void;
 
-  // Multijoueur & Convoi 60s
-  private netDotEl: HTMLElement | null = null;
-  private netStatusTextEl: HTMLElement | null = null;
-  private convoiTimerEl: HTMLElement | null = null;
-  private convoiCountEl: HTMLElement | null = null;
-  private convoiRosterPreviewEl: HTMLElement | null = null;
-  private joinConvoiBtn: HTMLButtonElement | null = null;
+  // Nouvelle interface de file d'attente Multijoueur
+  private readonly queueOverlay: HTMLElement | null;
+  private readonly queueTimerText: HTMLElement | null;
+  private readonly queueStatusText: HTMLElement | null;
+  private readonly queueRosterCount: HTMLElement | null;
+  private readonly queueSlotsList: HTMLElement | null;
+  private readonly queueCancelBtn: HTMLButtonElement | null;
 
   constructor(
     onStartRaid?: (options?: {
@@ -129,7 +129,7 @@ export class HubUI {
     this.coinIcon = document.getElementById('hub-coin-icon') as HTMLImageElement | null;
     this.coinText = document.getElementById('hub-coin-text');
     this.menuBtn = document.getElementById('hub-btn-menu') as HTMLButtonElement | null;
-    this.launchRaidBtn = document.getElementById('hub-launch-raid-btn') as HTMLButtonElement | null;
+    this.launchGameBtn = document.getElementById('hub-launch-game-btn') as HTMLButtonElement | null;
 
     this.views = {
       play: document.getElementById('hub-view-play'),
@@ -165,13 +165,13 @@ export class HubUI {
     this.shopItemsListContainer = document.getElementById('hub-shop-items-list');
     this.questsListContainer = document.getElementById('hub-quests-list');
 
-    // Multijoueur & Convoi 60s
-    this.netDotEl = document.querySelector('.hub-net-dot');
-    this.netStatusTextEl = document.getElementById('hub-net-status-text');
-    this.convoiTimerEl = document.getElementById('hub-convoi-timer');
-    this.convoiCountEl = document.getElementById('hub-convoi-count');
-    this.convoiRosterPreviewEl = document.getElementById('hub-convoi-roster-preview');
-    this.joinConvoiBtn = document.getElementById('hub-join-convoi-btn') as HTMLButtonElement | null;
+    // Nouvelle interface de file d'attente Multijoueur
+    this.queueOverlay = document.getElementById('hub-queue-overlay');
+    this.queueTimerText = document.getElementById('hub-queue-timer-text');
+    this.queueStatusText = document.getElementById('hub-queue-status-text');
+    this.queueRosterCount = document.getElementById('hub-queue-roster-count');
+    this.queueSlotsList = document.getElementById('hub-queue-slots-list');
+    this.queueCancelBtn = document.getElementById('hub-queue-cancel-btn') as HTMLButtonElement | null;
 
     // Initialisation du fond d'écran 16:9 dans la scène centrale (sans étirement ni zoom)
     const stageBg = `linear-gradient(rgba(10, 6, 18, 0.15), rgba(8, 4, 14, 0.4)), url('${hubBgUrl}')`;
@@ -233,6 +233,9 @@ export class HubUI {
 
   public hide(): void {
     ItemTooltip.getInstance().hide();
+    if (this.isQueueOpen()) {
+      this.closeQueueScreen();
+    }
     if (this.hubElement) {
       this.hubElement.classList.add('hidden');
       this.hubElement.style.display = 'none';
@@ -241,6 +244,51 @@ export class HubUI {
 
   public isVisible(): boolean {
     return Boolean(this.hubElement && !this.hubElement.classList.contains('hidden'));
+  }
+
+  public isQueueOpen(): boolean {
+    return Boolean(this.queueOverlay && !this.queueOverlay.classList.contains('hidden'));
+  }
+
+  public openQueueScreen(): void {
+    if (!this.player) return;
+    const net = NetworkClient.getInstance();
+    const playerName = SKINS[this.currentSkinIndex]?.name ?? 'Lord Aventurier';
+    const skinId = SKINS[this.currentSkinIndex]?.id ?? 'puzzle_lord';
+    const gearScore = this.player.getGearScore();
+
+    // Inscription auprès du serveur de matchmaking
+    net.joinQueue(playerName, gearScore, skinId);
+
+    // Affichage de la nouvelle interface de file d'attente
+    if (this.queueOverlay) {
+      this.queueOverlay.classList.remove('hidden');
+    }
+
+    const lastStatus = net.getLastQueueStatus();
+    const initialCountdown = lastStatus ? lastStatus.cycleCountdownSec : 60;
+
+    if (this.queueTimerText) {
+      this.queueTimerText.textContent = `${initialCountdown}s`;
+    }
+    if (this.queueRosterCount) {
+      this.queueRosterCount.textContent = `1 / 4 PRÊTS`;
+    }
+    if (this.queueStatusText) {
+      this.queueStatusText.textContent = `RECHERCHE D'AVENTURIERS EN COURS...`;
+    }
+
+    this.renderQueueSlots([
+      { name: playerName, gearScore, skinId },
+    ]);
+  }
+
+  public closeQueueScreen(): void {
+    const net = NetworkClient.getInstance();
+    net.leaveQueue();
+    if (this.queueOverlay) {
+      this.queueOverlay.classList.add('hidden');
+    }
   }
 
   public getCurrentTab(): HubTab {
@@ -297,10 +345,28 @@ export class HubUI {
       });
     });
 
-    // Lancement du raid
-    this.launchRaidBtn?.addEventListener('click', () => {
+    // Lancement de la partie -> Ouverture de l'interface de file d'attente (Multijoueur)
+    this.launchGameBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       ItemTooltip.getInstance().hide();
-      this.onStartRaidCallback?.();
+      this.openQueueScreen();
+    });
+
+    // Bouton d'annulation de la file d'attente
+    this.queueCancelBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.closeQueueScreen();
+    });
+
+    // Annulation de la file avec Échap
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isQueueOpen()) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeQueueScreen();
+      }
     });
 
     // Retour au menu principal
@@ -340,17 +406,6 @@ export class HubUI {
   private setupNetworkListeners(): void {
     const net = NetworkClient.getInstance();
 
-    net.onConnectionChange((connected) => {
-      if (this.netDotEl) {
-        this.netDotEl.className = `hub-net-dot ${connected ? '' : 'offline'}`;
-      }
-      if (this.netStatusTextEl) {
-        this.netStatusTextEl.textContent = connected
-          ? 'SERVEUR EN LIGNE'
-          : 'SERVEUR HORS LIGNE';
-      }
-    });
-
     net.onQueueStatus((status) => {
       this.updateQueueStatusUI(status);
     });
@@ -361,6 +416,9 @@ export class HubUI {
 
     net.onMatchStart((data) => {
       ItemTooltip.getInstance().hide();
+      if (this.queueOverlay) {
+        this.queueOverlay.classList.add('hidden');
+      }
       const localPlayer = data.players[data.playerIndex];
       this.onStartRaidCallback?.({
         seed: data.mapSeed,
@@ -369,56 +427,75 @@ export class HubUI {
         localPlayerId: localPlayer?.id,
       });
     });
-
-    if (this.joinConvoiBtn) {
-      this.joinConvoiBtn.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const status = net.getLastQueueStatus();
-        if (status && status.isQueued) {
-          net.leaveQueue();
-        } else {
-          const playerName = SKINS[this.currentSkinIndex]?.name ?? 'Lord Aventurier';
-          const skinId = SKINS[this.currentSkinIndex]?.id ?? 'puzzle_lord';
-          const gearScore = this.player ? this.player.getGearScore() : 50;
-          net.joinQueue(playerName, gearScore, skinId);
-        }
-      };
-    }
   }
 
   private updateQueueStatusUI(status: QueueStatusPayload): void {
-    if (this.convoiTimerEl) {
-      this.convoiTimerEl.textContent = `${status.cycleCountdownSec}s`;
+    if (this.queueTimerText) {
+      this.queueTimerText.textContent = `${status.cycleCountdownSec}s`;
     }
-    if (this.convoiCountEl) {
-      this.convoiCountEl.textContent = `${status.queuedCount} / ${status.maxPlayers}`;
+    if (this.queueRosterCount) {
+      this.queueRosterCount.textContent = `${status.queuedCount} / ${status.maxPlayers} PRÊTS`;
     }
-    if (this.joinConvoiBtn) {
-      if (status.isQueued) {
-        this.joinConvoiBtn.className = 'hub-btn-convoi in-queue';
-        this.joinConvoiBtn.innerHTML = `❌ QUITTER LA FILE (${status.cycleCountdownSec}s)`;
+    if (this.queueStatusText) {
+      if (status.cycleCountdownSec <= 5) {
+        this.queueStatusText.textContent = `⚡ DÉPART IMMINENT DU CONVOI !`;
       } else {
-        this.joinConvoiBtn.className = 'hub-btn-convoi';
-        this.joinConvoiBtn.innerHTML = `🤝 S'INSCRIRE AU PROCHAIN CONVOI`;
+        this.queueStatusText.textContent = `RECHERCHE D'AVENTURIERS EN COURS...`;
       }
     }
 
-    if (this.convoiRosterPreviewEl) {
-      if (status.queuedPlayers.length === 0) {
-        this.convoiRosterPreviewEl.innerHTML = `<span class="hub-convoi-empty-hint">Le convoi partira automatiquement à la fin du chrono avec les inscrits.</span>`;
+    if (this.isQueueOpen()) {
+      this.renderQueueSlots(status.queuedPlayers);
+    }
+  }
+
+  private renderQueueSlots(
+    queuedPlayers: Array<{ name: string; gearScore: number; skinId?: string }>
+  ): void {
+    if (!this.queueSlotsList) return;
+    this.queueSlotsList.innerHTML = '';
+
+    const maxSlots = 4;
+    const currentSkin = SKINS[this.currentSkinIndex];
+
+    for (let i = 0; i < maxSlots; i++) {
+      const p = queuedPlayers[i];
+      const slotCard = document.createElement('div');
+
+      if (p) {
+        const matchedSkin = SKINS.find((s) => s.id === p.skinId) ?? currentSkin;
+        const avatarUrl = matchedSkin?.url ?? puzzleLordUrl;
+        const isLocal = i === 0 || p.name === currentSkin?.name;
+
+        slotCard.className = `hub-queue-player-card${isLocal ? ' is-local' : ''}`;
+        slotCard.innerHTML = `
+          <img src="${avatarUrl}" class="hub-queue-card-avatar" alt="${p.name}" />
+          <div class="hub-queue-card-name">${p.name}${isLocal ? ' (Vous)' : ''}</div>
+          <div class="hub-queue-card-gs">⭐ ${p.gearScore} GS</div>
+          <div class="hub-queue-card-status">✅ PRÊT</div>
+        `;
       } else {
-        this.convoiRosterPreviewEl.innerHTML = status.queuedPlayers
-          .map(
-            (p) =>
-              `<span class="hub-convoi-player-pill">👤 ${p.name} (GS ${p.gearScore})</span>`
-          )
-          .join('');
+        slotCard.className = 'hub-queue-player-card empty-slot';
+        slotCard.innerHTML = `
+          <div class="hub-queue-empty-icon">⏳</div>
+          <div class="hub-queue-empty-text">Emplacement libre #${i + 1}</div>
+        `;
       }
+
+      this.queueSlotsList.appendChild(slotCard);
     }
   }
 
   private showMatchFoundNotification(data: MatchFoundPayload): void {
+    if (this.isQueueOpen()) {
+      if (this.queueStatusText) {
+        this.queueStatusText.textContent = `⚔️ CONVOI EN ROUTE ! Téléportation dans ${data.countdownSec}s...`;
+      }
+      if (this.queueTimerText) {
+        this.queueTimerText.textContent = `${data.countdownSec}s`;
+      }
+    }
+
     const existing = document.querySelector('.hub-match-found-banner');
     if (existing) existing.remove();
 
@@ -637,17 +714,6 @@ export class HubUI {
         `
         )
         .join('');
-    }
-
-    // 3. Liaison du bouton de lancement de raid
-    const launchBtn = document.getElementById('hub-launch-raid-btn');
-    if (launchBtn) {
-      launchBtn.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        ItemTooltip.getInstance().hide();
-        this.onStartRaidCallback?.();
-      };
     }
   }
 

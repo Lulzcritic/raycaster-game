@@ -68,10 +68,9 @@ export class NetworkClient {
       const protocol = isHttps ? 'wss:' : 'ws:';
       const locPort = typeof window !== 'undefined' ? window.location.port : '';
       // En dev Vite local (port 5173), connexion au port 3001 du serveur backend
-      // Si aucun port n'est spécifié (reverse proxy 80/443), pas de port dans l'URL
-      // Sinon utilise le port courant ou 3001
+      // En production, réutilise automatiquement le même port que la page (3001, 80 ou 443)
       const portSuffix = locPort === '5173' ? ':3001' : (locPort ? `:${locPort}` : '');
-      this.url = `${protocol}//${host}${portSuffix || ':3001'}`;
+      this.url = `${protocol}//${host}${portSuffix}`;
     }
 
     this.connect();

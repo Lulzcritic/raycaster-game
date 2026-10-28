@@ -30,6 +30,7 @@ async function runCITests() {
     const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
     serverProcess = spawn(npxCmd, ['tsx', 'server/src/index.ts'], {
       detached: process.platform !== 'win32',
+      shell: process.platform === 'win32',
       stdio: 'ignore',
     });
 

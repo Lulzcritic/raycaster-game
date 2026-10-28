@@ -97,7 +97,7 @@ wss.on('connection', (ws: WebSocket, req) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
   console.log(`🏰 RAYCASTER MULTIPLAYER SERVER EN LIGNE`);
   console.log(`📡 Port: ${PORT} (WebSocket & HTTP Health)`);

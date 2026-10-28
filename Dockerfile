@@ -34,6 +34,6 @@ COPY --from=builder /app/src/types ./src/types
 EXPOSE 3001
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
+  CMD curl -f http://127.0.0.1:3001/health || exit 1
 
 CMD ["npm", "run", "server"]

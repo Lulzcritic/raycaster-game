@@ -102,7 +102,7 @@ jobs:
             echo "🩺 Vérification de l'état de santé du serveur..."
             sleep 5
             docker compose ps
-            curl -f http://localhost:3001/health || (echo "❌ Échec du healthcheck !" && docker compose logs --tail=40 && exit 1)
+            curl --retry 10 --retry-delay 2 --retry-connrefused -f http://127.0.0.1:3001/health || (echo "❌ Échec du healthcheck !" && docker compose logs --tail=50 && exit 1)
 
             echo "✅ Déploiement automatique réussi avec succès !"
 

@@ -50,21 +50,22 @@ jobs:
             echo "❌ Le secret 'SSH_USER' est manquant dans GitHub Settings > Secrets and variables > Actions."
             MISSING=1
           fi
-          if [ -z "${{ secrets.SSH_KEY }}" ]; then
-            echo "❌ Le secret 'SSH_KEY' est manquant dans GitHub Settings > Secrets and variables > Actions."
+          if [ -z "${{ secrets.SSH_KEY }}" ] && [ -z "${{ secrets.SSH_PASSWORD }}" ]; then
+            echo "❌ Vous devez renseigner au moins 'SSH_KEY' (clé privée) OU 'SSH_PASSWORD' (mot de passe de votre utilisateur Linux) dans GitHub Secrets."
             MISSING=1
           fi
           if [ $MISSING -eq 1 ]; then
-            echo "Consultez DEPLOYMENT.md pour configurer ces 3 secrets."
+            echo "Consultez DEPLOYMENT.md pour configurer ces secrets."
             exit 1
           fi
-          echo "✅ Secrets SSH configurés !"
+          echo "✅ Secrets de connexion SSH configurés !"
 
       - name: 🌐 Connexion SSH et déploiement Docker
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.SSH_PORT || 22 }}

@@ -40,7 +40,8 @@ Ajoutez les secrets suivants :
 | :--- | :--- | :--- |
 | `SSH_HOST` | Adresse IP publique ou nom de domaine de votre serveur | `51.15.20.123` ou `game.mondomaine.com` |
 | `SSH_USER` | Utilisateur SSH de connexion | `ubuntu` ou `debian` ou `root` |
-| `SSH_KEY` | Contenu de la **clé privée SSH** (`~/.ssh/id_rsa` ou `id_ed25519`) | `-----BEGIN OPENSSH PRIVATE KEY----- ...` |
+| `SSH_KEY` *(au choix avec SSH_PASSWORD)* | Contenu de la **clé privée SSH** (`~/.ssh/id_rsa` ou `id_ed25519`) | `-----BEGIN OPENSSH PRIVATE KEY----- ...` |
+| `SSH_PASSWORD` *(au choix avec SSH_KEY)* | **Mot de passe de votre utilisateur Linux** (si vous n'utilisez pas de clé SSH) | `MonMotDePasseFort123` |
 | `SSH_PORT` *(optionnel)* | Port SSH de votre serveur (défaut : 22) | `22` |
 | `SERVER_PATH` *(optionnel)* | Chemin absolu du dossier sur le serveur (défaut : `~/raycaster-game`) | `/home/ubuntu/raycaster-game` |
 

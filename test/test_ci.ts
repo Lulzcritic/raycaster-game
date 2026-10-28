@@ -27,9 +27,10 @@ async function runCITests() {
 
   if (!isAlreadyRunning) {
     console.log('🚀 Lancement du serveur multijoueur pour les tests...');
-    serverProcess = spawn('npx', ['tsx', 'server/src/index.ts'], {
-      shell: true,
-      stdio: 'pipe',
+    const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+    serverProcess = spawn(npxCmd, ['tsx', 'server/src/index.ts'], {
+      detached: process.platform !== 'win32',
+      stdio: 'ignore',
     });
 
     const startWait = Date.now();
@@ -128,14 +129,23 @@ async function runCITests() {
   ws1.close();
   ws2.close();
 
-  if (serverProcess) {
+  if (serverProcess && serverProcess.pid) {
     console.log('🛑 Arrêt du serveur de test temporaire...');
-    serverProcess.kill('SIGTERM');
+    try {
+      if (process.platform === 'win32') {
+        spawn('taskkill', ['/pid', String(serverProcess.pid), '/f', '/t']);
+      } else {
+        process.kill(-serverProcess.pid, 'SIGKILL');
+      }
+    } catch {
+      serverProcess.kill('SIGKILL');
+    }
   }
 
   console.log('\n======================================================');
   console.log('🎉 TOUS LES TESTS CI SONT VALIDÉS AVEC SUCCÈS !');
   console.log('======================================================\n');
+  process.exit(0);
 }
 
 runCITests().catch((err) => {

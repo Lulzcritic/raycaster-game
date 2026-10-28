@@ -96,7 +96,23 @@ jobs:
 
             echo "🐳 Reconstruction et redémarrage du conteneur Docker..."
             docker compose down -t 5 --remove-orphans || true
-            docker compose build
+            
+            BUILD_SUCCESS=0
+            for attempt in 1 2 3; do
+              echo "🔨 Construction Docker (tentative $attempt/3)..."
+              if docker compose build; then
+                BUILD_SUCCESS=1
+                break
+              fi
+              echo "⚠️ Échec temporaire de connexion à Docker Hub, nouvelle tentative dans 6s..."
+              sleep 6
+            done
+
+            if [ $BUILD_SUCCESS -ne 1 ]; then
+              echo "❌ Échec de la construction Docker après 3 tentatives."
+              exit 1
+            fi
+
             docker compose up -d
 
             echo "🩺 Vérification de l'état de santé du serveur..."

@@ -1,0 +1,69 @@
+name: CI & CD Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 🧪 Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupération du dépôt
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Installation des dépendances
+        run: npm ci
+
+      - name: 🔨 Vérification TypeScript & Build Vite
+        run: npm run build
+
+      - name: 🧪 Exécution de la suite de tests automatisés
+        run: npm test
+
+  deploy:
+    name: 🚀 Déploiement Serveur Docker
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 🌐 Connexion SSH et déploiement Docker
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            APP_DIR="${{ secrets.SERVER_PATH }}"
+            if [ -z "$APP_DIR" ]; then
+              APP_DIR="~/raycaster-game"
+            fi
+            echo "📂 Navigation vers $APP_DIR..."
+            cd "$APP_DIR"
+
+            echo "📥 Récupération des modifications Git..."
+            git pull origin main
+
+            echo "🐳 Reconstruction et redémarrage du conteneur Docker..."
+            docker compose down --remove-orphans || true
+            docker compose build --pull
+            docker compose up -d
+
+            echo "🩺 Vérification de l'état de santé du serveur..."
+            sleep 6
+            docker compose ps
+            curl -f http://localhost:3001/health || (echo "❌ Échec du healthcheck !" && docker compose logs --tail=50 && exit 1)
+
+            echo "✅ Déploiement automatique réussi !"

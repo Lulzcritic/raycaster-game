@@ -59,11 +59,20 @@ export class NetworkClient {
   private squadSummaryListeners: Array<(data: SquadSummaryPayload) => void> = [];
 
   private constructor() {
-    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const protocol = isHttps ? 'wss:' : 'ws:';
-    // Port 3001 par défaut pour le serveur multijoueur
-    this.url = `${protocol}//${host}:3001`;
+    const wsUrlEnv = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_WS_URL) as string | undefined;
+    if (wsUrlEnv) {
+      this.url = wsUrlEnv;
+    } else {
+      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+      const protocol = isHttps ? 'wss:' : 'ws:';
+      const locPort = typeof window !== 'undefined' ? window.location.port : '';
+      // En dev Vite local (port 5173), connexion au port 3001 du serveur backend
+      // Si aucun port n'est spécifié (reverse proxy 80/443), pas de port dans l'URL
+      // Sinon utilise le port courant ou 3001
+      const portSuffix = locPort === '5173' ? ':3001' : (locPort ? `:${locPort}` : '');
+      this.url = `${protocol}//${host}${portSuffix || ':3001'}`;
+    }
 
     this.connect();
   }

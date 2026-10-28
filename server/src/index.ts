@@ -1,9 +1,27 @@
+import fs from 'fs';
+import path from 'path';
 import http from 'http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { Matchmaker } from './Matchmaker';
 import type { ClientMessage } from '../../src/types/network';
 
 const PORT = Number(process.env.PORT) || 3001;
+const DIST_DIR = path.resolve(process.cwd(), 'dist');
+
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.json': 'application/json; charset=utf-8',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+};
 
 const server = http.createServer((req, res) => {
   // En-têtes CORS pour requêtes HTTP de debug / status
@@ -22,8 +40,32 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Distribution des fichiers statiques du client (si dist/ existe)
+  if (fs.existsSync(DIST_DIR)) {
+    const rawUrl = req.url?.split('?')[0] ?? '/';
+    const cleanUrl = rawUrl === '/' ? '/index.html' : rawUrl;
+    const safePath = path.normalize(cleanUrl).replace(/^(\.\.[/\\])+/, '');
+    const filePath = path.join(DIST_DIR, safePath);
+
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': contentType });
+      fs.createReadStream(filePath).pipe(res);
+      return;
+    }
+
+    // Fallback SPA
+    const indexPath = path.join(DIST_DIR, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      fs.createReadStream(indexPath).pipe(res);
+      return;
+    }
+  }
+
   res.writeHead(404);
-  res.end('Raycaster Multiplayer Gateway');
+  res.end('Raycaster Multiplayer Gateway (Frontend non compilé dans dist/)');
 });
 
 const wss = new WebSocketServer({ server });

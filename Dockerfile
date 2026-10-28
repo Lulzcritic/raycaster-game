@@ -24,10 +24,9 @@ RUN apk add --no-cache curl
 ENV NODE_ENV=production
 ENV PORT=3001
 
-COPY package*.json ./
-RUN npm ci
-
-# Récupération des fichiers statiques compilés et des sources serveur
+# Réutilisation directe des dépendances et des fichiers compilés de l'étape de build
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/src/types ./src/types

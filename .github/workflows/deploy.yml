@@ -35,7 +35,7 @@ jobs:
     name: 🚀 Déploiement Serveur Docker
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     if: github.ref == 'refs/heads/main'
 
     steps:
@@ -69,8 +69,8 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          timeout: 45s
-          command_timeout: 8m
+          timeout: 60s
+          command_timeout: 20m
           script: |
             set -e
             export GIT_TERMINAL_PROMPT=0

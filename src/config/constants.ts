@@ -28,10 +28,14 @@ export const TILE_TYPE = {
   HOMONCULUS: 5,
   MERCHANT: 6,
   COIN: 7,
+  BARREL: 8,
+  BOX: 9,
+  TABLE: 10,
+  PILLAR: 11,
 } as const;
 
 /**
- * Catalogue des textures du dossier src/assets/textures/ associées à leur ID et catégorie
+ * Catalogue des textures du dossier src/assets/ associées à leur ID et catégorie
  */
 export const TEXTURE_DEFINITIONS: readonly TextureDefinition[] = [
   { id: TILE_TYPE.HAND_WAND, category: 'weapon', path: '/assets/textures/handwand.png' },
@@ -63,6 +67,30 @@ export const TEXTURE_DEFINITIONS: readonly TextureDefinition[] = [
     category: 'sprite',
     path: '/assets/textures/coin.png',
     scale: 0.28,
+  },
+  {
+    id: TILE_TYPE.BARREL,
+    category: 'sprite',
+    path: '/assets/sprites/props/barrel.png',
+    scale: 0.44,
+  },
+  {
+    id: TILE_TYPE.BOX,
+    category: 'sprite',
+    path: '/assets/sprites/props/box.png',
+    scale: 0.42,
+  },
+  {
+    id: TILE_TYPE.TABLE,
+    category: 'sprite',
+    path: '/assets/sprites/props/table.png',
+    scale: 0.42,
+  },
+  {
+    id: TILE_TYPE.PILLAR,
+    category: 'sprite',
+    path: '/assets/sprites/props/pillar.png',
+    scale: 1.0,
   },
   {
     id: TILE_TYPE.DOOR,

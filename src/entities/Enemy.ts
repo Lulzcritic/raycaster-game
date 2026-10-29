@@ -862,14 +862,10 @@ export class Enemy extends Entity {
   }
 
   private moveWithCollision(moveX: number, moveY: number, map: GameMap): void {
-    const margin = this.hitBox;
-    const checkX = moveX > 0 ? this.x + moveX + margin : this.x + moveX - margin;
-    const checkY = moveY > 0 ? this.y + moveY + margin : this.y + moveY - margin;
-
-    if (map.isWalkable(checkX, this.y)) {
+    if (map.canMove(this.x + moveX, this.y, this.hitBox)) {
       this.x += moveX;
     }
-    if (map.isWalkable(this.x, checkY)) {
+    if (map.canMove(this.x, this.y + moveY, this.hitBox)) {
       this.y += moveY;
     }
   }
@@ -978,25 +974,7 @@ export class Enemy extends Entity {
   }
 
   private hasLineOfSight(map: GameMap): boolean {
-    const dx = this.player.x - this.x;
-    const dy = this.player.y - this.y;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist < 0.3) {
-      return true;
-    }
-
-    const steps = Math.ceil(dist / 0.25);
-    const stepX = dx / steps;
-    const stepY = dy / steps;
-
-    for (let i = 1; i < steps; i++) {
-      if (map.isWall(this.x + stepX * i, this.y + stepY * i)) {
-        return false;
-      }
-    }
-
-    return true;
+    return map.hasLineOfSight(this.x, this.y, this.player.x, this.player.y);
   }
 
   /**

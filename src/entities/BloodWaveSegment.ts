@@ -78,7 +78,11 @@ export class BloodWaveSegment extends Entity {
     const nextY = this.y + Math.sin(this.angle) * stepDistance;
 
     // Arrêt immédiat contre les murs ou piliers : offre un abri absolu au joueur !
-    if (map.isOutOfBounds(nextX, nextY) || map.isWall(nextX, nextY)) {
+    if (
+      map.isOutOfBounds(nextX, nextY) ||
+      map.isWall(nextX, nextY) ||
+      map.getSolidObstacleAt(nextX, nextY, 0.2)
+    ) {
       this.hitTarget();
       return;
     }

@@ -51,6 +51,8 @@ import { BloodWaveSegment } from '../entities/BloodWaveSegment';
 import { PurpleOrb } from '../entities/PurpleOrb';
 import { FrostingPuddle } from '../entities/FrostingPuddle';
 import { RemotePlayer } from '../entities/RemotePlayer';
+import { Prop } from '../entities/Prop';
+import { PropSpriteManager, type PropKind } from '../graphics/PropSpriteManager';
 import { PlayerSpriteManager } from '../graphics/PlayerSpriteManager';
 import { NetworkClient } from '../network/NetworkClient';
 import { findSpacedDropPositions } from '../utils/dropSpread';
@@ -563,6 +565,7 @@ export class Game {
       PumpkinSpriteManager.preloadAll(),
       CakeKingSpriteManager.preloadAll(),
       PlayerSpriteManager.preloadAll(),
+      PropSpriteManager.preloadAll(),
     ]);
   }
 
@@ -627,6 +630,24 @@ export class Game {
             this.chatUI.addMessage('SYSTÈME', '🚪 Vous avez déverrouillé une grande porte de la crypte !', true);
           };
           this.entities.push(door);
+          continue;
+        }
+
+        // Spawning des éléments de décor solides (props) placés directement dans la grille
+        if (
+          tileId === TILE_TYPE.PILLAR ||
+          tileId === TILE_TYPE.BARREL ||
+          tileId === TILE_TYPE.BOX ||
+          tileId === TILE_TYPE.TABLE
+        ) {
+          let kind: PropKind = 'box';
+          if (tileId === TILE_TYPE.PILLAR) kind = 'pillar';
+          else if (tileId === TILE_TYPE.BARREL) kind = 'barrel';
+          else if (tileId === TILE_TYPE.TABLE) kind = 'table';
+
+          const prop = new Prop(col + 0.5, row + 0.5, kind);
+          this.entities.push(prop);
+          this.map.addObstacle(prop);
           continue;
         }
 
@@ -716,6 +737,24 @@ export class Game {
             s.scale ?? 0.72
           );
           this.entities.push(merchant);
+          continue;
+        }
+
+        // Spawning des props (piliers, tonneaux, caisses, tables) déclarés par coordonnées libres
+        if (
+          s.textureId === TILE_TYPE.PILLAR ||
+          s.textureId === TILE_TYPE.BARREL ||
+          s.textureId === TILE_TYPE.BOX ||
+          s.textureId === TILE_TYPE.TABLE
+        ) {
+          let kind: PropKind = 'box';
+          if (s.textureId === TILE_TYPE.PILLAR) kind = 'pillar';
+          else if (s.textureId === TILE_TYPE.BARREL) kind = 'barrel';
+          else if (s.textureId === TILE_TYPE.TABLE) kind = 'table';
+
+          const prop = new Prop(s.x, s.y, kind, s.scale);
+          this.entities.push(prop);
+          this.map.addObstacle(prop);
           continue;
         }
 

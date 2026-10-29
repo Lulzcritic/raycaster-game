@@ -59,8 +59,12 @@ export class Fireball extends Entity {
     const nextX = this.x + Math.cos(this.angle) * stepDistance;
     const nextY = this.y + Math.sin(this.angle) * stepDistance;
 
-    // Collision avec un mur ou sortie de carte
-    if (map.isOutOfBounds(nextX, nextY) || map.isWall(nextX, nextY)) {
+    // Collision avec un mur, un obstacle solide (pilier, tonneau...) ou sortie de carte
+    if (
+      map.isOutOfBounds(nextX, nextY) ||
+      map.isWall(nextX, nextY) ||
+      map.getSolidObstacleAt(nextX, nextY, 0.15)
+    ) {
       this.state = 'exploding';
       this.explosionTimer = 0;
       return;

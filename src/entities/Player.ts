@@ -289,16 +289,12 @@ export class Player extends Entity {
   }
 
   private applyMovement(moveX: number, moveY: number, map: GameMap): void {
-    // Marge de collision (hitbox) selon le sens de marche
-    const checkX = moveX > 0 ? this.x + moveX + this.hitBox : this.x + moveX - this.hitBox;
-    const checkY = moveY > 0 ? this.y + moveY + this.hitBox : this.y + moveY - this.hitBox;
-
-    // Déplacement en X si libre
-    if (map.isWalkable(checkX, this.y)) {
+    // Déplacement fluide en X avec glissement contre les murs et les obstacles solides
+    if (map.canMove(this.x + moveX, this.y, this.hitBox)) {
       this.x += moveX;
     }
-    // Déplacement en Y si libre
-    if (map.isWalkable(this.x, checkY)) {
+    // Déplacement fluide en Y avec glissement contre les murs et les obstacles solides
+    if (map.canMove(this.x, this.y + moveY, this.hitBox)) {
       this.y += moveY;
     }
   }

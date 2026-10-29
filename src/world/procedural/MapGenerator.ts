@@ -138,6 +138,12 @@ export class MapGenerator {
         delaySec: 90,
       },
     ],
+    sprites: [
+      { x: 3.5, y: 3.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 7.5, y: 3.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 3.5, y: 7.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 7.5, y: 7.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+    ],
   };
 
   private static readonly ARENA_COLOSSEUM: ModuleTemplate = {
@@ -161,6 +167,10 @@ export class MapGenerator {
       { typeId: 'blob', x: 8.5, y: 8.5 },
     ],
     chests: [{ x: 5, y: 1, tier: 'standard' }],
+    sprites: [
+      { x: 5.5, y: 4.0, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 5.5, y: 7.0, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+    ],
   };
 
   private static readonly ARENA_CROSSFIRE: ModuleTemplate = {
@@ -207,6 +217,10 @@ export class MapGenerator {
       { typeId: 'blob', x: 5.5, y: 5.5 },
     ],
     chests: [{ x: 1, y: 1, tier: 'standard' }],
+    sprites: [
+      { x: 3.5, y: 5.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 7.5, y: 5.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+    ],
   };
 
   private static readonly ARENA_LABYRINTH: ModuleTemplate = {
@@ -327,6 +341,12 @@ export class MapGenerator {
         delaySec: 45,
       },
     ],
+    sprites: [
+      { x: 3.5, y: 3.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 7.5, y: 3.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 3.5, y: 7.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 7.5, y: 7.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+    ],
   };
 
   private static readonly MERCHANT_BAZAAR: ModuleTemplate = {
@@ -403,6 +423,10 @@ export class MapGenerator {
     ],
     enemies: [{ typeId: 'blob', x: 5.5, y: 5.5 }],
     chests: [{ x: 5, y: 2, tier: 'standard' }],
+    sprites: [
+      { x: 3.5, y: 5.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+      { x: 7.5, y: 5.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
+    ],
   };
 
   private static readonly CORRIDOR_CHICANE: ModuleTemplate = {
@@ -841,7 +865,18 @@ export class MapGenerator {
       grid[y][size - 1] = TILE_TYPE.WALL_1;
     }
 
-    // 9. Sélection du point de réveil du joueur parmi les 4 cryptes
+    // 9. Dispersion sporadique des éléments de décor physiques (tonneaux, caisses, tables)
+    MapGenerator.placeSporadicProps(
+      grid,
+      sprites,
+      rng,
+      playerSpawns,
+      doors,
+      extractions,
+      enemies
+    );
+
+    // 10. Sélection du point de réveil du joueur parmi les 4 cryptes
     let chosenSpawn = playerSpawns[0];
     if (_options.spawnIndex !== undefined && playerSpawns.length > 0) {
       chosenSpawn = playerSpawns[_options.spawnIndex % playerSpawns.length];
@@ -1132,6 +1167,143 @@ export class MapGenerator {
           scale: s.scale,
           itemId: s.itemId,
         });
+      }
+    }
+  }
+
+  /**
+   * Disperse de manière sporadique des éléments de décor physiques (tonneaux, caisses, tables)
+   * le long des murs et dans les recoins des salles sans jamais bloquer les portes ni les accès.
+   */
+  private static placeSporadicProps(
+    grid: number[][],
+    sprites: SpriteSpawnData[],
+    rng: () => number,
+    playerSpawns: Array<{ x: number; y: number }>,
+    doors: DoorSpawnData[],
+    extractions: ExtractionSpawnData[],
+    enemies: EnemySpawnData[]
+  ): void {
+    const size = grid.length;
+
+    for (let cy = 0; cy < MapGenerator.GRID_CHUNKS; cy++) {
+      for (let cx = 0; cx < MapGenerator.GRID_CHUNKS; cx++) {
+        // Dans chaque module de salle, ~80% de chance d'avoir du mobilier et des conteneurs abandonnés
+        if (rng() < 0.2) {
+          continue;
+        }
+
+        const count = 1 + Math.floor(rng() * 2);
+        const originX = cx * MapGenerator.CHUNK_STEP;
+        const originY = cy * MapGenerator.CHUNK_STEP;
+
+        for (let p = 0; p < count; p++) {
+          const roll = rng();
+          let textureId: number = TILE_TYPE.BARREL;
+          let scale = 0.44;
+
+          if (roll < 0.45) {
+            textureId = TILE_TYPE.BARREL;
+            scale = 0.44;
+          } else if (roll < 0.80) {
+            textureId = TILE_TYPE.BOX;
+            scale = 0.42;
+          } else {
+            textureId = TILE_TYPE.TABLE;
+            scale = 0.42;
+          }
+
+          // Tentatives pour trouver un emplacement adossé à un mur
+          for (let attempt = 0; attempt < 25; attempt++) {
+            const lx = 1 + Math.floor(rng() * 9);
+            const ly = 1 + Math.floor(rng() * 9);
+            const gx = originX + lx;
+            const gy = originY + ly;
+
+            if (gx <= 0 || gy <= 0 || gx >= size - 1 || gy >= size - 1) {
+              continue;
+            }
+
+            // Doit être un sol praticable (GROUND_1 ou GROUND_2), ni un mur ni une porte
+            const tile = grid[gy][gx];
+            if (tile !== TILE_TYPE.GROUND_1 && tile !== TILE_TYPE.GROUND_2) {
+              continue;
+            }
+
+            // Doit être adossé à au moins un pan de mur pour un encombrement naturel
+            const hasAdjacentWall =
+              grid[gy - 1]?.[gx] === TILE_TYPE.WALL_1 ||
+              grid[gy + 1]?.[gx] === TILE_TYPE.WALL_1 ||
+              grid[gy]?.[gx - 1] === TILE_TYPE.WALL_1 ||
+              grid[gy]?.[gx + 1] === TILE_TYPE.WALL_1;
+
+            if (!hasAdjacentWall) {
+              continue;
+            }
+
+            const posX = gx + 0.5;
+            const posY = gy + 0.5;
+
+            // Distance de sécurité avec les portes (>= 2.0 cases)
+            let tooCloseToDoor = false;
+            for (const d of doors) {
+              if (Math.hypot(posX - (d.x + 0.5), posY - (d.y + 0.5)) < 2.0) {
+                tooCloseToDoor = true;
+                break;
+              }
+            }
+            if (tooCloseToDoor) continue;
+
+            // Distance de sécurité avec les points d'apparition (>= 2.5 cases)
+            let tooCloseToSpawn = false;
+            for (const s of playerSpawns) {
+              if (Math.hypot(posX - s.x, posY - s.y) < 2.5) {
+                tooCloseToSpawn = true;
+                break;
+              }
+            }
+            if (tooCloseToSpawn) continue;
+
+            // Distance de sécurité avec les cercles d'extraction (>= 2.5 cases)
+            let tooCloseToPortal = false;
+            for (const ext of extractions) {
+              if (Math.hypot(posX - ext.x, posY - ext.y) < 2.5) {
+                tooCloseToPortal = true;
+                break;
+              }
+            }
+            if (tooCloseToPortal) continue;
+
+            // Distance avec les autres sprites (piliers, coffres, autres props) (>= 1.6 cases)
+            let tooCloseToSprite = false;
+            for (const sp of sprites) {
+              if (Math.hypot(posX - sp.x, posY - sp.y) < 1.6) {
+                tooCloseToSprite = true;
+                break;
+              }
+            }
+            if (tooCloseToSprite) continue;
+
+            // Distance avec les ennemis (>= 1.4 cases)
+            let tooCloseToEnemy = false;
+            for (const en of enemies) {
+              if (Math.hypot(posX - en.x, posY - en.y) < 1.4) {
+                tooCloseToEnemy = true;
+                break;
+              }
+            }
+            if (tooCloseToEnemy) continue;
+
+            // Position validée
+            sprites.push({
+              x: posX,
+              y: posY,
+              textureId,
+              scale,
+            });
+            break;
+          }
+        }
       }
     }
   }

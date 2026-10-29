@@ -81,6 +81,50 @@ export class PurpleOrb extends Entity {
     let vy = Math.sin(this.angle) * stepDist;
 
     const r = this.hitBox;
+
+    // 1. Rebond physique sur les piliers (obstacles réflecteurs circulaires)
+    const bouncingPillar = map.getBouncingObstacleAt(this.x + vx, this.y + vy, r);
+    if (bouncingPillar) {
+      const dx = this.x + vx - bouncingPillar.x;
+      const dy = this.y + vy - bouncingPillar.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const nx = dx / dist;
+      const ny = dy / dist;
+
+      // Réflexion spéculaire : v' = v - 2 * (v · n) * n
+      const currentVx = Math.cos(this.angle);
+      const currentVy = Math.sin(this.angle);
+      const dot = currentVx * nx + currentVy * ny;
+
+      if (dot < 0) {
+        const rx = currentVx - 2 * dot * nx;
+        const ry = currentVy - 2 * dot * ny;
+        this.angle = Math.atan2(ry, rx) + (Math.random() - 0.5) * 0.05;
+
+        this.bouncesDone++;
+        this.bouncesRemaining--;
+
+        // Repousse l'orbe hors de la surface du pilier pour garantir un décollement franc
+        this.x = bouncingPillar.x + nx * (bouncingPillar.radius + r + 0.02);
+        this.y = bouncingPillar.y + ny * (bouncingPillar.radius + r + 0.02);
+
+        if (this.bouncesRemaining <= 0) {
+          this.explode();
+          return;
+        }
+
+        return;
+      }
+    }
+
+    // 2. Détonation contre les obstacles solides non-réfléchissants (tonneaux, caisses, tables)
+    const solidObstacle = map.getSolidObstacleAt(this.x + vx, this.y + vy, r);
+    if (solidObstacle && !solidObstacle.bouncesProjectiles) {
+      this.explode();
+      return;
+    }
+
+    // 3. Test de collision sur les murs orthogonaux
     let bouncedX = false;
     let bouncedY = false;
 
@@ -124,7 +168,11 @@ export class PurpleOrb extends Entity {
     const nextY = this.y + vy;
 
     // Sécurité : si on pénètre dans un mur solide malgré le rebond, détonation immédiate
-    if (map.isOutOfBounds(nextX, nextY) || map.isWall(nextX, nextY)) {
+    if (
+      map.isOutOfBounds(nextX, nextY) ||
+      map.isWall(nextX, nextY) ||
+      map.getSolidObstacleAt(nextX, nextY, r)
+    ) {
       this.explode();
       return;
     }

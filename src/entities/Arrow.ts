@@ -70,8 +70,12 @@ export class Arrow extends Entity {
     const nextX = this.x + Math.cos(this.angle) * stepDistance;
     const nextY = this.y + Math.sin(this.angle) * stepDistance;
 
-    // Collision contre un mur ou sortie de la carte
-    if (map.isOutOfBounds(nextX, nextY) || map.isWall(nextX, nextY)) {
+    // Collision contre un mur, un obstacle solide (pilier protecteur) ou sortie de la carte
+    if (
+      map.isOutOfBounds(nextX, nextY) ||
+      map.isWall(nextX, nextY) ||
+      map.getSolidObstacleAt(nextX, nextY, 0.15)
+    ) {
       this.hitTarget();
       return;
     }

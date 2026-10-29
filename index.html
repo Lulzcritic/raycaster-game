@@ -2,7 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <title>Raycaster</title>
+    <title>TOC</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -45,7 +45,7 @@
       </div>
       <div id="hud-zone-panel" class="hud-zone-panel">
         <div id="hud-zone-title" class="hud-zone-title">ZONE 1 - QUARTIER DE DÉPART</div>
-        <div id="hud-raid-timer" class="hud-raid-timer">⏱️ RAID 00:00</div>
+        <div id="hud-raid-timer" class="hud-raid-timer">00:00</div>
       </div>
       <div id="hud-coin-panel" class="hud-coin-panel">
         <img id="hud-coin-icon" class="hud-coin-icon" alt="" />
@@ -57,7 +57,7 @@
 
     <div id="extraction-screen" class="pause-menu hidden">
       <div class="pause-box extraction-box">
-        <h1 class="pause-title extraction-title">👑 EXTRACTION REUSSIE ! 👑</h1>
+        <h1 class="pause-title extraction-title">EXTRACTION REUSSIE !</h1>
         <p class="extraction-subtitle">Vous avez survécu et sécurisé votre butin.</p>
         <div id="extraction-stats" class="extraction-stats"></div>
         <div id="extraction-squad-section" class="extraction-squad-section hidden"></div>
@@ -69,7 +69,7 @@
 
     <div id="death-screen" class="pause-menu hidden">
       <div class="pause-box death-box">
-        <h1 class="pause-title death-title">💀 VOUS ÊTES MORT</h1>
+        <h1 class="pause-title death-title">VOUS ÊTES MORT</h1>
         <p class="death-subtitle">La Citadelle a réclamé votre âme...</p>
         <div id="death-squad-section" class="extraction-squad-section hidden"></div>
         <div class="death-buttons-row" style="display: flex; gap: 10px; width: 100%;">
@@ -82,7 +82,6 @@
     <!-- Bannière Mode Spectateur -->
     <div id="spectator-banner" class="spectator-banner hidden">
       <div class="spectator-banner-content">
-        <span class="spectator-icon">👁️</span>
         <span class="spectator-title">MODE SPECTATEUR :</span>
         <span id="spectator-target-name" class="spectator-target-name">Aventurier</span>
         <span class="spectator-help">(Flèches [◀] / [▶] pour changer d'équipier | [R] Retour au campement)</span>
@@ -234,7 +233,7 @@
         </div>
 
         <footer class="main-menu-footer">
-          <span>The old citadel • v1.0</span>
+          <span>The old citadel • alpha v0.1</span>
         </footer>
       </div>
     </div>
@@ -246,20 +245,20 @@
         <!-- Barre de navigation supérieure -->
         <nav class="hub-navbar">
           <button id="hub-btn-menu" class="hub-nav-btn hub-nav-btn-back" type="button" title="Retour au menu titre">
-            🚪 MENU
+            MENU
           </button>
           <div class="hub-nav-tabs">
             <button id="hub-tab-play" class="hub-nav-tab active" type="button" data-tab="play">
-              ⚔️ JOUER
+              JOUER
             </button>
             <button id="hub-tab-equipment" class="hub-nav-tab" type="button" data-tab="equipment">
-              🛡️ ÉQUIPEMENT
+              ÉQUIPEMENT
             </button>
             <button id="hub-tab-shop" class="hub-nav-tab" type="button" data-tab="shop">
-              🛒 BOUTIQUE
+              BOUTIQUE
             </button>
             <button id="hub-tab-quests" class="hub-nav-tab" type="button" data-tab="quests">
-              📜 QUÊTES
+              QUÊTES
             </button>
           </div>
           <div id="hub-wallet" class="hub-wallet">
@@ -294,7 +293,7 @@
             <section id="hub-view-play" class="hub-view active">
               <div class="hub-play-stage">
                 <div class="hub-play-header">
-                  <h1 class="hub-view-title">⚔️ PRÉPARATION DU HÉROS</h1>
+                  <h1 class="hub-view-title">PRÉPARATION DU HÉROS</h1>
                   <p class="hub-view-subtitle">Vérifiez vos équipements anatomiques et vos attributs avant d'entrer dans la Citadelle.</p>
                 </div>
 
@@ -327,7 +326,7 @@
 
                     <div class="hub-play-action">
                       <button id="hub-launch-game-btn" class="hub-launch-btn" type="button">
-                        ⚔️ LANCER LA PARTIE
+                        LANCER LA PARTIE
                       </button>
                     </div>
                   </div>
@@ -359,12 +358,12 @@
             <section id="hub-view-shop" class="hub-view hidden">
               <div class="hub-shop-container">
                 <div class="hub-shop-section">
-                  <h3 class="hub-sub-title">✨ AMÉLIORATIONS PERMANENTES (ARBRE DE TALENTS)</h3>
+                  <h3 class="hub-sub-title">AMÉLIORATIONS PERMANENTES (ARBRE DE TALENTS)</h3>
                   <div id="hub-upgrades-list" class="hub-upgrades-list"></div>
                 </div>
 
                 <div class="hub-shop-section">
-                  <h3 class="hub-sub-title">🛒 ARSENAL DE LA BOUTIQUE</h3>
+                  <h3 class="hub-sub-title">ARSENAL DE LA BOUTIQUE</h3>
                   <div id="hub-shop-items-list" class="hub-shop-items-list"></div>
                 </div>
               </div>
@@ -374,7 +373,7 @@
             <section id="hub-view-quests" class="hub-view hidden">
               <div class="hub-quests-container">
                 <div class="hub-quests-header">
-                  <h2 class="hub-view-title">📜 REGISTRE DES CONTRATS & QUÊTES</h2>
+                  <h2 class="hub-view-title">REGISTRE DES CONTRATS & QUÊTES</h2>
                   <p class="hub-view-subtitle">Accomplissez des exploits lors de vos expéditions pour décrocher des récompenses en pièces d'or.</p>
                 </div>
                 <div id="hub-quests-list" class="hub-quests-list"></div>
@@ -387,10 +386,10 @@
         <div id="hub-queue-overlay" class="hub-queue-overlay hidden">
           <div class="hub-queue-box">
             <div class="hub-queue-header">
-              <div class="hub-queue-tag">🏰 CITADELLE • CONVOI MULTIJOUEUR</div>
-              <h2 class="hub-queue-title">PRÉPARATION DU CONVOI</h2>
+              <div class="hub-queue-tag">CITADELLE</div>
+              <h2 class="hub-queue-title">PRÉPARATION</h2>
               <p class="hub-queue-subtitle">
-                Le convoi vers la Citadelle part toutes les minutes. Tous les aventuriers en attente seront téléportés ensemble dans la même session.
+                L'expedition vers la Citadelle part toutes les minutes. Tous les aventuriers en attente seront téléportés ensemble dans la même session.
               </p>
             </div>
 
@@ -403,7 +402,7 @@
               <div class="hub-queue-countdown-info">
                 <div id="hub-queue-status-text" class="hub-queue-status-text">RECHERCHE D'AVENTURIERS EN COURS...</div>
                 <div class="hub-queue-countdown-sub">
-                  Départ garanti dès l'expiration du chrono (même en solitaire).
+                  Départ garanti dès l'expiration du chrono.
                 </div>
               </div>
             </div>
@@ -411,7 +410,7 @@
             <!-- Roster de l'escouade en file -->
             <div class="hub-queue-roster-wrap">
               <div class="hub-queue-roster-top">
-                <span class="hub-queue-roster-title">🛡️ AVENTURIERS DANS LE CONVOI</span>
+                <span class="hub-queue-roster-title">AVENTURIERS DANS LE CONVOI</span>
                 <span id="hub-queue-roster-count" class="hub-queue-roster-count">1 / 4 PRÊTS</span>
               </div>
               <div id="hub-queue-slots-list" class="hub-queue-slots-grid">

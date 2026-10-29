@@ -1213,8 +1213,8 @@ export class MapGenerator {
             scale = 0.42;
           }
 
-          // Tentatives pour trouver un emplacement adossé à un mur
-          for (let attempt = 0; attempt < 25; attempt++) {
+          // Tentatives pour trouver un emplacement valide adossé à un mur
+          for (let attempt = 0; attempt < 40; attempt++) {
             const lx = 1 + Math.floor(rng() * 9);
             const ly = 1 + Math.floor(rng() * 9);
             const gx = originX + lx;
@@ -1230,24 +1230,99 @@ export class MapGenerator {
               continue;
             }
 
-            // Doit être adossé à au moins un pan de mur pour un encombrement naturel
-            const hasAdjacentWall =
-              grid[gy - 1]?.[gx] === TILE_TYPE.WALL_1 ||
-              grid[gy + 1]?.[gx] === TILE_TYPE.WALL_1 ||
-              grid[gy]?.[gx - 1] === TILE_TYPE.WALL_1 ||
-              grid[gy]?.[gx + 1] === TILE_TYPE.WALL_1;
+            // Fonction déterminant si une case est un obstacle infranchissable (mur, porte ou sprite solide déjà placé)
+            const isObstacle = (x: number, y: number): boolean => {
+              if (x <= 0 || y <= 0 || x >= size - 1 || y >= size - 1) return true;
+              const t = grid[y][x];
+              if (t === TILE_TYPE.WALL_1 || t === TILE_TYPE.DOOR) return true;
+              // Vérifie si un sprite solide (pilier, coffre ou prop déjà placé) est présent
+              for (const sp of sprites) {
+                if (Math.abs(sp.x - (x + 0.5)) < 0.6 && Math.abs(sp.y - (y + 0.5)) < 0.6) {
+                  return true;
+                }
+              }
+              return false;
+            };
 
-            if (!hasAdjacentWall) {
+            const wallNorth = isObstacle(gx, gy - 1);
+            const wallSouth = isObstacle(gx, gy + 1);
+            const wallWest = isObstacle(gx - 1, gy);
+            const wallEast = isObstacle(gx + 1, gy);
+
+            // 1. RÈGLE STRICTE : un prop ne peut JAMAIS être entre deux murs (couloir de largeur 1)
+            if ((wallNorth && wallSouth) || (wallWest && wallEast)) {
+              continue;
+            }
+
+            // 2. Doit être adossé à au moins un pan de mur pour un encombrement naturel
+            if (!wallNorth && !wallSouth && !wallWest && !wallEast) {
+              continue;
+            }
+
+            // 3. RÈGLE STRICTE : il doit obligatoirement y avoir un passage libre à côté pour circuler
+            let hasClearPassage = false;
+
+            // Cas d'un recoin (deux murs adjacents formant un angle) :
+            // Pour ne pas bloquer un tournant en L de couloir, la diagonale opposée ET les 2 côtés libres doivent être praticables
+            if (wallNorth && wallWest) {
+              hasClearPassage =
+                !isObstacle(gx + 1, gy) &&
+                !isObstacle(gx, gy + 1) &&
+                !isObstacle(gx + 1, gy + 1);
+            } else if (wallNorth && wallEast) {
+              hasClearPassage =
+                !isObstacle(gx - 1, gy) &&
+                !isObstacle(gx, gy + 1) &&
+                !isObstacle(gx - 1, gy + 1);
+            } else if (wallSouth && wallWest) {
+              hasClearPassage =
+                !isObstacle(gx + 1, gy) &&
+                !isObstacle(gx, gy - 1) &&
+                !isObstacle(gx + 1, gy - 1);
+            } else if (wallSouth && wallEast) {
+              hasClearPassage =
+                !isObstacle(gx - 1, gy) &&
+                !isObstacle(gx, gy - 1) &&
+                !isObstacle(gx - 1, gy - 1);
+            } else if (wallNorth) {
+              // Adossé uniquement au mur Nord : le côté Sud doit offrir un passage complet
+              // Soit la rangée Sud permet de circuler horizontalement (gx-1, gx, gx+1 tous libres),
+              // soit la pièce s'étend plus loin vers le Sud (gy + 2 libre).
+              hasClearPassage =
+                !isObstacle(gx, gy + 1) &&
+                ((!isObstacle(gx - 1, gy + 1) && !isObstacle(gx + 1, gy + 1)) ||
+                  !isObstacle(gx, gy + 2));
+            } else if (wallSouth) {
+              // Adossé uniquement au mur Sud : le côté Nord doit offrir un passage complet
+              hasClearPassage =
+                !isObstacle(gx, gy - 1) &&
+                ((!isObstacle(gx - 1, gy - 1) && !isObstacle(gx + 1, gy - 1)) ||
+                  !isObstacle(gx, gy - 2));
+            } else if (wallWest) {
+              // Adossé uniquement au mur Ouest : le côté Est doit offrir un passage complet
+              hasClearPassage =
+                !isObstacle(gx + 1, gy) &&
+                ((!isObstacle(gx + 1, gy - 1) && !isObstacle(gx + 1, gy + 1)) ||
+                  !isObstacle(gx + 2, gy));
+            } else if (wallEast) {
+              // Adossé uniquement au mur Est : le côté Ouest doit offrir un passage complet
+              hasClearPassage =
+                !isObstacle(gx - 1, gy) &&
+                ((!isObstacle(gx - 1, gy - 1) && !isObstacle(gx - 1, gy + 1)) ||
+                  !isObstacle(gx - 2, gy));
+            }
+
+            if (!hasClearPassage) {
               continue;
             }
 
             const posX = gx + 0.5;
             const posY = gy + 0.5;
 
-            // Distance de sécurité avec les portes (>= 2.0 cases)
+            // Distance de sécurité avec les portes (>= 2.2 cases)
             let tooCloseToDoor = false;
             for (const d of doors) {
-              if (Math.hypot(posX - (d.x + 0.5), posY - (d.y + 0.5)) < 2.0) {
+              if (Math.hypot(posX - (d.x + 0.5), posY - (d.y + 0.5)) < 2.2) {
                 tooCloseToDoor = true;
                 break;
               }

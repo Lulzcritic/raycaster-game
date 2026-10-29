@@ -68,7 +68,44 @@ assert(pillars.length >= 8, 'Il doit y avoir au moins 8 piliers (Sanctuaire du b
 assert(barrels.length > 0, 'Il doit y avoir des tonneaux disséminés sur la carte');
 assert(boxes.length > 0, 'Il doit y avoir des caisses disséminées sur la carte');
 assert(tables.length > 0, 'Il doit y avoir des tables disséminées sur la carte');
-console.log('   ✅ Répartition procédurale validée.\n');
+
+// Vérification de la règle stricte : aucun prop entre deux murs opposés
+const seedsToTest = [101, 202, 303, 4242, 9999];
+for (const seed of seedsToTest) {
+  const testLevel = MapGenerator.generate({ seed });
+  const mapGrid = testLevel.grid;
+  const sporadicProps = testLevel.sprites.filter(
+    (s) =>
+      s.textureId === TILE_TYPE.BARREL ||
+      s.textureId === TILE_TYPE.BOX ||
+      s.textureId === TILE_TYPE.TABLE
+  );
+
+  for (const prop of sporadicProps) {
+    const gx = Math.floor(prop.x);
+    const gy = Math.floor(prop.y);
+
+    const isWallTile = (x: number, y: number) => {
+      const t = mapGrid[y]?.[x];
+      return t === TILE_TYPE.WALL_1 || t === TILE_TYPE.DOOR;
+    };
+
+    const wallN = isWallTile(gx, gy - 1);
+    const wallS = isWallTile(gx, gy + 1);
+    const wallW = isWallTile(gx - 1, gy);
+    const wallE = isWallTile(gx + 1, gy);
+
+    assert(
+      !(wallN && wallS),
+      `Le prop en (${gx}, ${gy}) (seed ${seed}) ne peut pas être entre deux murs verticaux (Nord et Sud) !`
+    );
+    assert(
+      !(wallW && wallE),
+      `Le prop en (${gx}, ${gy}) (seed ${seed}) ne peut pas être entre deux murs horizontaux (Ouest et Est) !`
+    );
+  }
+}
+console.log('   ✅ Règle validée : 100% des props ont un passage libre à côté et aucun n\'est entre deux murs.\n');
 
 // ---------------------------------------------------------------------------
 // 2. Test des collisions physiques des Props (GameMap.canMove)

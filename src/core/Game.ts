@@ -62,6 +62,7 @@ import { QuestManager } from './QuestManager';
 import { UpgradeManager } from './UpgradeManager';
 import { StashManager } from './StashManager';
 import { InputManager } from './InputManager';
+import { SoundManager } from './SoundManager';
 
 export class Game {
   public readonly textures: TextureManager;
@@ -259,6 +260,8 @@ export class Game {
     this.hudOverlay.setVisible(false);
     this.playerHandOverlay.setVisible(false);
     this.mainMenu.show();
+    SoundManager.init();
+    SoundManager.playMenuMusic();
   }
 
   private setupNetworkListeners(): void {
@@ -986,6 +989,7 @@ export class Game {
   }
 
   public startNewExtractionMatch(options?: { seed?: number; spawnIndex?: number }): void {
+    SoundManager.stopMenuMusic();
     WalletManager.resetSessionCoins();
     if (this.player.inventory.getItem('offhand')?.id === 'offhand_homonculus') {
       this.player.inventory.unequip('offhand');
@@ -1007,6 +1011,7 @@ export class Game {
   }
 
   public openHub(tab: 'play' | 'equipment' | 'shop' | 'quests' = 'play'): void {
+    SoundManager.playMenuMusic();
     if (this.currentInstanceId) {
       NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
       this.currentInstanceId = null;
@@ -1055,6 +1060,7 @@ export class Game {
     instanceId?: string;
     localPlayerId?: string;
   }): void {
+    SoundManager.stopMenuMusic();
     WalletManager.resetSessionCoins();
     this.isInHub = false;
     this.isInMainMenu = false;
@@ -1095,6 +1101,7 @@ export class Game {
   }
 
   public returnToMainMenu(): void {
+    SoundManager.playMenuMusic();
     if (this.currentInstanceId) {
       NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
       this.currentInstanceId = null;

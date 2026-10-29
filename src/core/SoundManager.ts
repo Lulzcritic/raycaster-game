@@ -141,11 +141,14 @@ export class SoundManager {
   /**
    * Précharge et décode tous les effets sonores dans l'AudioContext.
    */
-  private static preloadAllEffects(): void {
-    if (!this.audioCtx) return;
-    for (const key of Object.keys(SOUND_EFFECT_URLS) as SoundEffectName[]) {
-      this.loadSoundBuffer(key);
+  public static async preloadAllEffects(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    if (!this.isInitialized) {
+      this.init();
     }
+    if (!this.audioCtx) return;
+    const keys = Object.keys(SOUND_EFFECT_URLS) as SoundEffectName[];
+    await Promise.all(keys.map((key) => this.loadSoundBuffer(key)));
   }
 
   /**

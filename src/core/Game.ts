@@ -574,24 +574,86 @@ export class Game {
     return this.currentLevel;
   }
 
-  public async init(): Promise<void> {
-    WalletManager.init();
-    UpgradeManager.init();
-    QuestManager.init();
-    StashManager.init();
-    await Promise.all([
-      this.textures.loadAllTextures(),
-      ItemSpriteManager.preloadAll(),
-      MimicSpriteManager.preloadAll(),
-      CoinSpriteManager.preloadAll(),
-      GoblinSpriteManager.preloadAll(),
-      SkeletonSpriteManager.preloadAll(),
-      BloodQueenSpriteManager.preloadAll(),
-      PumpkinSpriteManager.preloadAll(),
-      CakeKingSpriteManager.preloadAll(),
-      PlayerSpriteManager.preloadAll(),
-      PropSpriteManager.preloadAll(),
-    ]);
+  public async init(onProgress?: (progress: number, message: string) => void): Promise<void> {
+    const tasks: Array<{ name: string; run: () => Promise<any> }> = [
+      {
+        name: 'Initialisation des registres et de la réserve...',
+        run: async () => {
+          WalletManager.init();
+          UpgradeManager.init();
+          QuestManager.init();
+          StashManager.init();
+          SoundManager.init();
+        },
+      },
+      {
+        name: 'Chargement des textures de la Citadelle...',
+        run: () => this.textures.loadAllTextures(),
+      },
+      {
+        name: 'Gravure des artefacts et équipements...',
+        run: () => ItemSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Réveil des mimics et coffres...',
+        run: () => MimicSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Frappe de la monnaie d\'or...',
+        run: () => CoinSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Dissémination des pillards gobelins...',
+        run: () => GoblinSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Appel des archers squelettes...',
+        run: () => SkeletonSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Éveil de la Reine de Sang...',
+        run: () => BloodQueenSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Plantation des graines de citrouille...',
+        run: () => PumpkinSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Glaçage du Carrot Cake King...',
+        run: () => CakeKingSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Animation des seigneurs des arcanes...',
+        run: () => PlayerSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Mise en place du mobilier et piliers...',
+        run: () => PropSpriteManager.preloadAll(),
+      },
+      {
+        name: 'Harmonisation du moteur sonore 3D...',
+        run: () => SoundManager.preloadAllEffects(),
+      },
+    ];
+
+    let completed = 0;
+    const total = tasks.length;
+    onProgress?.(5, tasks[0].name);
+
+    await Promise.all(
+      tasks.map(async (task) => {
+        try {
+          await task.run();
+        } catch (err) {
+          console.warn(`[Game.init] Erreur lors de ${task.name} :`, err);
+        }
+        completed++;
+        const pct = Math.min(98, Math.round(5 + (completed / total) * 93));
+        onProgress?.(pct, task.name);
+      })
+    );
+
+    onProgress?.(100, 'Prêt pour l\'expédition !');
   }
 
   public loadLevel(level: LevelData): void {

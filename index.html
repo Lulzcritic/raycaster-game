@@ -12,6 +12,39 @@
     <link rel="stylesheet" href="src/style.css" />
   </head>
   <body>
+    <!-- ÉCRAN DE CHARGEMENT INITIAL (PRELOADER CLIENT) -->
+    <div id="app-loading-screen" class="app-loading-screen">
+      <div class="loading-bg-overlay"></div>
+      <div class="loading-container">
+        <div class="loading-header">
+          <img src="/src/assets/textures/logo.png" class="loading-logo" alt="The Old Citadel" />
+          <div class="loading-tagline">DUNGEON EXTRACTION RPG • PVPVE</div>
+        </div>
+
+        <div class="loading-box">
+          <div class="loading-status-bar">
+            <span id="loading-status" class="loading-status">Initialisation des arcanes de la Citadelle...</span>
+            <span id="loading-percent" class="loading-percent">0%</span>
+          </div>
+
+          <div class="loading-bar-track">
+            <div id="loading-bar-fill" class="loading-bar-fill"></div>
+          </div>
+
+          <div class="loading-hint-card">
+            <span class="loading-hint-icon">💡</span>
+            <span id="loading-hint" class="loading-hint">Conseil : Écoutez attentivement vos pas et ceux des autres pillards grâce au son 3D spatialisé.</span>
+          </div>
+        </div>
+
+        <div class="loading-footer">
+          <span class="loading-spinner-rune">✦</span>
+          <span class="loading-footer-text">CHARGEMENT DE LA CITADELLE EN COURS</span>
+          <span class="loading-spinner-rune">✦</span>
+        </div>
+      </div>
+    </div>
+
     <canvas id="screen" width="320" height="240"></canvas>
 
     <div id="player-hand-container" class="player-hand-container">

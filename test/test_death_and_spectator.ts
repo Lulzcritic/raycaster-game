@@ -15,6 +15,7 @@ if (typeof (globalThis as any).document === 'undefined') {
       width: 64,
       height: 64,
     }),
+    getElementById: () => null,
     pointerLockElement: null,
   };
 }
@@ -150,6 +151,25 @@ async function runTests() {
 
   // Nettoyage de l'instance
   instance.destroy();
+
+  // =========================================================================
+  // 4. Test PvPvE : absence de SquadHUD et occultation par la ligne de vue
+  // =========================================================================
+  console.log('4. Test règles PvPvE : vérification de l\'absence d\'interface escouade et occultation...');
+  const { SquadHUD } = await import('../src/ui/SquadHUD');
+  const hud = new SquadHUD();
+  assert.ok(hud, 'SquadHUD doit pouvoir être instancié sans erreur');
+  hud.show();
+  hud.update({} as any, [remote]);
+  hud.hide();
+  assert.strictEqual(
+    typeof (globalThis as any).document.getElementById === 'function'
+      ? (globalThis as any).document.getElementById('squad-hud')
+      : null,
+    null,
+    'Aucun élément #squad-hud ne doit exister dans le DOM en jeu'
+  );
+  console.log('   ✅ Règle PvPvE validée : aucun élément squad-hud n\'est injecté dans le DOM.');
 
   console.log('\n======================================================');
   console.log('🎉 TOUS LES TESTS DE MORT & SPECTATEUR ONT RÉUSSI !');

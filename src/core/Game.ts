@@ -30,7 +30,6 @@ import { WorldBillboardOverlay } from '../ui/WorldBillboardOverlay';
 import { HUDOverlay } from '../ui/HUDOverlay';
 import { PlayerHandOverlay } from '../ui/PlayerHandOverlay';
 import { ChatUI } from '../ui/ChatUI';
-import { SquadHUD } from '../ui/SquadHUD';
 import type { SquadSummaryPayload } from '../types/network';
 import { GameMap } from '../world/GameMap';
 import { MapGenerator } from '../world/procedural/MapGenerator';
@@ -98,7 +97,6 @@ export class Game {
   private hasSentDeathNotification = false;
   private hasSentBossDefeated = false;
   private readonly chatUI: ChatUI;
-  private readonly squadHUD: SquadHUD;
   private currentSquadSummary: SquadSummaryPayload | null = null;
   private isSpectating = false;
   private spectatedPlayerIndex = 0;
@@ -110,7 +108,12 @@ export class Game {
     const initialFovDeg =
       !Number.isNaN(savedFov) && savedFov >= 60 && savedFov <= 110 ? savedFov : 75;
 
-    this.squadHUD = new SquadHUD();
+    if (typeof document !== 'undefined') {
+      const lingeringSquadHud = document.getElementById('squad-hud');
+      if (lingeringSquadHud) {
+        lingeringSquadHud.remove();
+      }
+    }
     this.chatUI = new ChatUI((text) => {
       if (this.currentInstanceId) {
         NetworkClient.getInstance().sendChatMessage({
@@ -394,12 +397,6 @@ export class Game {
           }
         }
       }
-
-      const notif = data.isMimic
-        ? `⚠️ ${data.openerName.toUpperCase()} A RÉVEILLÉ UN MIMIC !`
-        : `🎁 ${data.openerName.toUpperCase()} A OUVERT UN COFFRE !`;
-      this.interactionPrompt.showNotification(notif);
-      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemoteItemPickedUp((data) => {
@@ -416,10 +413,6 @@ export class Game {
       if (orb) {
         orb.active = false;
       }
-
-      const notif = `💎 ${data.pickerName} A RAMASSÉ : ${data.itemName.toUpperCase()} !`;
-      this.interactionPrompt.showNotification(notif);
-      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemoteItemDropped((data) => {
@@ -438,10 +431,6 @@ export class Game {
       );
       this.attachItemOrbCallbacks(orb);
       this.entities.push(orb);
-
-      const notif = `📦 ${data.dropperName} A DÉPOSÉ : ${data.item.name.toUpperCase()} AU SOL.`;
-      this.interactionPrompt.showNotification(notif);
-      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemoteDoorOpened((data) => {
@@ -457,10 +446,6 @@ export class Game {
       if (door) {
         door.openFromRemote();
       }
-
-      const notif = `🚪 ${data.openerName.toUpperCase()} A DÉVERROUILLÉ UNE GRANDE PORTE !`;
-      this.interactionPrompt.showNotification(notif);
-      this.chatUI.addMessage('SYSTÈME', notif, true);
     });
 
     net.onRemotePlayerExtracted((data) => {
@@ -1036,7 +1021,6 @@ export class Game {
     this.merchantUI.close();
     this.interactionPrompt.clear();
     this.chatUI.hide();
-    this.squadHUD.hide();
     this.worldBillboardOverlay.setVisible(false);
     this.hudOverlay.setVisible(false);
     this.hudOverlay.reset();
@@ -1093,10 +1077,9 @@ export class Game {
     this.chatUI.show();
     this.chatUI.addMessage(
       'SYSTÈME',
-      "Expédition lancée. Appuyez sur [Entrée] pour discuter avec votre escouade.",
+      "Expédition lancée dans la Citadelle. Restez sur vos gardes face aux autres pillards.",
       true
     );
-    this.squadHUD.show();
   }
 
   public startGameFromMenu(): void {
@@ -1124,7 +1107,6 @@ export class Game {
     this.merchantUI.close();
     this.interactionPrompt.clear();
     this.chatUI.hide();
-    this.squadHUD.hide();
     this.isPaused = true;
     this.worldBillboardOverlay.setVisible(false);
     this.hudOverlay.setVisible(false);
@@ -1259,7 +1241,6 @@ export class Game {
           entity.update(deltaTime, this.map);
         }
       }
-      this.squadHUD.update(this.player, Array.from(this.remotePlayers.values()), this.currentSquadSummary);
       return;
     }
 
@@ -1518,13 +1499,6 @@ export class Game {
 
     // Nettoyage des projectiles / entités terminés
     this.entities = this.entities.filter((entity) => entity.active);
-
-    // Mise à jour de l'affichage de l'escouade
-    this.squadHUD.update(
-      this.player,
-      Array.from(this.remotePlayers.values()),
-      this.currentSquadSummary
-    );
   }
 
   private updateInteraction(): void {
@@ -1606,7 +1580,7 @@ export class Game {
       if (!this.isSpectating) {
         this.playerHandOverlay.update(this.player, this.renderer, this.isExtracted);
       }
-      this.worldBillboardOverlay.update(renderEntities, renderPlayer, this.renderer);
+      this.worldBillboardOverlay.update(renderEntities, renderPlayer, this.renderer, this.map);
       this.hudOverlay.update(
         this.player,
         this.raidTimer,

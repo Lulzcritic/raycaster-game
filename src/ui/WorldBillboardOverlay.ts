@@ -11,6 +11,7 @@ import { TILE_TYPE } from '../config/constants';
 import type { Player } from '../entities/Player';
 import type { Renderer } from '../graphics/Renderer';
 import type { EquipmentItem } from '../types';
+import type { GameMap } from '../world/GameMap';
 
 /**
  * Gestionnaire d'affichage haute résolution dans le monde 3D :
@@ -47,7 +48,8 @@ export class WorldBillboardOverlay {
   public update(
     entities: readonly Entity[],
     player: Player,
-    renderer: Renderer
+    renderer: Renderer,
+    map?: GameMap
   ): void {
     if (!this.container) {
       return;
@@ -652,7 +654,7 @@ export class WorldBillboardOverlay {
       const dy = remote.y - player.y;
       const distance = Math.hypot(dx, dy);
 
-      if (distance < 0.2 || distance > 18.0) {
+      if (distance < 0.2 || distance > 8.5) {
         el.style.display = 'none';
         continue;
       }
@@ -661,7 +663,14 @@ export class WorldBillboardOverlay {
       while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
       while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
 
-      if (Math.abs(angleDiff) > player.fov / 2 + 0.15) {
+      // Doit être strictement dans le champ de vision (FOV) du joueur
+      if (Math.abs(angleDiff) > player.fov / 2) {
+        el.style.display = 'none';
+        continue;
+      }
+
+      // Ligne de vue directe obligatoire : murs et piliers occultent complètement les autres joueurs
+      if (map && !map.hasLineOfSight(player.x, player.y, remote.x, remote.y)) {
         el.style.display = 'none';
         continue;
       }
@@ -672,7 +681,7 @@ export class WorldBillboardOverlay {
       // Z-buffer occlusion
       if (screenCol >= 0 && screenCol < 320) {
         const ray = rayHits[screenCol];
-        if (ray && ray.hit && distance > ray.distance + 0.15) {
+        if (ray && ray.hit && distance > ray.distance + 0.12) {
           el.style.display = 'none';
           continue;
         }

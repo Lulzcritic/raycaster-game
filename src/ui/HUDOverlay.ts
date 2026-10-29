@@ -384,7 +384,7 @@ export class HUDOverlay {
 
     container.classList.remove('hidden');
     container.innerHTML = `
-      <div class="extraction-loot-title" style="margin-top: 12px; margin-bottom: 8px;">--- BILAN DE L'ESCOUADE ---</div>
+      <div class="extraction-loot-title" style="margin-top: 12px; margin-bottom: 8px;">--- RAPPORT DE L'EXPÉDITION (JOUEURS) ---</div>
       <div class="extraction-squad-grid" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
         ${squadSummary.players
           .map((p) => {

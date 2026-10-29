@@ -186,7 +186,11 @@ export class Game {
       }
     });
 
-    this.input.canTogglePause = () => !this.isInMainMenu && !this.isInHub;
+    this.input.canTogglePause = () =>
+      !this.isInMainMenu &&
+      !this.isInHub &&
+      this.player.isAlive() &&
+      !this.isSpectating;
     this.input.onEscapeWhileBlocked = () => {
       if (this.isInMainMenu && this.mainMenu.isInSettings()) {
         this.mainMenu.showMain();
@@ -263,8 +267,29 @@ export class Game {
     net.onInstancePlayers((data) => {
       if (!this.currentInstanceId) return;
 
+      // Nettoyage immédiat des joueurs distants qui ne sont plus vivants selon le serveur
+      const alivePlayerIds = new Set(data.players.filter((p) => p.hp > 0).map((p) => p.id));
+      for (const [id, remote] of this.remotePlayers.entries()) {
+        if (!alivePlayerIds.has(id)) {
+          remote.active = false;
+          remote.hp = 0;
+          this.entities = this.entities.filter((e) => e !== remote);
+          this.remotePlayers.delete(id);
+        }
+      }
+
       for (const p of data.players) {
         if (p.id === this.localPlayerId) continue;
+        if (p.hp <= 0) {
+          const remote = this.remotePlayers.get(p.id);
+          if (remote) {
+            remote.active = false;
+            remote.hp = 0;
+            this.entities = this.entities.filter((e) => e !== remote);
+            this.remotePlayers.delete(p.id);
+          }
+          continue;
+        }
 
         let remote = this.remotePlayers.get(p.id);
         if (!remote) {
@@ -280,7 +305,9 @@ export class Game {
             p.maxHp
           );
           this.remotePlayers.set(p.id, remote);
-          this.entities.push(remote);
+          if (!this.entities.includes(remote)) {
+            this.entities.push(remote);
+          }
         } else {
           remote.updateNetworkState(
             p.x,
@@ -318,6 +345,8 @@ export class Game {
       const remote = this.remotePlayers.get(data.playerId);
       if (remote) {
         remote.active = false;
+        remote.hp = 0;
+        this.entities = this.entities.filter((e) => e !== remote);
         this.remotePlayers.delete(data.playerId);
         this.interactionPrompt.showNotification(`👤 ${remote.name} a quitté la Citadelle.`);
         this.chatUI.addMessage('SYSTÈME', `👤 ${remote.name} a quitté la Citadelle.`, true);
@@ -434,6 +463,8 @@ export class Game {
       const remote = this.remotePlayers.get(data.playerId);
       if (remote) {
         remote.active = false;
+        remote.hp = 0;
+        this.entities = this.entities.filter((e) => e !== remote);
         this.remotePlayers.delete(data.playerId);
       }
 
@@ -448,6 +479,9 @@ export class Game {
       const remote = this.remotePlayers.get(data.playerId);
       if (remote) {
         remote.active = false;
+        remote.hp = 0;
+        this.entities = this.entities.filter((e) => e !== remote);
+        this.remotePlayers.delete(data.playerId);
       }
 
       const notif = `💀 ${data.playerName.toUpperCase()} A PÉRI DANS LA CITADELLE...`;
@@ -1095,6 +1129,8 @@ export class Game {
       this.interactionPrompt.showNotification('Aucun coéquipier vivant à observer.');
       return;
     }
+    this.isPaused = false;
+    this.input.setPaused(false, false);
     this.isSpectating = true;
     this.spectatedPlayerIndex = 0;
     const target = living[this.spectatedPlayerIndex];
@@ -1160,13 +1196,22 @@ export class Game {
           const target = living[this.spectatedPlayerIndex];
           this.hudOverlay.showSpectatorBanner(target.name);
 
-          if (this.input.consumeKeyPress('arrowleft') || this.input.consumeKeyPress('q')) {
+          if (
+            this.input.consumeKeyPress('arrowleft') ||
+            this.input.consumeKeyPress('q') ||
+            this.input.consumeKeyPress('a') ||
+            this.input.consumeMouseLeftClick()
+          ) {
             this.spectatedPlayerIndex =
               (this.spectatedPlayerIndex - 1 + living.length) % living.length;
             this.hudOverlay.showSpectatorBanner(living[this.spectatedPlayerIndex].name);
           }
 
-          if (this.input.consumeKeyPress('arrowright') || this.input.consumeKeyPress('d')) {
+          if (
+            this.input.consumeKeyPress('arrowright') ||
+            this.input.consumeKeyPress('d') ||
+            this.input.consumeMouseRightClick()
+          ) {
             this.spectatedPlayerIndex =
               (this.spectatedPlayerIndex + 1) % living.length;
             this.hudOverlay.showSpectatorBanner(living[this.spectatedPlayerIndex].name);
@@ -1195,8 +1240,13 @@ export class Game {
         }
       }
 
+      for (const remote of this.remotePlayers.values()) {
+        remote.update(deltaTime, this.map);
+      }
       for (const entity of this.entities) {
-        entity.update(deltaTime, this.map);
+        if (!(entity instanceof RemotePlayer)) {
+          entity.update(deltaTime, this.map);
+        }
       }
       this.squadHUD.update(this.player, Array.from(this.remotePlayers.values()), this.currentSquadSummary);
       return;
@@ -1254,8 +1304,13 @@ export class Game {
       }
     }
 
+    for (const remote of this.remotePlayers.values()) {
+      remote.update(deltaTime, this.map);
+    }
     for (const entity of this.entities) {
-      entity.update(deltaTime, this.map);
+      if (!(entity instanceof RemotePlayer)) {
+        entity.update(deltaTime, this.map);
+      }
     }
 
     // Si le Boss du Sanctuaire est vaincu (Reine de Sang, Roi Gâteau ou Blob Boss), activation immédiate du portail royal
@@ -1528,7 +1583,7 @@ export class Game {
         angle: { value: target.angle },
         damageFlashTimer: { value: 0 },
       }) as Player;
-      renderEntities = this.entities.filter((e) => e !== target);
+      renderEntities = this.entities.filter((e) => e !== target && e.active);
     }
 
     this.renderer.render(renderPlayer, this.map, renderEntities);

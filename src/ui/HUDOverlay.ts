@@ -148,6 +148,9 @@ export class HUDOverlay {
         this.isDeathScreenShown = true;
         this.deathScreen?.classList.remove('hidden');
         if (this.playerHud) this.playerHud.style.display = 'none';
+        if (typeof document !== 'undefined' && document.pointerLockElement) {
+          document.exitPointerLock();
+        }
       }
       this.renderSquadSection(this.deathSquadSection, squadSummary);
       if (canSpectate) {

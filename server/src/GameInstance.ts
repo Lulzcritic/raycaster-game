@@ -97,7 +97,10 @@ export class GameInstance {
   private tick(): void {
     if (!this.isActive || this.players.length === 0) return;
 
-    const remotePlayers: RemotePlayerData[] = this.players.map((p) => ({
+    // Seuls les joueurs vivants et toujours en raid sont diffusés pour l'avatar 3D
+    const livingPlayers = this.players.filter((p) => p.status === 'in_raid' && p.hp > 0);
+
+    const remotePlayers: RemotePlayerData[] = livingPlayers.map((p) => ({
       id: p.id,
       name: p.name,
       skinId: p.skinId,

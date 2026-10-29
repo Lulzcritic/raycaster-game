@@ -59,6 +59,12 @@ export class RemotePlayer extends Entity {
     hp: number,
     maxHp: number
   ): void {
+    if (hp <= 0) {
+      this.active = false;
+      this.hp = 0;
+      return;
+    }
+
     this.targetX = x;
     this.targetY = y;
     this.targetAngle = angle;
@@ -90,7 +96,7 @@ export class RemotePlayer extends Entity {
   }
 
   public override update(deltaTime: number, _map: GameMap): void {
-    if (!this.active) return;
+    if (!this.active || this.hp <= 0) return;
 
     this.animTimer += deltaTime;
 
@@ -105,6 +111,12 @@ export class RemotePlayer extends Entity {
       }
     }
 
+    // Normalisation des angles dans [-PI, PI] pour éviter toute dérive ou blocage
+    while (this.targetAngle < -Math.PI) this.targetAngle += Math.PI * 2;
+    while (this.targetAngle > Math.PI) this.targetAngle -= Math.PI * 2;
+    while (this.angle < -Math.PI) this.angle += Math.PI * 2;
+    while (this.angle > Math.PI) this.angle -= Math.PI * 2;
+
     // Téléportation instantanée si décalage trop brutal (> 3.5 blocs)
     const distToTarget = Math.hypot(this.targetX - this.x, this.targetY - this.y);
     if (distToTarget > 3.5) {
@@ -115,7 +127,7 @@ export class RemotePlayer extends Entity {
     }
 
     // Interpolation fluide (Lerp) de la position
-    const factor = Math.min(1, deltaTime * 14);
+    const factor = Math.min(1, deltaTime * 18);
     this.x += (this.targetX - this.x) * factor;
     this.y += (this.targetY - this.y) * factor;
 
@@ -124,9 +136,16 @@ export class RemotePlayer extends Entity {
     while (dAngle < -Math.PI) dAngle += Math.PI * 2;
     while (dAngle > Math.PI) dAngle -= Math.PI * 2;
     this.angle += dAngle * factor;
+
+    while (this.angle < -Math.PI) this.angle += Math.PI * 2;
+    while (this.angle > Math.PI) this.angle -= Math.PI * 2;
   }
 
   public override getSprite(): HTMLCanvasElement | null {
+    if (!this.active || this.hp <= 0) {
+      return null;
+    }
+
     const visualState: PlayerVisualState = this.isAttacking
       ? 'attack'
       : this.isMoving

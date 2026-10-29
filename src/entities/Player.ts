@@ -187,6 +187,10 @@ export class Player extends Entity {
       this.angle += this.speedRotation * deltaTime;
     }
 
+    // Normalisation de l'angle dans [-Math.PI, Math.PI]
+    while (this.angle < -Math.PI) this.angle += Math.PI * 2;
+    while (this.angle > Math.PI) this.angle -= Math.PI * 2;
+
     // Tir de boule de feu (Clic gauche ou Espace)
     const wantsToShoot =
       this.input.isMouseLeftDown() || this.input.isKeyDown(KEYS.SHOOT);

@@ -1,15 +1,15 @@
-import puzzleAttackUrl from '../assets/sprites/player/puzzleLord/attack.png';
-import puzzleIdle1Url from '../assets/sprites/player/puzzleLord/idle1.png';
-import puzzleIdle2Url from '../assets/sprites/player/puzzleLord/idle2.png';
-import puzzleWalk1Url from '../assets/sprites/player/puzzleLord/walk1.png';
-import puzzleWalk2Url from '../assets/sprites/player/puzzleLord/walk2.png';
+const puzzleAttackUrl = new URL('../assets/sprites/player/puzzleLord/attack.png', import.meta.url).href;
+const puzzleIdle1Url = new URL('../assets/sprites/player/puzzleLord/idle1.png', import.meta.url).href;
+const puzzleIdle2Url = new URL('../assets/sprites/player/puzzleLord/idle2.png', import.meta.url).href;
+const puzzleWalk1Url = new URL('../assets/sprites/player/puzzleLord/walk1.png', import.meta.url).href;
+const puzzleWalk2Url = new URL('../assets/sprites/player/puzzleLord/walk2.png', import.meta.url).href;
 
-import gouterAttackUrl from '../assets/sprites/player/gouterLord/attack.png';
-import gouterIdleUrl from '../assets/sprites/player/gouterLord/idle.png';
-import gouterWalk1Url from '../assets/sprites/player/gouterLord/walk1.png';
-import gouterWalk2Url from '../assets/sprites/player/gouterLord/walk2.png';
-import gouterWalk3Url from '../assets/sprites/player/gouterLord/walk3.png';
-import gouterWalk4Url from '../assets/sprites/player/gouterLord/walk4.png';
+const gouterAttackUrl = new URL('../assets/sprites/player/gouterLord/attack.png', import.meta.url).href;
+const gouterIdleUrl = new URL('../assets/sprites/player/gouterLord/idle.png', import.meta.url).href;
+const gouterWalk1Url = new URL('../assets/sprites/player/gouterLord/walk1.png', import.meta.url).href;
+const gouterWalk2Url = new URL('../assets/sprites/player/gouterLord/walk2.png', import.meta.url).href;
+const gouterWalk3Url = new URL('../assets/sprites/player/gouterLord/walk3.png', import.meta.url).href;
+const gouterWalk4Url = new URL('../assets/sprites/player/gouterLord/walk4.png', import.meta.url).href;
 
 export type PlayerVisualState = 'idle' | 'walk' | 'attack';
 
@@ -33,7 +33,7 @@ export class PlayerSpriteManager {
   private static isInitialized = false;
 
   public static async preloadAll(): Promise<void> {
-    if (this.isInitialized) {
+    if (this.isInitialized || typeof document === 'undefined') {
       return;
     }
 

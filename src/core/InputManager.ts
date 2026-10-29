@@ -4,6 +4,7 @@ export class InputManager {
   private readonly justPressedKeys = new Set<string>();
   private mouseDeltaX = 0;
   private mouseLeftDown = false;
+  private mouseLeftJustPressed = false;
   private mouseRightDown = false;
   private mouseRightJustPressed = false;
   private paused = false;
@@ -92,6 +93,7 @@ export class InputManager {
 
       if (e.button === 0) {
         this.mouseLeftDown = true;
+        this.mouseLeftJustPressed = true;
       } else if (e.button === 2) {
         this.mouseRightDown = true;
         this.mouseRightJustPressed = true;
@@ -111,6 +113,9 @@ export class InputManager {
     };
 
     this.handlePointerLockChange = () => {
+      if (this.canTogglePause && !this.canTogglePause()) {
+        return;
+      }
       if (document.pointerLockElement !== this.canvas && !this.paused) {
         // Le navigateur a libéré le curseur (touche Échap pressée pendant le PointerLock)
         this.lastPointerUnlockTime = performance.now();
@@ -137,6 +142,7 @@ export class InputManager {
     this.keyPressed.clear();
     this.justPressedKeys.clear();
     this.mouseLeftDown = false;
+    this.mouseLeftJustPressed = false;
     this.mouseRightDown = false;
     this.mouseRightJustPressed = false;
     this.mouseDeltaX = 0;
@@ -190,6 +196,20 @@ export class InputManager {
 
   public isMouseRightDown(): boolean {
     return !this.paused && this.mouseRightDown;
+  }
+
+  /**
+   * Renvoie true une seule fois lorsque le clic gauche vient d'être pressé
+   */
+  public consumeMouseLeftClick(): boolean {
+    if (this.paused) {
+      return false;
+    }
+    if (this.mouseLeftJustPressed) {
+      this.mouseLeftJustPressed = false;
+      return true;
+    }
+    return false;
   }
 
   /**

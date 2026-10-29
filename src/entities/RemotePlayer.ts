@@ -1,6 +1,7 @@
 import { Entity } from './Entity';
 import type { GameMap } from '../world/GameMap';
 import { PlayerSpriteManager, type PlayerVisualState } from '../graphics/PlayerSpriteManager';
+import { SoundManager } from '../core/SoundManager';
 
 /**
  * Représente un joueur distant présent dans l'instance multijoueur.
@@ -25,6 +26,7 @@ export class RemotePlayer extends Entity {
   private animTimer = 0;
   private hurtTimer = 0;
   private attackTimer = 0;
+  private footstepTimer = 0.30;
 
   constructor(
     id: string,
@@ -109,6 +111,21 @@ export class RemotePlayer extends Entity {
       if (this.attackTimer <= 0) {
         this.isAttacking = false;
       }
+    }
+
+    // Bruit de pas 3D spatialisé si le joueur distant marche
+    if (this.isMoving) {
+      this.footstepTimer += deltaTime;
+      if (this.footstepTimer >= 0.40) {
+        this.footstepTimer = 0;
+        SoundManager.play3D('playerSteps', this.x, this.y, {
+          volume: 0.28,
+          pitchVariation: 0.12,
+          maxDistance: 14,
+        });
+      }
+    } else {
+      this.footstepTimer = 0.30;
     }
 
     // Normalisation des angles dans [-PI, PI] pour éviter toute dérive ou blocage

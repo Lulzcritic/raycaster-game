@@ -8,6 +8,7 @@ import { PurpleOrb } from './PurpleOrb';
 import { Inventory } from './Inventory';
 import { UpgradeManager } from '../core/UpgradeManager';
 import { GearScoreService } from '../core/GearScoreService';
+import { SoundManager } from '../core/SoundManager';
 
 export class Player extends Entity {
   public readonly inventory = new Inventory();
@@ -41,6 +42,7 @@ export class Player extends Entity {
   private frostingSlowTimer = 0;
   private frostingSlowFactor = 1.0;
   private currentlyMoving = false;
+  private footstepTimer = 0.30;
 
   constructor(
     input: InputManager,
@@ -250,7 +252,15 @@ export class Player extends Entity {
       this.bobTimer += deltaTime * this.bobFrequency;
       this.handBobX = Math.sin(this.bobTimer * 0.5) * (this.bobAmplitude * 1.8);
       this.handBobY = Math.abs(Math.cos(this.bobTimer * 0.5)) * this.bobAmplitude;
+
+      // Bruit de pas du joueur local
+      this.footstepTimer += deltaTime;
+      if (this.footstepTimer >= 0.38) {
+        this.footstepTimer = 0;
+        SoundManager.play2D('playerSteps', { volume: 0.32, pitchVariation: 0.1 });
+      }
     } else {
+      this.footstepTimer = 0.30;
       // Retour fluide de la main à sa position de repos
       const decay = Math.max(0, 1 - deltaTime * 10);
       this.handBobX *= decay;

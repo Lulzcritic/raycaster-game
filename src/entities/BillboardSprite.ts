@@ -2,6 +2,7 @@ import { TILE_TYPE } from '../config/constants';
 import { ENEMY_TYPES } from '../config/enemyTypes';
 import { ItemDatabase } from '../config/ItemDatabase';
 import { QuestManager } from '../core/QuestManager';
+import { SoundManager } from '../core/SoundManager';
 import type { TextureManager } from '../graphics/TextureManager';
 import type { EquipmentItem } from '../types';
 import { findSpacedDropPositions } from '../utils/dropSpread';
@@ -148,6 +149,7 @@ export class BillboardSprite extends Entity {
 
       const replaced = player.pickupItem(item);
       this.active = false;
+      SoundManager.play3D('equipItem', this.x, this.y, { volume: 0.75 });
 
       if (replaced && this.onSpawnEntity) {
         const replacementOrb = new DroppedItemOrb(
@@ -167,6 +169,7 @@ export class BillboardSprite extends Entity {
     }
 
     this.isOpened = true;
+    SoundManager.play3D('chestOpening', this.x, this.y, { volume: 0.85 });
     QuestManager.onChestOpened();
 
     // Un coffre a 1 chance sur 4 de se transformer en Mimic s'il ne contient pas de clé essentielle
@@ -245,6 +248,9 @@ export class BillboardSprite extends Entity {
     player: Player
   ): void {
     if (this.isOpened || !this.active) return;
+
+    this.isOpened = true;
+    SoundManager.play3D('chestOpening', this.x, this.y, { volume: 0.85 });
 
     if (isMimic) {
       this.active = false;

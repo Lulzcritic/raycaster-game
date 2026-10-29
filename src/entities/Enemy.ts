@@ -3,6 +3,7 @@ import { ItemDatabase } from '../config/ItemDatabase';
 import { WalletManager } from '../core/WalletManager';
 import { QuestManager } from '../core/QuestManager';
 import { GearScoreService } from '../core/GearScoreService';
+import { SoundManager } from '../core/SoundManager';
 import { GoblinSpriteManager } from '../graphics/GoblinSpriteManager';
 import { MimicSpriteManager } from '../graphics/MimicSpriteManager';
 import { SkeletonSpriteManager } from '../graphics/SkeletonSpriteManager';
@@ -302,6 +303,9 @@ export class Enemy extends Entity {
     this.state = 'dead';
     this.stateTimer = 0.42;
     this.currentElevation = 0;
+
+    // Son de mort 3D spatialisé (SlimeDeath.mp3)
+    SoundManager.play3D('slimeDeath', this.x, this.y, { volume: 0.75, pitchVariation: 0.1 });
 
     QuestManager.onEnemyKilled(this.type.id);
 

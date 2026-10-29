@@ -1,32 +1,82 @@
+const SOUND_EFFECT_URLS = {
+  button: new URL('../assets/audio/effects/button.mp3', import.meta.url).href,
+  chestOpening: new URL('../assets/audio/effects/chestopening.mp3', import.meta.url).href,
+  slimeDeath: new URL('../assets/audio/effects/SlimeDeath.mp3', import.meta.url).href,
+  equipItem: new URL('../assets/audio/effects/equipItem.mp3', import.meta.url).href,
+  keyLoot: new URL('../assets/audio/effects/keyLoot.mp3', import.meta.url).href,
+  playerSteps: new URL('../assets/audio/effects/playerSteps.wav', import.meta.url).href,
+};
+
 const menuMusicUrl = new URL('../assets/audio/music/menuhub.mp3', import.meta.url).href;
-const buttonSfxUrl = new URL('../assets/audio/effects/button.mp3', import.meta.url).href;
+
+export type SoundEffectName = keyof typeof SOUND_EFFECT_URLS;
+
+export interface PlayOptions {
+  volume?: number;
+  pitchVariation?: number;
+}
+
+export interface Play3DOptions extends PlayOptions {
+  refDistance?: number;
+  maxDistance?: number;
+  rolloff?: number;
+}
 
 /**
- * Gestionnaire audio centralisé pour The Old Citadel :
- * - Musique d'ambiance du menu principal et du campement (Hub)
- * - Effets sonores d'interface (clics de boutons, etc.)
- * - Gestion automatique de la politique d'autoplay des navigateurs
+ * Moteur audio 3D spatialisé et gestionnaire sonore centralisé pour The Old Citadel :
+ * - Rendu stéréo spatialisé 3D (panoramique directionnel gauche/droite selon l'angle de vue du joueur)
+ * - Atténuation de distance réaliste avec adoucissement aux limites de portée
+ * - Filtrage acoustique avant/arrière (occlusion naturelle de la tête par filtre passe-bas pour différencier l'avant et l'arrière)
+ * - Variations subtiles de hauteur (pitch) pour un rendu organique non-répétitif
+ * - Musique d'ambiance en boucle (Menu principal & Hub) avec fondu progressif en début de partie
+ * - Rétro-compatibilité et résilience complète (gestion autoplay, mode sans échec Node.js pour les tests CI)
  */
 export class SoundManager {
   private static isInitialized = false;
+
+  // Web Audio Context & Buffers décodés pour une latence nulle
+  private static audioCtx: AudioContext | null = null;
+  private static readonly soundBuffers = new Map<SoundEffectName, AudioBuffer>();
+  private static readonly loadingPromises = new Map<SoundEffectName, Promise<AudioBuffer | null>>();
+
+  // Position et angle de la caméra de l'écouteur (joueur local ou coéquipier observé)
+  private static listenerX = 0;
+  private static listenerY = 0;
+  private static listenerAngle = 0;
+
+  // Musique de fond
   private static musicAudio: HTMLAudioElement | null = null;
   private static isMusicPlaying = false;
   private static pendingMenuMusic = false;
 
+  // Fallback pool pour clics de boutons si AudioContext n'est pas encore débloqué
   private static buttonPool: HTMLAudioElement[] = [];
   private static poolIndex = 0;
   private static readonly POOL_SIZE = 6;
 
   private static musicVolume = 0.35;
-  private static sfxVolume = 0.45;
+  private static sfxVolume = 0.50;
 
   public static init(): void {
-    if (this.isInitialized || typeof window === 'undefined' || typeof Audio === 'undefined') {
+    if (this.isInitialized || typeof window === 'undefined') {
       return;
     }
     this.isInitialized = true;
 
-    // 1. Initialisation de la musique du menu / hub
+    // 1. Initialisation de l'AudioContext Web Audio
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtxClass) {
+        this.audioCtx = new AudioCtxClass();
+      }
+    } catch (err) {
+      console.warn('[SoundManager] Web Audio API non supportée ou restreinte :', err);
+    }
+
+    // 2. Préchargement et décodage de tous les effets sonores en mémoire vive (latence 0ms)
+    this.preloadAllEffects();
+
+    // 3. Initialisation de la musique du menu / hub
     try {
       this.musicAudio = new Audio(menuMusicUrl);
       this.musicAudio.loop = true;
@@ -36,19 +86,19 @@ export class SoundManager {
       console.warn('[SoundManager] Impossible d initialiser la musique :', err);
     }
 
-    // 2. Initialisation de la réserve (pool) de sons pour les boutons
+    // 4. Initialisation du pool de secours HTML5 Audio pour les boutons
     try {
       for (let i = 0; i < this.POOL_SIZE; i++) {
-        const sfx = new Audio(buttonSfxUrl);
+        const sfx = new Audio(SOUND_EFFECT_URLS.button);
         sfx.volume = this.sfxVolume;
         sfx.preload = 'auto';
         this.buttonPool.push(sfx);
       }
     } catch (err) {
-      console.warn('[SoundManager] Impossible d initialiser le pool SFX :', err);
+      console.warn('[SoundManager] Impossible d initialiser le pool SFX de secours :', err);
     }
 
-    // 3. Écouteur global capturant tous les clics sur des boutons d'interface
+    // 5. Écouteur global capturant tous les clics sur des boutons d'interface
     if (typeof document !== 'undefined') {
       document.addEventListener(
         'click',
@@ -69,17 +119,18 @@ export class SoundManager {
 
           this.playButtonSound();
         },
-        true // Phase de capture : intercepte même en cas de stopPropagation
+        true // Phase de capture : intercepte même si stopPropagation a été appelé
       );
 
-      // 4. Déblocage automatique de l'audio dès la première interaction utilisateur
+      // 6. Déblocage automatique de l'audio dès la première interaction utilisateur
       const unlockAutoplay = () => {
+        if (this.audioCtx && this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume().catch(() => {});
+        }
         if (this.pendingMenuMusic && this.musicAudio && this.isMusicPlaying) {
           this.musicAudio.play().catch(() => {});
           this.pendingMenuMusic = false;
         }
-        window.removeEventListener('pointerdown', unlockAutoplay);
-        window.removeEventListener('keydown', unlockAutoplay);
       };
 
       window.addEventListener('pointerdown', unlockAutoplay, { passive: true });
@@ -88,11 +139,310 @@ export class SoundManager {
   }
 
   /**
+   * Précharge et décode tous les effets sonores dans l'AudioContext.
+   */
+  private static preloadAllEffects(): void {
+    if (!this.audioCtx) return;
+    for (const key of Object.keys(SOUND_EFFECT_URLS) as SoundEffectName[]) {
+      this.loadSoundBuffer(key);
+    }
+  }
+
+  /**
+   * Charge et décode un son individuel.
+   */
+  private static async loadSoundBuffer(name: SoundEffectName): Promise<AudioBuffer | null> {
+    if (this.soundBuffers.has(name)) {
+      return this.soundBuffers.get(name)!;
+    }
+    if (this.loadingPromises.has(name)) {
+      return this.loadingPromises.get(name)!;
+    }
+    if (!this.audioCtx) return null;
+
+    const url = SOUND_EFFECT_URLS[name];
+    const promise = (async () => {
+      try {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        const decoded = await this.audioCtx!.decodeAudioData(arrayBuffer);
+        this.soundBuffers.set(name, decoded);
+        return decoded;
+      } catch (err) {
+        console.warn(`[SoundManager] Erreur décodage de ${name} (${url}) :`, err);
+        return null;
+      } finally {
+        this.loadingPromises.delete(name);
+      }
+    })();
+
+    this.loadingPromises.set(name, promise);
+    return promise;
+  }
+
+  /**
+   * Met à jour la position et l'orientation angulaire de l'écouteur (la caméra).
+   */
+  public static updateListener(x: number, y: number, angle: number): void {
+    this.listenerX = x;
+    this.listenerY = y;
+    this.listenerAngle = angle;
+  }
+
+  public static getListener(): { x: number; y: number; angle: number } {
+    return { x: this.listenerX, y: this.listenerY, angle: this.listenerAngle };
+  }
+
+  /**
+   * Calcule les paramètres acoustiques 3D (distance, atténuation, panoramique stéréo, occlusion arrière)
+   */
+  public static calculateSpatialAudio(
+    sourceX: number,
+    sourceY: number,
+    listenerX: number = this.listenerX,
+    listenerY: number = this.listenerY,
+    listenerAngle: number = this.listenerAngle,
+    options?: Play3DOptions
+  ): {
+    distance: number;
+    attenuation: number;
+    pan: number;
+    isBehind: boolean;
+    behindFactor: number;
+    relativeAngle: number;
+    audible: boolean;
+  } {
+    const dx = sourceX - listenerX;
+    const dy = sourceY - listenerY;
+    const distance = Math.hypot(dx, dy);
+
+    const refDist = options?.refDistance ?? 1.2;
+    const maxDist = options?.maxDistance ?? 18.0;
+
+    if (distance > maxDist) {
+      return {
+        distance,
+        attenuation: 0,
+        pan: 0,
+        isBehind: false,
+        behindFactor: 0,
+        relativeAngle: 0,
+        audible: false,
+      };
+    }
+
+    const distCutoff = Math.max(0, 1 - (distance - refDist) / (maxDist - refDist));
+    const attenuation =
+      distance <= refDist
+        ? 1.0
+        : (refDist / (refDist + 0.85 * (distance - refDist))) * distCutoff;
+
+    const angleToSource = Math.atan2(dy, dx);
+    let dAngle = angleToSource - listenerAngle;
+    while (dAngle < -Math.PI) dAngle += Math.PI * 2;
+    while (dAngle > Math.PI) dAngle -= Math.PI * 2;
+
+    const pan = distance < 0.08 ? 0 : Math.sin(dAngle);
+    const isBehind = Math.cos(dAngle) < 0;
+    const behindFactor = isBehind ? Math.max(0, -Math.cos(dAngle)) : 0;
+
+    return {
+      distance,
+      attenuation,
+      pan,
+      isBehind,
+      behindFactor,
+      relativeAngle: dAngle,
+      audible: attenuation > 0.005,
+    };
+  }
+
+  /**
+   * Joue un son spatialisé en 3D stéréo à des coordonnées du monde (x, y).
+   * Calcule le panoramique gauche/droite en temps réel et l'atténuation selon la distance.
+   */
+  public static play3D(
+    soundName: SoundEffectName,
+    sourceX: number,
+    sourceY: number,
+    options?: Play3DOptions
+  ): void {
+    if (typeof window === 'undefined') return;
+    if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.audioCtx) return;
+
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume().catch(() => {});
+    }
+
+    const spatial = this.calculateSpatialAudio(
+      sourceX,
+      sourceY,
+      this.listenerX,
+      this.listenerY,
+      this.listenerAngle,
+      options
+    );
+
+    if (!spatial.audible) return;
+
+    const baseVolume = options?.volume ?? 1.0;
+    const finalVolume = baseVolume * this.sfxVolume * spatial.attenuation;
+
+    if (finalVolume < 0.005) return;
+
+    const buffer = this.soundBuffers.get(soundName);
+    if (buffer) {
+      this.spawnAudioGraph(
+        buffer,
+        spatial.pan,
+        finalVolume,
+        spatial.behindFactor,
+        options?.pitchVariation
+      );
+    } else {
+      // Si le buffer n'a pas fini de charger, on tente de le récupérer
+      this.loadSoundBuffer(soundName).then((loaded) => {
+        if (loaded) {
+          this.spawnAudioGraph(
+            loaded,
+            spatial.pan,
+            finalVolume,
+            spatial.behindFactor,
+            options?.pitchVariation
+          );
+        }
+      });
+    }
+  }
+
+  /**
+   * Joue un son direct 2D (sans atténuation spatiale), par exemple les actions du joueur ou l'UI.
+   */
+  public static play2D(soundName: SoundEffectName, options?: PlayOptions): void {
+    if (typeof window === 'undefined') return;
+    if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.audioCtx) return;
+
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume().catch(() => {});
+    }
+
+    const baseVolume = options?.volume ?? 1.0;
+    const finalVolume = baseVolume * this.sfxVolume;
+
+    const buffer = this.soundBuffers.get(soundName);
+    if (buffer) {
+      this.spawnAudioGraph(buffer, 0, finalVolume, 0, options?.pitchVariation);
+    } else {
+      this.loadSoundBuffer(soundName).then((loaded) => {
+        if (loaded) {
+          this.spawnAudioGraph(loaded, 0, finalVolume, 0, options?.pitchVariation);
+        }
+      });
+    }
+  }
+
+  /**
+   * Instancie le graphe de nœuds Web Audio pour diffuser le son en stéréo 3D.
+   */
+  private static spawnAudioGraph(
+    buffer: AudioBuffer,
+    pan: number,
+    volume: number,
+    behindFactor: number,
+    pitchVariation = 0
+  ): void {
+    if (!this.audioCtx) return;
+
+    try {
+      const sourceNode = this.audioCtx.createBufferSource();
+      sourceNode.buffer = buffer;
+
+      if (pitchVariation > 0) {
+        sourceNode.playbackRate.value = 1.0 + (Math.random() - 0.5) * 2 * pitchVariation;
+      }
+
+      const gainNode = this.audioCtx.createGain();
+      gainNode.gain.value = volume;
+
+      let lastNode: AudioNode = sourceNode;
+
+      // Filtre passe-bas subtil si le son est derrière pour simuler l'occlusion de la tête
+      if (behindFactor > 0.05 && this.audioCtx.createBiquadFilter) {
+        const filter = this.audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 20000 - behindFactor * 16000; // 20kHz -> 4kHz
+        lastNode.connect(filter);
+        lastNode = filter;
+      }
+
+      // Panoramique stéréo gauche / droite
+      if (this.audioCtx.createStereoPanner) {
+        const panner = this.audioCtx.createStereoPanner();
+        panner.pan.value = Math.max(-1, Math.min(1, pan));
+        lastNode.connect(panner);
+        lastNode = panner;
+      }
+
+      lastNode.connect(gainNode);
+      gainNode.connect(this.audioCtx.destination);
+
+      sourceNode.start(0);
+
+      sourceNode.onended = () => {
+        try {
+          sourceNode.disconnect();
+          gainNode.disconnect();
+        } catch {
+          // Déconnexion propre
+        }
+      };
+    } catch (err) {
+      console.warn('[SoundManager] Erreur lors de la lecture audio :', err);
+    }
+  }
+
+  /**
+   * Déclenche le son de clic de bouton (utilise Web Audio ou le pool HTML5 de secours).
+   */
+  public static playButtonSound(): void {
+    if (typeof window === 'undefined') return;
+    if (!this.isInitialized) {
+      this.init();
+    }
+
+    if (this.soundBuffers.has('button') && this.audioCtx && this.audioCtx.state === 'running') {
+      this.play2D('button', { volume: 0.55 });
+      return;
+    }
+
+    if (this.buttonPool.length === 0) return;
+    const sfx = this.buttonPool[this.poolIndex];
+    this.poolIndex = (this.poolIndex + 1) % this.buttonPool.length;
+
+    try {
+      sfx.currentTime = 0;
+      sfx.volume = this.sfxVolume;
+      const promise = sfx.play();
+      if (promise !== undefined) {
+        promise.catch(() => {});
+      }
+    } catch {
+      // Ignoré
+    }
+  }
+
+  /**
    * Lance la musique d'ambiance du Menu / Hub.
    * Si elle est déjà en cours de lecture, ne la redémarre pas.
    */
   public static playMenuMusic(): void {
-    if (typeof window === 'undefined' || typeof Audio === 'undefined') return;
+    if (typeof window === 'undefined') return;
     if (!this.isInitialized) {
       this.init();
     }
@@ -108,7 +458,7 @@ export class SoundManager {
     const playPromise = this.musicAudio.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
-        // Politique d'autoplay du navigateur bloquée : on attend le premier clic / touche
+        // Autoplay bloqué par le navigateur : attente du premier clic
         this.pendingMenuMusic = true;
       });
     }
@@ -149,34 +499,6 @@ export class SoundManager {
     fadeStep();
   }
 
-  /**
-   * Joue le son de clic de bouton depuis le pool audio.
-   */
-  public static playButtonSound(): void {
-    if (typeof window === 'undefined' || typeof Audio === 'undefined') return;
-    if (!this.isInitialized) {
-      this.init();
-    }
-    if (this.buttonPool.length === 0) return;
-
-    const sfx = this.buttonPool[this.poolIndex];
-    this.poolIndex = (this.poolIndex + 1) % this.buttonPool.length;
-
-    try {
-      sfx.currentTime = 0;
-      sfx.volume = this.sfxVolume;
-      const promise = sfx.play();
-      if (promise !== undefined) {
-        promise.catch(() => {});
-      }
-    } catch {
-      // Ignoré si le navigateur refuse
-    }
-  }
-
-  /**
-   * Ajuste les volumes généraux
-   */
   public static setMusicVolume(volume: number): void {
     this.musicVolume = Math.max(0, Math.min(1, volume));
     if (this.musicAudio) {

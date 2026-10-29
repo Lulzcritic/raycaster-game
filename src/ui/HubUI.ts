@@ -16,6 +16,7 @@ import { ItemTooltip } from './ItemTooltip';
 import { FIREBALL_CONFIG } from '../config/constants';
 import { GearScoreService } from '../core/GearScoreService';
 import { NetworkClient } from '../network/NetworkClient';
+import { SoundManager } from '../core/SoundManager';
 import type { Player } from '../entities/Player';
 import type { EquipmentItem, EquipmentSlot } from '../types';
 import type { MatchFoundPayload, QueueStatusPayload } from '../types/network';
@@ -763,6 +764,7 @@ export class HubUI {
             ItemTooltip.getInstance().hide();
             const removed = this.player?.inventory.unequip(slot);
             if (removed) {
+              SoundManager.play2D('equipItem', { volume: 0.75 });
               StashManager.addItem(removed);
               this.renderEquipmentView();
               this.renderPlayView();
@@ -816,6 +818,7 @@ export class HubUI {
             ItemTooltip.getInstance().hide();
             const removed = StashManager.removeItem(item.id);
             if (removed && this.player) {
+              SoundManager.play2D('equipItem', { volume: 0.75 });
               const previous = this.player.pickupItem(removed);
               if (previous) {
                 StashManager.addItem(previous);

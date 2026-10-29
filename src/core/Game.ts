@@ -367,28 +367,31 @@ export class Game {
 
       if (chest) {
         chest.openFromRemote(data.isMimic, data.items, data.dropPositions, this.player);
-      } else if (!data.isMimic && data.items.length > 0) {
-        for (let i = 0; i < data.items.length; i++) {
-          const item = data.items[i];
-          const pos = data.dropPositions[i] ?? {
-            startX: data.x,
-            startY: data.y,
-            targetX: data.x,
-            targetY: data.y,
-          };
-          const orb = new DroppedItemOrb(
-            pos.startX,
-            pos.startY,
-            pos.targetX,
-            pos.targetY,
-            item,
-            (newEnt) => {
-              if (newEnt instanceof DroppedItemOrb) this.attachItemOrbCallbacks(newEnt);
-              this.entities.push(newEnt);
-            }
-          );
-          this.attachItemOrbCallbacks(orb);
-          this.entities.push(orb);
+      } else {
+        SoundManager.play3D('chestOpening', data.x, data.y, { volume: 0.85 });
+        if (!data.isMimic && data.items.length > 0) {
+          for (let i = 0; i < data.items.length; i++) {
+            const item = data.items[i];
+            const pos = data.dropPositions[i] ?? {
+              startX: data.x,
+              startY: data.y,
+              targetX: data.x,
+              targetY: data.y,
+            };
+            const orb = new DroppedItemOrb(
+              pos.startX,
+              pos.startY,
+              pos.targetX,
+              pos.targetY,
+              item,
+              (newEnt) => {
+                if (newEnt instanceof DroppedItemOrb) this.attachItemOrbCallbacks(newEnt);
+                this.entities.push(newEnt);
+              }
+            );
+            this.attachItemOrbCallbacks(orb);
+            this.entities.push(orb);
+          }
         }
       }
 
@@ -1593,6 +1596,9 @@ export class Game {
       }) as Player;
       renderEntities = this.entities.filter((e) => e !== target && e.active);
     }
+
+    // Mise à jour de la position et de l'orientation de l'écouteur pour le moteur audio 3D
+    SoundManager.updateListener(renderPlayer.x, renderPlayer.y, renderPlayer.angle);
 
     this.renderer.render(renderPlayer, this.map, renderEntities);
 

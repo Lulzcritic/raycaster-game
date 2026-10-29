@@ -2,6 +2,7 @@ import type { EquipmentItem } from '../types';
 import type { GameMap } from '../world/GameMap';
 import { Entity } from './Entity';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
+import { SoundManager } from '../core/SoundManager';
 import type { Player } from './Player';
 
 /**
@@ -108,6 +109,13 @@ export class DroppedItemOrb extends Entity {
 
     const replaced = player.pickupItem(this.item);
     this.active = false;
+
+    // Rendu sonore 3D pour la collecte d'objet ou de clé
+    if (this.item.slot === 'key') {
+      SoundManager.play3D('keyLoot', this.x, this.y, { volume: 0.9 });
+    } else {
+      SoundManager.play3D('equipItem', this.x, this.y, { volume: 0.75 });
+    }
 
     if (replaced) {
       let dropTargetX = this.x;

@@ -2610,6 +2610,76 @@ body {
   padding-bottom: 4px;
 }
 
+/* Bouton Buy Me A Coffee (Menu Principal) */
+.main-menu-bmac-btn {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(180deg, #ffdd00 0%, #facc15 100%);
+  color: #1a1200;
+  font-family: var(--font-medieval);
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  clip-path: var(--pixel-notch-small);
+  border: 2px solid #ca8a04;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 0 0 #b45309,
+    0 4px 0 0 #000000;
+  filter: drop-shadow(0 2px 0 #000000);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+  user-select: none;
+}
+
+.main-menu-bmac-btn:hover {
+  background: linear-gradient(180deg, #ffe54c 0%, #fde047 100%);
+  color: #000000;
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+    inset 0 -2px 0 0 #b45309,
+    0 6px 0 0 #000000;
+}
+
+.main-menu-bmac-btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(0, 0, 0, 0.2),
+    0 2px 0 0 #000000;
+}
+
+.main-menu-bmac-btn .bmac-svg {
+  flex-shrink: 0;
+  color: #1a1200;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.3));
+}
+
+.main-menu-bmac-btn .bmac-text {
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+@media (max-width: 640px) {
+  .main-menu-bmac-btn {
+    top: 14px;
+    right: 14px;
+    padding: 6px 12px;
+    font-size: 13px;
+    gap: 6px;
+  }
+  .main-menu-bmac-btn .bmac-svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
 /* =========================================================================
    HUB CENTRAL (CAMPEMENT DES AVENTURIERS / LOBBY)
    ========================================================================= */
@@ -2701,7 +2771,11 @@ body {
   font-family: var(--font-medieval);
   font-size: 16px;
   letter-spacing: 1px;
-  padding: 10px 22px;
+  padding: 10px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   clip-path: var(--pixel-notch-btn);
   background: linear-gradient(180deg, #261642 0%, #150a26 100%);
   color: #94a3b8;
@@ -2730,6 +2804,54 @@ body {
     0 0 14px rgba(234, 179, 8, 0.5),
     0 4px 0 0 #000000;
   transform: translateY(-2px);
+}
+
+/* Onglets grisés / bientôt disponibles (Boutique & Quêtes) */
+.hub-nav-tab.hub-nav-tab-disabled,
+.hub-nav-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.85);
+  background: linear-gradient(180deg, #1c1826 0%, #100d16 100%);
+  color: #64748b;
+  border-color: #3b2c52;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    inset 0 -2px 0 0 #0a0710,
+    0 2px 0 0 #000000;
+  pointer-events: auto;
+}
+
+.hub-nav-tab.hub-nav-tab-disabled:hover,
+.hub-nav-tab:disabled:hover {
+  color: #64748b;
+  border-color: #3b2c52;
+  background: linear-gradient(180deg, #1c1826 0%, #100d16 100%);
+  transform: none;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    inset 0 -2px 0 0 #0a0710,
+    0 2px 0 0 #000000;
+}
+
+/* Petit badge 'SOON' rétro doré */
+.hub-tab-soon-badge {
+  display: inline-block;
+  font-family: var(--font-pixel, monospace, sans-serif);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #1e1b18;
+  background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%);
+  border: 1px solid #a16207;
+  padding: 2px 5px;
+  border-radius: 3px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  vertical-align: middle;
 }
 
 .hub-wallet {

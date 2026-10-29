@@ -159,6 +159,25 @@
 
     <!-- Menu Principal -->
     <div id="main-menu" class="main-menu">
+      <!-- Bouton Buy Me A Coffee -->
+      <a
+        id="main-bmac-btn"
+        class="main-menu-bmac-btn"
+        href="https://buymeacoffee.com/lulzcritic"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Soutenir le développement sur Buy Me a Coffee"
+      >
+        <svg class="bmac-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="2" x2="6" y2="5"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="2" x2="14" y2="5"></line>
+        </svg>
+        <span class="bmac-text">Buy me a coffee</span>
+      </a>
+
       <div class="main-menu-container">
         <!-- Logo centré en haut avec animation d'apparition -->
         <header class="main-menu-header">
@@ -254,11 +273,13 @@
             <button id="hub-tab-equipment" class="hub-nav-tab" type="button" data-tab="equipment">
               ÉQUIPEMENT
             </button>
-            <button id="hub-tab-shop" class="hub-nav-tab" type="button" data-tab="shop">
-              BOUTIQUE
+            <button id="hub-tab-shop" class="hub-nav-tab hub-nav-tab-disabled" type="button" data-tab="shop" disabled title="Bientôt disponible dans une prochaine version">
+              <span>BOUTIQUE</span>
+              <span class="hub-tab-soon-badge">SOON</span>
             </button>
-            <button id="hub-tab-quests" class="hub-nav-tab" type="button" data-tab="quests">
-              QUÊTES
+            <button id="hub-tab-quests" class="hub-nav-tab hub-nav-tab-disabled" type="button" data-tab="quests" disabled title="Bientôt disponible dans une prochaine version">
+              <span>QUÊTES</span>
+              <span class="hub-tab-soon-badge">SOON</span>
             </button>
           </div>
           <div id="hub-wallet" class="hub-wallet">

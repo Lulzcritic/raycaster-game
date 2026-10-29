@@ -1035,7 +1035,8 @@ export class Game {
     this.hudOverlay.hideSpectatorBanner();
     this.playerHandOverlay.setVisible(false);
     this.hubUI.setPlayer(this.player);
-    this.hubUI.show(tab);
+    const targetTab = (tab === 'shop' || tab === 'quests') ? 'play' : tab;
+    this.hubUI.show(targetTab);
   }
 
   public returnToHub(): void {

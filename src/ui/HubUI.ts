@@ -296,6 +296,9 @@ export class HubUI {
   }
 
   public switchTab(tab: HubTab): void {
+    if (tab === 'shop' || tab === 'quests') {
+      return;
+    }
     ItemTooltip.getInstance().hide();
     this.currentTab = tab;
 
@@ -338,6 +341,9 @@ export class HubUI {
     // Navigation par onglets
     this.navTabs.forEach((btn) => {
       btn.addEventListener('click', () => {
+        if (btn.classList.contains('hub-nav-tab-disabled') || btn.hasAttribute('disabled')) {
+          return;
+        }
         const tab = btn.getAttribute('data-tab') as HubTab;
         if (tab) {
           this.switchTab(tab);

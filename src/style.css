@@ -2965,31 +2965,37 @@ body {
 .hub-play-stage {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   height: 100%;
-  max-width: 980px;
-  gap: 14px;
+  width: 100%;
+  max-width: none;
+  gap: 12px;
   box-sizing: border-box;
 }
 
 .hub-play-header {
   text-align: left;
+  flex-shrink: 0;
 }
 
 .hub-play-split {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  gap: 24px;
+  gap: 28px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Colonne Gauche : Équipement arrangé sur le corps (Paperdoll) */
 .hub-play-left-col {
-  flex: 1.15;
+  flex: 1.1;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
+  height: 100%;
 }
 
 .hub-play-paperdoll {
@@ -2997,14 +3003,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-evenly;
   gap: 12px;
-  background: rgba(13, 8, 24, 0.55);
+  background: rgba(13, 8, 24, 0.62);
   backdrop-filter: blur(8px);
   border: 2px solid rgba(168, 85, 247, 0.45);
-  padding: 18px 14px 14px 14px;
+  padding: 18px 16px 14px 16px;
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.7), 0 6px 18px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .hub-play-paperdoll::before {
@@ -3029,27 +3038,30 @@ body {
 }
 
 .hub-paperdoll-row.top {
-  padding-top: 6px;
+  padding-top: 4px;
 }
 
 .hub-paperdoll-row.top .hub-play-body-slot,
 .hub-paperdoll-row.bottom .hub-play-body-slot {
-  width: 156px;
+  width: 210px;
+  max-width: 230px;
 }
 
 .hub-paperdoll-row.middle {
-  gap: 12px;
-  padding-top: 6px;
+  gap: 16px;
+  padding-top: 4px;
+  width: 100%;
+  max-width: 660px;
 }
 
 .hub-paperdoll-row.middle .hub-play-body-slot {
   flex: 1;
   min-width: 0;
-  max-width: 140px;
+  max-width: 200px;
 }
 
 .hub-paperdoll-row.bottom {
-  padding-top: 6px;
+  padding-top: 4px;
 }
 
 .hub-play-body-slot {
@@ -3168,8 +3180,8 @@ body {
 }
 
 .hub-body-slot-icon-box {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   background: #07040d;
   border: 2px solid #2d223f;
   display: flex;
@@ -3181,15 +3193,15 @@ body {
 }
 
 .hub-body-slot-img {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
 .hub-body-slot-placeholder {
-  font-size: 20px;
+  font-size: 22px;
   opacity: 0.35;
   line-height: 1;
 }
@@ -3204,7 +3216,7 @@ body {
 }
 
 .hub-body-slot-name {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -3213,7 +3225,7 @@ body {
 }
 
 .hub-body-slot-stats {
-  font-size: 9.5px;
+  font-size: 10.5px;
   color: #cbd5e1;
   white-space: nowrap;
   overflow: hidden;
@@ -3226,31 +3238,37 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 10px;
-  min-width: 320px;
+  min-width: 0;
+  height: 100%;
 }
 
 .hub-play-stats-vlist {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
   width: 100%;
+  flex: 1;
+  justify-content: space-evenly;
+  min-height: 0;
 }
 
 .hub-stat-vrow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: rgba(13, 8, 22, 0.85);
+  gap: 16px;
+  background: rgba(13, 8, 22, 0.88);
   backdrop-filter: blur(8px);
   border: 2px solid rgba(88, 28, 135, 0.85);
-  padding: 8px 14px;
+  padding: 9px 18px;
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.8),
     0 4px 14px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: all 0.18s ease;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .hub-stat-vrow:hover {
@@ -3264,9 +3282,9 @@ body {
 }
 
 .hub-stat-vicon {
-  font-size: 22px;
-  width: 38px;
-  height: 38px;
+  font-size: 24px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3285,14 +3303,14 @@ body {
 }
 
 .hub-stat-vlabel {
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: bold;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   color: #e2e8f0;
 }
 
 .hub-stat-vdesc {
-  font-size: 9.5px;
+  font-size: 10.5px;
   color: #94a3b8;
   white-space: nowrap;
   overflow: hidden;
@@ -3300,7 +3318,7 @@ body {
 }
 
 .hub-stat-vval {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: bold;
   letter-spacing: 0.5px;
   text-align: right;
@@ -3311,15 +3329,16 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-top: 10px;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .hub-launch-btn {
   width: 100%;
   font-family: var(--font-medieval);
-  font-size: 20px;
-  letter-spacing: 2px;
-  padding: 14px 20px;
+  font-size: 22px;
+  letter-spacing: 2.5px;
+  padding: 16px 24px;
   color: #ffffff;
   background: linear-gradient(180deg, #7c3aed 0%, #4c1d95 100%);
   border: 3px solid #c084fc;
@@ -3678,42 +3697,6 @@ body {
   color: #94a3b8;
   margin-top: 4px;
   letter-spacing: 1px;
-}
-
-.hub-play-action .hub-launch-btn {
-  width: 100%;
-  text-align: center;
-  padding: 13px 20px;
-  font-size: 18px;
-}
-
-.hub-launch-btn {
-  font-family: var(--font-medieval);
-  font-size: 22px;
-  letter-spacing: 2px;
-  padding: 18px 46px;
-  color: #ffffff;
-  background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
-  border: 3px solid #ef4444;
-  clip-path: var(--pixel-notch-box);
-  box-shadow:
-    inset 0 2px 0 0 #fca5a5,
-    inset 0 -4px 0 0 #450a0a,
-    0 0 28px rgba(239, 68, 68, 0.6),
-    0 6px 0 0 #000000;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.hub-launch-btn:hover {
-  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
-  border-color: #fca5a5;
-  transform: translateY(-2px);
-  box-shadow:
-    inset 0 3px 0 0 #ffffff,
-    inset 0 -4px 0 0 #450a0a,
-    0 0 36px rgba(239, 68, 68, 0.85),
-    0 8px 0 0 #000000;
 }
 
 /* VUE ÉQUIPEMENT (Directement sur le fond, pas de fenêtre globale) */

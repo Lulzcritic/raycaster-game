@@ -237,11 +237,21 @@ const server = http.createServer(async (req, res) => {
     const safePath = path.normalize(cleanUrl).replace(/^(\.\.[/\\])+/, '');
     const filePath = path.join(DIST_DIR, safePath);
 
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      const ext = path.extname(filePath).toLowerCase();
+    // Vérification du fichier demandé (directement, ou en tolérant le préfixe /toc/)
+    let targetFilePath = filePath;
+    if (!fs.existsSync(targetFilePath) || !fs.statSync(targetFilePath).isFile()) {
+      const withoutToc = safePath.replace(/^[/\\]?toc[/\\]?/i, '');
+      const altPath = path.join(DIST_DIR, withoutToc);
+      if (fs.existsSync(altPath) && fs.statSync(altPath).isFile()) {
+        targetFilePath = altPath;
+      }
+    }
+
+    if (fs.existsSync(targetFilePath) && fs.statSync(targetFilePath).isFile()) {
+      const ext = path.extname(targetFilePath).toLowerCase();
       const contentType = MIME_TYPES[ext] || 'application/octet-stream';
       res.writeHead(200, { 'Content-Type': contentType });
-      fs.createReadStream(filePath).pipe(res);
+      fs.createReadStream(targetFilePath).pipe(res);
       return;
     }
 

@@ -2740,6 +2740,21 @@ body {
 /* =========================================================================
    MODAL D'AUTHENTIFICATION (CONNEXION & INSCRIPTION POSTGRESQL)
    ========================================================================= */
+#auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000 !important;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.8);
+  cursor: default;
+}
+
+#auth-modal.hidden {
+  display: none !important;
+}
+
 .auth-box {
   min-width: 380px;
   max-width: 440px;

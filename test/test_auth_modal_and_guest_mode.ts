@@ -1,9 +1,11 @@
 import assert from 'assert';
+import fs from 'fs';
 import { AuthManager } from '../src/core/AuthManager';
 import { WalletManager } from '../src/core/WalletManager';
 import { StashManager } from '../src/core/StashManager';
 import { Inventory } from '../src/entities/Inventory';
 import { QuestManager } from '../src/core/QuestManager';
+import { AuthModal } from '../src/ui/AuthModal';
 import type { AuthUser } from '../src/types/auth';
 
 // Setup Mock DOM minimaliste pour Node.js
@@ -11,6 +13,33 @@ if (typeof (globalThis as any).window === 'undefined') {
   (globalThis as any).window = {
     addEventListener: () => {},
     removeEventListener: () => {},
+  };
+}
+
+if (typeof (globalThis as any).document === 'undefined') {
+  const elements = new Map<string, any>();
+  (globalThis as any).document = {
+    getElementById: (id: string) => {
+      if (!elements.has(id)) {
+        const classSet = new Set<string>();
+        if (id === 'auth-modal') classSet.add('hidden');
+        elements.set(id, {
+          id,
+          style: { display: '' },
+          textContent: '',
+          value: '',
+          classList: {
+            add: (c: string) => classSet.add(c),
+            remove: (c: string) => classSet.delete(c),
+            contains: (c: string) => classSet.has(c),
+          },
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          focus: () => {},
+        });
+      }
+      return elements.get(id);
+    },
   };
 }
 
@@ -154,6 +183,37 @@ async function runTests() {
   console.log('   ✅ Déconnexion et nettoyage de session validés.');
 
   unsubscribe();
+
+  console.log('8. Test de visibilité du modal d\'authentification (AuthModal & Z-Index)...');
+  // Vérification de la position dans index.html (auth-modal doit être après main-menu pour le stacking context)
+  const htmlContent = fs.readFileSync('index.html', 'utf-8');
+  const mainMenuPos = htmlContent.indexOf('id="main-menu"');
+  const authModalPos = htmlContent.indexOf('id="auth-modal"');
+  assert.ok(mainMenuPos !== -1, 'id="main-menu" doit être présent dans index.html');
+  assert.ok(authModalPos !== -1, 'id="auth-modal" doit être présent dans index.html');
+  assert.ok(authModalPos > mainMenuPos, 'id="auth-modal" doit être après id="main-menu" dans le DOM');
+
+  // Vérification de la règle CSS z-index
+  const cssContent = fs.readFileSync('src/style.css', 'utf-8');
+  assert.ok(cssContent.includes('#auth-modal {'), '#auth-modal doit avoir sa règle CSS dédiée');
+  assert.ok(
+    cssContent.includes('z-index: 1000') || cssContent.includes('z-index: 200'),
+    '#auth-modal doit avoir un z-index élevé supérieur à .main-menu (100)'
+  );
+
+  // Instanciation et test des méthodes show() et hide()
+  const modal = new AuthModal();
+  modal.show('login');
+  assert.strictEqual(modal.isOpen(), true, 'Le modal doit être ouvert après show()');
+  const modalEl = (globalThis as any).document.getElementById('auth-modal');
+  assert.strictEqual(modalEl?.style.display, 'flex', 'Le modal doit avoir display: flex après show()');
+  assert.strictEqual(modalEl?.classList.contains('hidden'), false, 'Le modal ne doit plus avoir la classe hidden');
+
+  modal.hide();
+  assert.strictEqual(modal.isOpen(), false, 'Le modal doit être fermé après hide()');
+  assert.strictEqual(modalEl?.style.display, 'none', 'Le modal doit avoir display: none après hide()');
+  assert.strictEqual(modalEl?.classList.contains('hidden'), true, 'Le modal doit avoir la classe hidden après hide()');
+  console.log('   ✅ Modal d\'authentification visible, prioritaire sur le menu principal (Z-Index) et fonctionnel.');
   console.log('\n✨ TOUS LES TESTS D\'AUTHENTIFICATION ET MODE INVITÉ ONT RÉUSSI AVEC SUCCÈS ! ✨\n');
 }
 

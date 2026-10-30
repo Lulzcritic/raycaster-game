@@ -190,93 +190,6 @@
       </div>
     </div>
 
-    <!-- Modal d'authentification (Connexion / Inscription / Compte) -->
-    <div id="auth-modal" class="pause-menu hidden">
-      <div class="pause-box auth-box">
-        <div class="auth-header">
-          <div class="auth-title-group">
-            <h1 id="auth-modal-title" class="pause-title auth-title">CONNEXION À LA CITADELLE</h1>
-            <p class="auth-subtitle">Sauvegardez vos objets, pièces d'or et statistiques sur la base de données</p>
-          </div>
-          <button id="auth-close-btn" class="merchant-close-btn" type="button" title="Fermer [Échap]">✕</button>
-        </div>
-
-        <!-- Vue Formulaire (Non connecté) -->
-        <div id="auth-view-form" class="auth-view">
-          <!-- Onglets Connexion / Inscription -->
-          <div class="auth-tabs">
-            <button id="auth-tab-login" class="auth-tab-btn active" type="button">SE CONNECTER</button>
-            <button id="auth-tab-register" class="auth-tab-btn" type="button">S'INSCRIRE</button>
-          </div>
-
-          <!-- Formulaire -->
-          <form id="auth-form" class="auth-form" onsubmit="return false;">
-            <div class="auth-field">
-              <label for="auth-input-username" class="auth-label">NOM D'AVENTURIER</label>
-              <input
-                id="auth-input-username"
-                class="chat-input auth-input"
-                type="text"
-                autocomplete="username"
-                maxlength="30"
-                placeholder="Ex: ShadowHunter"
-                required
-              />
-            </div>
-
-            <div class="auth-field">
-              <label for="auth-input-password" class="auth-label">MOT DE PASSE</label>
-              <input
-                id="auth-input-password"
-                class="chat-input auth-input"
-                type="password"
-                autocomplete="current-password"
-                minlength="6"
-                placeholder="Au moins 6 caractères"
-                required
-              />
-            </div>
-
-            <div id="auth-feedback" class="auth-feedback hidden"></div>
-
-            <div class="auth-buttons-group">
-              <button id="auth-submit-btn" class="main-menu-btn main-menu-btn-primary auth-submit-btn" type="submit">
-                SE CONNECTER
-              </button>
-              <button id="auth-guest-btn" class="main-menu-btn main-menu-btn-secondary auth-guest-btn" type="button">
-                JOUER EN MODE INVITÉ
-              </button>
-            </div>
-          </form>
-
-          <p class="auth-disclaimer">
-            ⚠️ <em>En Mode Invité, vous pouvez jouer sans compte, mais vos objets et vos pièces ne seront pas conservés si vous quittez la session.</em>
-          </p>
-        </div>
-
-        <!-- Vue Compte (Si déjà connecté) -->
-        <div id="auth-view-account" class="auth-view hidden">
-          <div class="auth-account-card">
-            <div class="auth-account-avatar">🛡️</div>
-            <div class="auth-account-details">
-              <span class="auth-account-tag">AVENTURIER CONNECTÉ</span>
-              <span id="auth-account-username" class="auth-account-username">Joueur</span>
-              <span class="auth-account-sync-status">✅ Sauvegarde active sur PostgreSQL</span>
-            </div>
-          </div>
-
-          <div class="auth-buttons-group">
-            <button id="auth-logout-btn" class="main-menu-btn main-menu-btn-secondary auth-logout-btn" type="button">
-              SE DÉCONNECTER
-            </button>
-            <button id="auth-account-close-btn" class="main-menu-btn main-menu-btn-primary auth-continue-btn" type="button">
-              CONTINUER
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Menu Principal -->
     <div id="main-menu" class="main-menu">
       <!-- Bouton Buy Me A Coffee -->
@@ -614,6 +527,93 @@
                 ✕ ANNULER ET RETOURNER AU CAMPEMENT [ÉCHAP]
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal d'authentification (Connexion / Inscription / Compte) -->
+    <div id="auth-modal" class="pause-menu hidden">
+      <div class="pause-box auth-box">
+        <div class="auth-header">
+          <div class="auth-title-group">
+            <h1 id="auth-modal-title" class="pause-title auth-title">CONNEXION À LA CITADELLE</h1>
+            <p class="auth-subtitle">Sauvegardez vos objets, pièces d'or et statistiques sur la base de données</p>
+          </div>
+          <button id="auth-close-btn" class="merchant-close-btn" type="button" title="Fermer [Échap]">✕</button>
+        </div>
+
+        <!-- Vue Formulaire (Non connecté) -->
+        <div id="auth-view-form" class="auth-view">
+          <!-- Onglets Connexion / Inscription -->
+          <div class="auth-tabs">
+            <button id="auth-tab-login" class="auth-tab-btn active" type="button">SE CONNECTER</button>
+            <button id="auth-tab-register" class="auth-tab-btn" type="button">S'INSCRIRE</button>
+          </div>
+
+          <!-- Formulaire -->
+          <form id="auth-form" class="auth-form" onsubmit="return false;">
+            <div class="auth-field">
+              <label for="auth-input-username" class="auth-label">NOM D'AVENTURIER</label>
+              <input
+                id="auth-input-username"
+                class="chat-input auth-input"
+                type="text"
+                autocomplete="username"
+                maxlength="30"
+                placeholder="Ex: ShadowHunter"
+                required
+              />
+            </div>
+
+            <div class="auth-field">
+              <label for="auth-input-password" class="auth-label">MOT DE PASSE</label>
+              <input
+                id="auth-input-password"
+                class="chat-input auth-input"
+                type="password"
+                autocomplete="current-password"
+                minlength="6"
+                placeholder="Au moins 6 caractères"
+                required
+              />
+            </div>
+
+            <div id="auth-feedback" class="auth-feedback hidden"></div>
+
+            <div class="auth-buttons-group">
+              <button id="auth-submit-btn" class="main-menu-btn main-menu-btn-primary auth-submit-btn" type="submit">
+                SE CONNECTER
+              </button>
+              <button id="auth-guest-btn" class="main-menu-btn main-menu-btn-secondary auth-guest-btn" type="button">
+                JOUER EN MODE INVITÉ
+              </button>
+            </div>
+          </form>
+
+          <p class="auth-disclaimer">
+            ⚠️ <em>En Mode Invité, vous pouvez jouer sans compte, mais vos objets et vos pièces ne seront pas conservés si vous quittez la session.</em>
+          </p>
+        </div>
+
+        <!-- Vue Compte (Si déjà connecté) -->
+        <div id="auth-view-account" class="auth-view hidden">
+          <div class="auth-account-card">
+            <div class="auth-account-avatar">🛡️</div>
+            <div class="auth-account-details">
+              <span class="auth-account-tag">AVENTURIER CONNECTÉ</span>
+              <span id="auth-account-username" class="auth-account-username">Joueur</span>
+              <span class="auth-account-sync-status">✅ Sauvegarde active sur PostgreSQL</span>
+            </div>
+          </div>
+
+          <div class="auth-buttons-group">
+            <button id="auth-logout-btn" class="main-menu-btn main-menu-btn-secondary auth-logout-btn" type="button">
+              SE DÉCONNECTER
+            </button>
+            <button id="auth-account-close-btn" class="main-menu-btn main-menu-btn-primary auth-continue-btn" type="button">
+              CONTINUER
+            </button>
           </div>
         </div>
       </div>

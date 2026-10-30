@@ -108,7 +108,10 @@ export class AuthModal {
     this.clearFeedback();
     this.updateViewMode();
     this.switchTab(initialTab);
-    this.modalElement?.classList.remove('hidden');
+    if (this.modalElement) {
+      this.modalElement.classList.remove('hidden');
+      this.modalElement.style.display = 'flex';
+    }
 
     // Focus sur le champ pseudonyme si formulaire affiché
     if (!AuthManager.isLoggedIn() && this.usernameInput) {
@@ -117,7 +120,10 @@ export class AuthModal {
   }
 
   public hide(): void {
-    this.modalElement?.classList.add('hidden');
+    if (this.modalElement) {
+      this.modalElement.classList.add('hidden');
+      this.modalElement.style.display = 'none';
+    }
     this.clearFeedback();
   }
 

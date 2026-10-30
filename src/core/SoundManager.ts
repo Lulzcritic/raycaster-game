@@ -5,9 +5,11 @@ const SOUND_EFFECT_URLS = {
   equipItem: new URL('../assets/audio/effects/equipItem.mp3', import.meta.url).href,
   keyLoot: new URL('../assets/audio/effects/keyLoot.mp3', import.meta.url).href,
   playerSteps: new URL('../assets/audio/effects/playerSteps.wav', import.meta.url).href,
+  shoot: new URL('../assets/audio/effects/shoot.wav', import.meta.url).href,
 };
 
 const menuMusicUrl = new URL('../assets/audio/music/menuhub.mp3', import.meta.url).href;
+const inGameMusicUrl = new URL('../assets/audio/music/defaultInGame.mp3', import.meta.url).href;
 
 export const BOSS_MUSIC_URLS = {
   bloodQueen: new URL('../assets/audio/music/bloodQueen.mp3', import.meta.url).href,
@@ -55,6 +57,11 @@ export class SoundManager {
   private static musicAudio: HTMLAudioElement | null = null;
   private static isMusicPlaying = false;
   private static pendingMenuMusic = false;
+
+  // Musique de fond par défaut en jeu (Dungeon exploration / Expédition)
+  private static inGameAudio: HTMLAudioElement | null = null;
+  private static isInGameMusicPlaying = false;
+  private static pendingInGameMusic = false;
 
   // Musiques de combat des Boss
   private static readonly bossAudios = new Map<BossMusicName, HTMLAudioElement>();
@@ -106,13 +113,19 @@ export class SoundManager {
     // 2. Préchargement et décodage de tous les effets sonores en mémoire vive (latence 0ms)
     this.preloadAllEffects();
 
-    // 3. Initialisation de la musique du menu / hub
+    // 3. Initialisation de la musique du menu / hub et de la musique par défaut en jeu
     try {
       this.musicAudio = new Audio(menuMusicUrl);
       this.musicAudio.loop = true;
       this.musicAudio.volume = this.musicVolume;
       this.musicAudio.muted = this.isMusicMuted;
       this.musicAudio.preload = 'auto';
+
+      this.inGameAudio = new Audio(inGameMusicUrl);
+      this.inGameAudio.loop = true;
+      this.inGameAudio.volume = this.musicVolume;
+      this.inGameAudio.muted = this.isMusicMuted;
+      this.inGameAudio.preload = 'auto';
     } catch (err) {
       console.warn('[SoundManager] Impossible d initialiser la musique :', err);
     }
@@ -165,6 +178,10 @@ export class SoundManager {
         if (this.pendingMenuMusic && this.musicAudio && this.isMusicPlaying) {
           this.musicAudio.play().catch(() => {});
           this.pendingMenuMusic = false;
+        }
+        if (this.pendingInGameMusic && this.inGameAudio && this.isInGameMusicPlaying) {
+          this.inGameAudio.play().catch(() => {});
+          this.pendingInGameMusic = false;
         }
         if (this.pendingBossMusic && this.isBossMusicPlaying) {
           const bossAudio = this.bossAudios.get(this.pendingBossMusic);
@@ -490,17 +507,17 @@ export class SoundManager {
    * Si elle est déjà en cours de lecture, ne la redémarre pas.
    */
   public static playMenuMusic(): void {
-    if (typeof window === 'undefined') return;
+    this.isMusicPlaying = true;
+    if (typeof window === 'undefined' || typeof Audio === 'undefined') return;
     if (!this.isInitialized) {
       this.init();
     }
     if (!this.musicAudio) return;
 
-    if (this.isMusicPlaying && !this.musicAudio.paused) {
+    if (!this.musicAudio.paused) {
       return;
     }
 
-    this.isMusicPlaying = true;
     this.musicAudio.volume = this.musicVolume;
     this.musicAudio.muted = this.isMusicMuted;
 
@@ -546,6 +563,109 @@ export class SoundManager {
     };
 
     fadeStep();
+  }
+
+  /**
+   * Lance la musique d'ambiance du donjon / expédition (defaultInGame.mp3).
+   * Si un combat de boss est en cours, ne la lance pas (la musique de boss a la priorité).
+   */
+  public static playInGameMusic(fadeInMs = 400): void {
+    // Si la musique de boss est active, la musique d'ambiance normale ne doit pas démarrer
+    if (this.isBossMusicPlaying) {
+      return;
+    }
+
+    // Assure l'arrêt de la musique du menu / hub
+    this.stopMenuMusic(150);
+
+    this.isInGameMusicPlaying = true;
+
+    if (typeof window === 'undefined' || typeof Audio === 'undefined') return;
+    if (!this.isInitialized) {
+      this.init();
+    }
+    if (!this.inGameAudio) return;
+
+    if (!this.inGameAudio.paused) {
+      return;
+    }
+
+    this.inGameAudio.muted = this.isMusicMuted;
+
+    try {
+      if (fadeInMs > 0 && typeof requestAnimationFrame !== 'undefined') {
+        this.inGameAudio.volume = 0;
+        const playPromise = this.inGameAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            this.pendingInGameMusic = true;
+          });
+        }
+
+        const targetVolume = this.musicVolume;
+        const startTime = performance.now();
+        const fadeInStep = () => {
+          if (!this.inGameAudio || !this.isInGameMusicPlaying || this.isBossMusicPlaying) return;
+          const elapsed = performance.now() - startTime;
+          if (elapsed < fadeInMs) {
+            this.inGameAudio.volume = Math.min(targetVolume, targetVolume * (elapsed / fadeInMs));
+            requestAnimationFrame(fadeInStep);
+          } else {
+            this.inGameAudio.volume = targetVolume;
+          }
+        };
+        requestAnimationFrame(fadeInStep);
+      } else {
+        this.inGameAudio.volume = this.musicVolume;
+        const playPromise = this.inGameAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            this.pendingInGameMusic = true;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('[SoundManager] Erreur lecture musique in-game :', err);
+    }
+  }
+
+  /**
+   * Arrête la musique d'ambiance du donjon (defaultInGame.mp3) avec un fondu doux.
+   */
+  public static stopInGameMusic(fadeDurationMs = 350): void {
+    this.pendingInGameMusic = false;
+    this.isInGameMusicPlaying = false;
+
+    if (!this.inGameAudio || typeof window === 'undefined') return;
+
+    if (fadeDurationMs <= 0) {
+      this.inGameAudio.pause();
+      this.inGameAudio.currentTime = 0;
+      return;
+    }
+
+    const startVol = this.inGameAudio.volume;
+    const startTime = performance.now();
+
+    const fadeStep = () => {
+      if (!this.inGameAudio || this.isInGameMusicPlaying) return;
+
+      const elapsed = performance.now() - startTime;
+      if (elapsed < fadeDurationMs) {
+        this.inGameAudio.volume = Math.max(0, startVol * (1 - elapsed / fadeDurationMs));
+        requestAnimationFrame(fadeStep);
+      } else {
+        this.inGameAudio.pause();
+        this.inGameAudio.currentTime = 0;
+        this.inGameAudio.volume = this.musicVolume;
+      }
+    };
+
+    fadeStep();
+  }
+
+  public static isInGameMusicActive(): boolean {
+    return this.isInGameMusicPlaying;
   }
 
   /**
@@ -613,8 +733,9 @@ export class SoundManager {
       this.stopBossMusic(150);
     }
 
-    // Assure l'arrêt immédiat de la musique de menu / hub
+    // Assure l'arrêt immédiat de la musique de menu / hub et de la musique d'exploration
     this.stopMenuMusic(150);
+    this.stopInGameMusic(150);
 
     this.currentBossMusicName = name;
     this.isBossMusicPlaying = true;
@@ -794,6 +915,9 @@ export class SoundManager {
     this.isMusicMuted = muted;
     if (this.musicAudio) {
       this.musicAudio.muted = muted;
+    }
+    if (this.inGameAudio) {
+      this.inGameAudio.muted = muted;
     }
     if (this.currentBossAudio) {
       this.currentBossAudio.muted = muted;

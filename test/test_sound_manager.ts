@@ -10,6 +10,8 @@ async function runTests() {
   SoundManager.playMenuMusic();
   SoundManager.playButtonSound();
   SoundManager.play2D('button');
+  SoundManager.play2D('shoot');
+  SoundManager.play3D('shoot', 10, 10);
   SoundManager.play3D('chestOpening', 10, 10);
   SoundManager.play3D('slimeDeath', 5, 5);
   SoundManager.stopMenuMusic(0);
@@ -141,6 +143,31 @@ async function runTests() {
   assert.strictEqual(SoundManager.isMusicMute(), false);
   assert.strictEqual(SoundManager.isSfxMute(), false);
   console.log('   ✅ Toggles et coupure audio validés (isMusicMute & isSfxMute).');
+
+  console.log('9. Test de la musique d\'ambiance in-game (defaultInGame.mp3) et de l\'effet shoot.wav...');
+  SoundManager.play2D('shoot');
+  SoundManager.play3D('shoot', 4, 2);
+  assert.strictEqual(SoundManager.isInGameMusicActive(), false);
+
+  SoundManager.playInGameMusic();
+  assert.strictEqual(SoundManager.isInGameMusicActive(), true);
+
+  // Si on lance une musique de boss, la musique in-game d'exploration doit s'arrêter
+  SoundManager.playBossMusicForEnemy('carrot_cake_king');
+  assert.strictEqual(SoundManager.isBossMusicActive(), true);
+  assert.strictEqual(SoundManager.isInGameMusicActive(), false);
+
+  // Quand la musique de boss se termine, la musique in-game peut reprendre
+  SoundManager.stopBossMusic(0);
+  assert.strictEqual(SoundManager.isBossMusicActive(), false);
+
+  SoundManager.playInGameMusic();
+  assert.strictEqual(SoundManager.isInGameMusicActive(), true);
+
+  // Arrêt de la musique in-game
+  SoundManager.stopInGameMusic(0);
+  assert.strictEqual(SoundManager.isInGameMusicActive(), false);
+  console.log('   ✅ Musique d\'exploration in-game et effet sonore de tir validés.');
 
   console.log('\n======================================================');
   console.log('🎉 TOUS LES TESTS DU SOUNDMANAGER ONT RÉUSSI !');

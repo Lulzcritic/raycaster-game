@@ -19,6 +19,9 @@ function updateBossMusicState(entities: SimulatedEntity[], isPlayerAlive: boolea
     if (SoundManager.isBossMusicActive()) {
       SoundManager.stopBossMusic(1000);
     }
+    if (SoundManager.isInGameMusicActive()) {
+      SoundManager.stopInGameMusic(1000);
+    }
     return;
   }
 
@@ -30,6 +33,7 @@ function updateBossMusicState(entities: SimulatedEntity[], isPlayerAlive: boolea
     SoundManager.playBossMusicForEnemy(activeBoss.type.id);
   } else if (SoundManager.isBossMusicActive()) {
     SoundManager.stopBossMusic(1500);
+    SoundManager.playInGameMusic(1500);
   }
 }
 
@@ -80,6 +84,7 @@ async function runTests() {
     'Le Roi Gâteau éveillé doit déclencher cakeBoss.mp3'
   );
   assert.strictEqual(SoundManager.isBossMusicActive(), true);
+  assert.strictEqual(SoundManager.isInGameMusicActive(), false);
 
   // C. Le boss attaque ou prend des dégâts : le combat continue
   cakeKingBoss.state = 'attacking';
@@ -97,6 +102,7 @@ async function runTests() {
     'La mort du boss doit couper sa musique'
   );
   assert.strictEqual(SoundManager.isBossMusicActive(), false);
+  assert.strictEqual(SoundManager.isInGameMusicActive(), true, 'La musique par défaut du donjon doit reprendre');
   console.log('   ✅ Cycle complet du combat contre le Roi Gâteau validé.');
 
   console.log('3. Test de combat contre la Reine de Sang (blood_queen -> bloodQueen.mp3)...');

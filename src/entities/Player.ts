@@ -284,6 +284,7 @@ export class Player extends Entity {
     const spawnY = this.y + Math.sin(this.angle) * FIREBALL_CONFIG.SPAWN_OFFSET;
     const totalDamage = FIREBALL_CONFIG.DAMAGE + bonusDamage + magicPower;
     const fireball = new Fireball(spawnX, spawnY, this.angle, totalDamage);
+    SoundManager.play2D('shoot', { volume: 0.55, pitchVariation: 0.12 });
     this.onShoot?.(fireball);
   }
 
@@ -299,6 +300,7 @@ export class Player extends Entity {
     const spawnY = this.y + Math.sin(this.angle) * PURPLE_ORB_CONFIG.SPAWN_OFFSET;
     const totalDamage = PURPLE_ORB_CONFIG.DAMAGE + bonusDamage + Math.round(magicPower * 1.5);
     const orb = new PurpleOrb(spawnX, spawnY, this.angle, totalDamage);
+    SoundManager.play2D('shoot', { volume: 0.65, pitchVariation: 0.20 });
     this.onShoot?.(orb);
   }
 

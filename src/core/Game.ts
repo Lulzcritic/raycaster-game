@@ -355,6 +355,8 @@ export class Game {
     net.onRemoteShoot((data) => {
       if (!this.currentInstanceId) return;
 
+      SoundManager.play3D('shoot', data.originX, data.originY, { volume: 0.60, pitchVariation: 0.15 });
+
       if (data.spellType === 'fireball') {
         const fb = new Fireball(data.originX, data.originY, data.angle, data.damage, data.shooterId);
         this.entities.push(fb);
@@ -1093,6 +1095,7 @@ export class Game {
   public startNewExtractionMatch(options?: { seed?: number; spawnIndex?: number }): void {
     SoundManager.stopBossMusic(0);
     SoundManager.stopMenuMusic();
+    SoundManager.playInGameMusic();
     WalletManager.resetSessionCoins();
     if (this.player.inventory.getItem('offhand')?.id === 'offhand_homonculus') {
       this.player.inventory.unequip('offhand');
@@ -1115,6 +1118,7 @@ export class Game {
 
   public openHub(tab: HubTab = 'play'): void {
     SoundManager.stopBossMusic(0);
+    SoundManager.stopInGameMusic(0);
     SoundManager.playMenuMusic();
     if (this.currentInstanceId) {
       NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
@@ -1239,6 +1243,7 @@ export class Game {
 
   public returnToMainMenu(): void {
     SoundManager.stopBossMusic(0);
+    SoundManager.stopInGameMusic(0);
     SoundManager.playMenuMusic();
 
     // Si on quitte la partie pendant une expédition sans s'être extrait, cela compte comme une mort
@@ -1346,6 +1351,9 @@ export class Game {
       if (SoundManager.isBossMusicActive()) {
         SoundManager.stopBossMusic(1000);
       }
+      if (SoundManager.isInGameMusicActive()) {
+        SoundManager.stopInGameMusic(1000);
+      }
       if (this.currentInstanceId && !this.hasSentDeathNotification) {
         this.hasSentDeathNotification = true;
         const equipped = this.player.inventory.getAllEquipped();
@@ -1429,6 +1437,9 @@ export class Game {
       if (SoundManager.isBossMusicActive()) {
         SoundManager.stopBossMusic(1000);
       }
+      if (SoundManager.isInGameMusicActive()) {
+        SoundManager.stopInGameMusic(1000);
+      }
       if (
         this.input.consumeKeyPress('r') ||
         this.input.consumeKeyPress(' ') ||
@@ -1501,6 +1512,9 @@ export class Game {
     if (boss && !boss.isAlive()) {
       if (SoundManager.isBossMusicActive()) {
         SoundManager.stopBossMusic(1500);
+        if (this.player.isAlive() && !this.isInHub && !this.isInMainMenu && !this.isExtracted) {
+          SoundManager.playInGameMusic(1500);
+        }
       }
       if (!this.bossDefeatedAnnounced) {
         this.bossDefeatedAnnounced = true;
@@ -1542,6 +1556,9 @@ export class Game {
       SoundManager.playBossMusicForEnemy(activeBoss.type.id);
     } else if (SoundManager.isBossMusicActive()) {
       SoundManager.stopBossMusic(1500);
+      if (this.player.isAlive() && !this.isInHub && !this.isInMainMenu && !this.isExtracted) {
+        SoundManager.playInGameMusic(1500);
+      }
     }
 
     // Détection des collisions boules de feu <-> ennemis vivants

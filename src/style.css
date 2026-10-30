@@ -278,6 +278,37 @@ body {
   filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
+.pause-btn-danger {
+  color: #fca5a5;
+  background:
+    linear-gradient(#3a1015, #3a1015) padding-box,
+    repeating-conic-gradient(#ef4444 0% 25%, #7f1d1d 0% 50%) 0 0 / 4px 4px border-box;
+  box-shadow:
+    inset 0 0 0 2px #1f070a;
+  text-shadow: 2px 2px 0 #000000;
+}
+
+.pause-btn-danger:hover {
+  background:
+    linear-gradient(#50171e, #50171e) padding-box,
+    repeating-conic-gradient(#fca5a5 0% 25%, #991b1b 0% 50%) 0 0 / 4px 4px border-box;
+  color: #ffffff;
+  box-shadow:
+    inset 0 0 0 2px #2a0b0f;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
+}
+
+.pause-btn-danger:active {
+  background:
+    linear-gradient(#270a0d, #270a0d) padding-box,
+    repeating-conic-gradient(#991b1b 0% 25%, #450a0a 0% 50%) 0 0 / 4px 4px border-box;
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 0 0 2px #120305;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
+}
+
 /* ==========================================================================
    CONTRÔLES AUDIO (PAUSE MENU & PARAMÈTRES)
    ========================================================================== */

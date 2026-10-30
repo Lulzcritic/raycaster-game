@@ -168,7 +168,7 @@ export class Game {
         this.returnToMainMenu();
       },
       () => {
-        this.returnToHub();
+        this.abandonRaid();
       }
     );
 
@@ -271,6 +271,23 @@ export class Game {
     this.mainMenu.show();
     SoundManager.init();
     SoundManager.playMenuMusic();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        if (!this.isInMainMenu && !this.isInHub && !this.isExtracted) {
+          this.player.inventory.clear();
+          WalletManager.resetSessionCoins();
+          if (AuthManager.isLoggedIn()) {
+            AuthManager.syncPlayer({
+              raidOutcome: 'died',
+              coins: WalletManager.getCoins(),
+              equipped: {},
+              stash: [...StashManager.getStash()],
+            }).catch(() => {});
+          }
+        }
+      });
+    }
   }
 
   private setupNetworkListeners(): void {
@@ -1109,8 +1126,11 @@ export class Game {
   }
 
   public returnToHub(): void {
-    if (!this.player.isAlive()) {
+    // La seule et unique façon de conserver ses équipements est de s'être extrait avec succès via un portail d'extraction
+    if (!this.player.isAlive() || !this.isExtracted) {
+      this.player.health = 0;
       this.player.inventory.clear();
+      WalletManager.resetSessionCoins();
       if (AuthManager.isLoggedIn()) {
         AuthManager.syncPlayer({
           raidOutcome: 'died',
@@ -1138,6 +1158,16 @@ export class Game {
     this.openHub('play');
   }
 
+  public abandonRaid(): void {
+    if (this.isInMainMenu || this.isInHub) return;
+    this.pauseMenu.hide();
+    this.input.setPaused(false);
+    // Inflige des dégâts létaux pour déclencher la séquence de mort, le largage de butin et l'écran de fin
+    this.player.takeDamage(999999);
+    this.chatUI.addMessage('SYSTÈME', "💀 Vous avez abandonné l'expédition et succombé dans la Citadelle...", true);
+    this.interactionPrompt.showNotification('💀 EXPÉDITION ABANDONNÉE : ÉQUIPEMENTS PERDUS !');
+  }
+
   public startRaidFromHub(options?: {
     seed?: number;
     spawnIndex?: number;
@@ -1148,6 +1178,8 @@ export class Game {
     WalletManager.resetSessionCoins();
     this.isInHub = false;
     this.isInMainMenu = false;
+    this.isExtracted = false;
+    this.hasSentDeathNotification = false;
     this.hubUI.hide();
     this.mainMenu.hide();
     this.pauseMenu.hide();
@@ -1186,6 +1218,32 @@ export class Game {
   public returnToMainMenu(): void {
     SoundManager.stopBossMusic(0);
     SoundManager.playMenuMusic();
+
+    // Si on quitte la partie pendant une expédition sans s'être extrait, cela compte comme une mort
+    if (!this.isInMainMenu && !this.isInHub && !this.isExtracted) {
+      this.player.health = 0;
+      if (this.currentInstanceId && !this.hasSentDeathNotification) {
+        this.hasSentDeathNotification = true;
+        const equipped = this.player.inventory.getAllEquipped();
+        NetworkClient.getInstance().sendPlayerDied({
+          instanceId: this.currentInstanceId,
+          x: this.player.x,
+          y: this.player.y,
+          droppedItems: equipped,
+        });
+      }
+      this.player.inventory.clear();
+      WalletManager.resetSessionCoins();
+      if (AuthManager.isLoggedIn()) {
+        AuthManager.syncPlayer({
+          raidOutcome: 'died',
+          coins: WalletManager.getCoins(),
+          equipped: {},
+          stash: [...StashManager.getStash()],
+        }).catch(() => {});
+      }
+    }
+
     if (this.currentInstanceId) {
       NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
       this.currentInstanceId = null;

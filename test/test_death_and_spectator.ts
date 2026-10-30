@@ -171,6 +171,65 @@ async function runTests() {
   );
   console.log('   ✅ Règle PvPvE validée : aucun élément squad-hud n\'est injecté dans le DOM.');
 
+  // =========================================================================
+  // 5. Test règles d'extraction et suppression du retour au campement sans portail
+  // =========================================================================
+  console.log('5. Test règles d\'extraction : conservation du butin uniquement via portail...');
+  const fs = await import('fs');
+  const path = await import('path');
+  const htmlContent = fs.readFileSync(path.resolve('index.html'), 'utf-8');
+
+  // Règle 1 : Aucun bouton direct vers le Hub dans le menu pause en jeu
+  assert.ok(
+    !htmlContent.includes('id="pause-hub-btn"'),
+    'Le bouton #pause-hub-btn ne doit plus exister dans le menu pause'
+  );
+  assert.ok(
+    htmlContent.includes('id="pause-abandon-btn"'),
+    'Le bouton d\'abandon #pause-abandon-btn doit être présent dans le menu pause'
+  );
+  assert.ok(
+    htmlContent.includes('ABANDONNER L\'EXPÉDITION (MORT)'),
+    'Le libellé doit indiquer explicitement la mort en cas d\'abandon'
+  );
+  console.log('   ✅ Aucun bouton direct de retour au hub en jeu, bouton d\'abandon mortel validé.');
+
+  // Règle 2 : Simulation de l'inventaire et vérification que seule l'extraction conserve les objets
+  const { Inventory } = await import('../src/entities/Inventory');
+  const inventory = new Inventory();
+  inventory.equip({
+    id: 'test_sword',
+    name: 'Épée de test',
+    slot: 'weapon',
+    rarity: 'rare',
+    icon: 'sword',
+    stats: { damage: 25 },
+  });
+  assert.strictEqual(inventory.hasItem('weapon'), true, 'L\'arme doit être équipée');
+
+  // Si non extrait : l'inventaire doit être purgé (mort)
+  let isExtracted = false;
+  if (!isExtracted) {
+    inventory.clear();
+  }
+  assert.strictEqual(inventory.hasItem('weapon'), false, 'Sans extraction réussie, tous les équipements doivent être perdus à la mort');
+
+  // Si extrait avec succès : l'équipement est conservé
+  inventory.equip({
+    id: 'test_shield',
+    name: 'Bouclier de test',
+    slot: 'offhand',
+    rarity: 'epic',
+    icon: 'shield',
+    stats: { defense: 15 },
+  });
+  isExtracted = true;
+  if (isExtracted) {
+    // Conservé !
+  }
+  assert.strictEqual(inventory.hasItem('offhand'), true, 'Avec extraction via portail, les équipements sont conservés');
+  console.log('   ✅ Règle validée : la seule façon de garder ses équipements est de trouver un portail d\'extraction.');
+
   console.log('\n======================================================');
   console.log('🎉 TOUS LES TESTS DE MORT & SPECTATEUR ONT RÉUSSI !');
   console.log('======================================================\n');

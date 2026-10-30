@@ -18,10 +18,10 @@ export class Database {
     }
 
     const host = process.env.PGHOST || 'localhost';
-    const port = process.env.PGPORT || '5432';
-    const user = process.env.PGUSER || 'raycaster';
-    const password = process.env.PGPASSWORD || 'raycaster_secret';
-    const database = process.env.PGDATABASE || 'raycaster_db';
+    const port = process.env.PGPORT || process.env.POSTGRES_PORT || '5433';
+    const user = process.env.PGUSER || process.env.POSTGRES_USER || 'raycaster';
+    const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD || 'raycaster_secret';
+    const database = process.env.PGDATABASE || process.env.POSTGRES_DB || 'raycaster_db';
 
     return `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
   }

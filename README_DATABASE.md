@@ -29,8 +29,8 @@ Consultez le fichier [`.env.example`](file:///c:/Users/darkr/Documents/raycaster
 POSTGRES_USER=raycaster
 POSTGRES_PASSWORD=raycaster_secret
 POSTGRES_DB=raycaster_db
-POSTGRES_PORT=5432
-DATABASE_URL=postgresql://raycaster:raycaster_secret@localhost:5432/raycaster_db
+POSTGRES_PORT=5433
+DATABASE_URL=postgresql://raycaster:raycaster_secret@localhost:5433/raycaster_db
 ```
 
 > **Note de résilience** : Si le conteneur PostgreSQL n'est pas démarré, le serveur de jeu démarre quand même normalement sans planter, bascule gracieusement en mode mémoire / hors-ligne et affiche un avertissement clair dans la console.

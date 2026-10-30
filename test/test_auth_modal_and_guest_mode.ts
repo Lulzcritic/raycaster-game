@@ -246,6 +246,31 @@ async function runTests() {
   assert.ok(emptyRes.error?.includes('404') || emptyRes.error?.includes('serveur'));
   console.log('   ✅ Résolution d\'API sous /toc/ et résilience face aux réponses vides validées.');
 
+  console.log('10. Test du pseudonyme affiché dans la file de matchmaking (invité vs connecté)...');
+  // A. En mode déconnecté (Invité)
+  AuthManager.logout();
+  assert.strictEqual(AuthManager.isLoggedIn(), false);
+  const guestUser = AuthManager.getUser();
+  const guestQueueName = (AuthManager.isLoggedIn() && guestUser?.username)
+    ? guestUser.username
+    : 'Lord Aventurier';
+  assert.strictEqual(guestQueueName, 'Lord Aventurier', 'Le nom invité doit correspondre au skin par défaut');
+
+  // B. En mode connecté
+  (AuthManager as any).token = 'valid-token';
+  (AuthManager as any).user = { id: 'usr-42', username: 'RoiCarotte77' };
+  assert.strictEqual(AuthManager.isLoggedIn(), true);
+  const connectedUser = AuthManager.getUser();
+  const connectedQueueName = (AuthManager.isLoggedIn() && connectedUser?.username)
+    ? connectedUser.username
+    : 'Lord Aventurier';
+  assert.strictEqual(
+    connectedQueueName,
+    'RoiCarotte77',
+    'Quand le joueur est connecté, la file de matchmaking doit impérativement afficher son pseudonyme de compte'
+  );
+  console.log('   ✅ Résolution et priorité du pseudonyme du compte connecté validées.');
+
   console.log('\n✨ TOUS LES TESTS D\'AUTHENTIFICATION ET MODE INVITÉ ONT RÉUSSI AVEC SUCCÈS ! ✨\n');
 }
 

@@ -100,6 +100,7 @@ export class HubUI {
   private currentSkinIndex = 0;
   private currentTab: HubTab = 'play';
   private player: Player | null = null;
+  private localQueuePlayerName = '';
 
   private onStartRaidCallback?: (options?: {
     seed?: number;
@@ -261,14 +262,28 @@ export class HubUI {
     return Boolean(this.queueOverlay && !this.queueOverlay.classList.contains('hidden'));
   }
 
+  /**
+   * Retourne le nom à afficher et à inscrire dans la file de matchmaking.
+   * Si le joueur est connecté, son pseudonyme de compte est prioritaire.
+   */
+  public getQueuePlayerName(): string {
+    const currentUser = AuthManager.getUser();
+    if (AuthManager.isLoggedIn() && currentUser?.username) {
+      return currentUser.username;
+    }
+    return SKINS[this.currentSkinIndex]?.name ?? 'Lord Aventurier';
+  }
+
   public openQueueScreen(): void {
     if (!this.player) return;
     const net = NetworkClient.getInstance();
-    const playerName = SKINS[this.currentSkinIndex]?.name ?? 'Lord Aventurier';
+    const playerName = this.getQueuePlayerName();
     const skinId = SKINS[this.currentSkinIndex]?.id ?? 'puzzle_lord';
     const gearScore = this.player.getGearScore();
 
-    // Inscription auprès du serveur de matchmaking
+    this.localQueuePlayerName = playerName;
+
+    // Inscription auprès du serveur de matchmaking avec le pseudonyme du joueur
     net.joinQueue(playerName, gearScore, skinId);
 
     // Affichage de la nouvelle interface de file d'attente
@@ -297,6 +312,7 @@ export class HubUI {
   public closeQueueScreen(): void {
     const net = NetworkClient.getInstance();
     net.leaveQueue();
+    this.localQueuePlayerName = '';
     if (this.queueOverlay) {
       this.queueOverlay.classList.add('hidden');
     }
@@ -482,6 +498,7 @@ export class HubUI {
 
     const maxSlots = 4;
     const currentSkin = SKINS[this.currentSkinIndex];
+    const localExpectedName = this.localQueuePlayerName || this.getQueuePlayerName();
 
     for (let i = 0; i < maxSlots; i++) {
       const p = queuedPlayers[i];
@@ -490,12 +507,13 @@ export class HubUI {
       if (p) {
         const matchedSkin = SKINS.find((s) => s.id === p.skinId) ?? currentSkin;
         const avatarUrl = matchedSkin?.url ?? puzzleLordUrl;
-        const isLocal = i === 0 || p.name === currentSkin?.name;
+        const isLocal = p.name === localExpectedName || (i === 0 && !queuedPlayers.some((other) => other.name === localExpectedName));
 
         slotCard.className = `hub-queue-player-card${isLocal ? ' is-local' : ''}`;
         slotCard.innerHTML = `
           <img src="${avatarUrl}" class="hub-queue-card-avatar" alt="${p.name}" />
-          <div class="hub-queue-card-name">${p.name}${isLocal ? ' (Vous)' : ''}</div>
+          <div class="hub-queue-card-name" title="${p.name}">${p.name}${isLocal ? ' (Vous)' : ''}</div>
+          <div class="hub-queue-card-skin" style="font-size: 10px; color: #94a3b8; margin-top: -2px;">${matchedSkin?.name ?? ''}</div>
           <div class="hub-queue-card-gs">⭐ ${p.gearScore} GS</div>
           <div class="hub-queue-card-status">✅ PRÊT</div>
         `;

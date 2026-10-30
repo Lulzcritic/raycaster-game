@@ -295,10 +295,18 @@ export class Enemy extends Entity {
       this.onNotify?.("GOBELIN AU TRÉSOR ! IL S'ENFUIT AVEC SON SAC (8s) !");
     }
 
-    // Léger recul suite à l'impact
-    if (hitAngle !== undefined) {
-      this.x += Math.cos(hitAngle) * 0.14;
-      this.y += Math.sin(hitAngle) * 0.14;
+    // Léger recul suite à l'impact avec respect strict des collisions
+    // Les boss (comme le Roi Gâteau ou la Reine de Sang) sont insensibles au recul pour préserver leur stature et éviter les clips dans les murs
+    if (hitAngle !== undefined && this.type.rank !== 'boss') {
+      const pushDist = 0.14;
+      const pushX = Math.cos(hitAngle) * pushDist;
+      const pushY = Math.sin(hitAngle) * pushDist;
+      if (this.lastMap) {
+        this.moveWithCollision(pushX, pushY, this.lastMap);
+      } else {
+        this.x += pushX;
+        this.y += pushY;
+      }
     }
 
     if (this.health <= 0) {
@@ -455,6 +463,13 @@ export class Enemy extends Entity {
 
     this.lastMap = map;
     this.animTimer += deltaTime;
+
+    // Sécurité anti-coincement dans les murs solides
+    if (map.isWall(this.x, this.y)) {
+      const angleToPlayer = Math.atan2(this.player.y - this.y, this.player.x - this.x);
+      this.x += Math.cos(angleToPlayer) * 0.25;
+      this.y += Math.sin(angleToPlayer) * 0.25;
+    }
 
     if (this.postAttackTimer > 0) {
       this.postAttackTimer = Math.max(0, this.postAttackTimer - deltaTime);
@@ -660,8 +675,9 @@ export class Enemy extends Entity {
           }
 
           const slideSpeed = 3.6;
-          const moveX = Math.cos(this.cakeKingSlideAngle) * slideSpeed * deltaTime;
-          const moveY = Math.sin(this.cakeKingSlideAngle) * slideSpeed * deltaTime;
+          const clampedDt = Math.min(deltaTime, 0.05);
+          const moveX = Math.cos(this.cakeKingSlideAngle) * slideSpeed * clampedDt;
+          const moveY = Math.sin(this.cakeKingSlideAngle) * slideSpeed * clampedDt;
           const prevX = this.x;
           const prevY = this.y;
           this.moveWithCollision(moveX, moveY, map);
@@ -951,8 +967,14 @@ export class Enemy extends Entity {
         this.player.takeDamage(this.attackDamage);
         this.onNotify?.(`LE ROI GÂTEAU VOUS ASSÈNE UN COUP DE CORPS À CORPS ! (-${this.attackDamage} PV)`);
         const angle = Math.atan2(dy, dx);
-        this.x -= Math.cos(angle) * 0.12;
-        this.y -= Math.sin(angle) * 0.12;
+        const recoilX = -Math.cos(angle) * 0.12;
+        const recoilY = -Math.sin(angle) * 0.12;
+        if (this.lastMap) {
+          this.moveWithCollision(recoilX, recoilY, this.lastMap);
+        } else {
+          this.x += recoilX;
+          this.y += recoilY;
+        }
       }
 
       this.postAttackTimer = 0.35; // Maintient la pose de frappe attack2.png
@@ -988,10 +1010,16 @@ export class Enemy extends Entity {
     // Vérifie que le joueur est toujours à portée d'attaque
     if (dist <= this.type.stats.attackRange * 1.35) {
       this.player.takeDamage(this.attackDamage);
-      // Rebond en arrière après l'attaque
+      // Rebond en arrière après l'attaque avec respect des collisions
       const angle = Math.atan2(dy, dx);
-      this.x -= Math.cos(angle) * 0.12;
-      this.y -= Math.sin(angle) * 0.12;
+      const recoilX = -Math.cos(angle) * 0.12;
+      const recoilY = -Math.sin(angle) * 0.12;
+      if (this.lastMap) {
+        this.moveWithCollision(recoilX, recoilY, this.lastMap);
+      } else {
+        this.x += recoilX;
+        this.y += recoilY;
+      }
     }
 
     this.postAttackTimer = 0.22;

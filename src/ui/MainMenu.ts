@@ -6,6 +6,7 @@ import { AuthManager } from '../core/AuthManager';
 import { AuthModal } from './AuthModal';
 import { SoundManager } from '../core/SoundManager';
 import { ControlsManager, type KeyboardLayout } from '../core/ControlsManager';
+import { APP_TITLE_WITH_VERSION } from '../config/version';
 import type { AuthUser } from '../types/auth';
 
 export class MainMenu {
@@ -33,6 +34,9 @@ export class MainMenu {
   private readonly mainCtrlMove: HTMLElement | null;
   private readonly mainCtrlStrafe: HTMLElement | null;
   private readonly unsubscribeControls?: () => void;
+
+  // Pied de page : version de l'application
+  private readonly versionDisplay: HTMLElement | null;
 
   private onPlayCallback?: () => void;
   private onLadderCallback?: () => void;
@@ -65,6 +69,10 @@ export class MainMenu {
     this.mainLayoutAzertyBtn = document.getElementById('main-layout-azerty-btn') as HTMLButtonElement | null;
     this.mainCtrlMove = document.getElementById('main-ctrl-move');
     this.mainCtrlStrafe = document.getElementById('main-ctrl-strafe');
+
+    // Récupération de l'affichage de la version
+    this.versionDisplay = document.getElementById('main-menu-version');
+    this.updateVersionDisplay();
 
     this.onPlayCallback = onPlay;
     this.onLadderCallback = onLadder;
@@ -240,8 +248,15 @@ export class MainMenu {
     return Boolean(this.settingsView && !this.settingsView.classList.contains('hidden'));
   }
 
+  public updateVersionDisplay(): void {
+    if (this.versionDisplay) {
+      this.versionDisplay.textContent = APP_TITLE_WITH_VERSION;
+    }
+  }
+
   public show(): void {
     this.updateLayoutDisplay(ControlsManager.getLayout());
+    this.updateVersionDisplay();
     this.showMain();
     this.menuElement?.classList.remove('hidden');
     this.playAppearAnimation();

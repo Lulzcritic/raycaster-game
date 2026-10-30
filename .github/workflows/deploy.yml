@@ -62,6 +62,8 @@ jobs:
 
       - name: 🌐 Connexion SSH et déploiement Docker
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -71,6 +73,7 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           timeout: 60s
           command_timeout: 20m
+          envs: GITHUB_RUN_NUMBER
           script: |
             set -e
             export GIT_TERMINAL_PROMPT=0
@@ -94,13 +97,26 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            # Incrémentation du numéro de version (+0.0.1 à chaque déploiement)
+            DEPLOY_COUNTER_FILE="$APP_DIR/.deploy_counter"
+            if [ -f "$DEPLOY_COUNTER_FILE" ]; then
+              PREV_COUNT=$(cat "$DEPLOY_COUNTER_FILE")
+              CURRENT_BUILD=$((PREV_COUNT + 1))
+            else
+              CURRENT_BUILD=1
+            fi
+            echo "$CURRENT_BUILD" > "$DEPLOY_COUNTER_FILE"
+
+            export VITE_APP_VERSION="0.1.${CURRENT_BUILD}"
+            echo "🏷️ Version du déploiement : v$VITE_APP_VERSION (Build #$CURRENT_BUILD)"
+
             echo "🐳 Reconstruction et redémarrage du conteneur Docker..."
             docker compose down -t 5 --remove-orphans || true
             
             BUILD_SUCCESS=0
             for attempt in 1 2 3; do
               echo "🔨 Construction Docker (tentative $attempt/3)..."
-              if docker compose build; then
+              if VITE_APP_VERSION="$VITE_APP_VERSION" docker compose build --build-arg VITE_APP_VERSION="$VITE_APP_VERSION"; then
                 BUILD_SUCCESS=1
                 break
               fi
@@ -113,12 +129,12 @@ jobs:
               exit 1
             fi
 
-            docker compose up -d
+            VITE_APP_VERSION="$VITE_APP_VERSION" docker compose up -d
 
             echo "🩺 Vérification de l'état de santé du serveur..."
             sleep 5
             docker compose ps
             curl --retry 10 --retry-delay 2 --retry-connrefused -f http://127.0.0.1:3001/health || (echo "❌ Échec du healthcheck !" && docker compose logs --tail=50 && exit 1)
 
-            echo "✅ Déploiement automatique réussi avec succès !"
+            echo "✅ Déploiement automatique v$VITE_APP_VERSION réussi avec succès !"
 

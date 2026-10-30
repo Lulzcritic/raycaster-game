@@ -5,6 +5,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG VITE_APP_VERSION=0.1.1
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
+
 COPY package*.json ./
 RUN npm ci
 
@@ -23,6 +26,8 @@ RUN apk add --no-cache curl
 
 ENV NODE_ENV=production
 ENV PORT=3001
+ARG VITE_APP_VERSION=0.1.1
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
 
 # Réutilisation directe des dépendances et des fichiers compilés de l'étape de build
 COPY --from=builder /app/package*.json ./

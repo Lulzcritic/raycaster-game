@@ -22,6 +22,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - VITE_APP_VERSION=${VITE_APP_VERSION:-0.1.1}
     container_name: raycaster-game
     restart: unless-stopped
     depends_on:
@@ -32,6 +34,7 @@ services:
     environment:
       - PORT=3001
       - NODE_ENV=production
+      - VITE_APP_VERSION=${VITE_APP_VERSION:-0.1.1}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-raycaster}:${POSTGRES_PASSWORD:-raycaster_secret}@postgres:5432/${POSTGRES_DB:-raycaster_db}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3001/health"]

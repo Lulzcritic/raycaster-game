@@ -214,6 +214,38 @@ async function runTests() {
   assert.strictEqual(modalEl?.style.display, 'none', 'Le modal doit avoir display: none après hide()');
   assert.strictEqual(modalEl?.classList.contains('hidden'), true, 'Le modal doit avoir la classe hidden après hide()');
   console.log('   ✅ Modal d\'authentification visible, prioritaire sur le menu principal (Z-Index) et fonctionnel.');
+
+  console.log('9. Test de résolution d\'API sous sous-chemin (/toc/) et résilience JSON...');
+  // A. Résolution d'URL avec sous-chemin /toc
+  (globalThis as any).window = {
+    location: { pathname: '/toc/' },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  };
+  const tocUrl = AuthManager.getApiUrl('/api/auth/register');
+  assert.strictEqual(tocUrl, '/toc/api/auth/register', 'Doit préfixer par /toc lorsque hébergé sous /toc/');
+
+  // B. Résolution d'URL à la racine
+  (globalThis as any).window.location.pathname = '/';
+  const rootUrl = AuthManager.getApiUrl('/api/auth/register');
+  assert.strictEqual(rootUrl, '/api/auth/register', 'Doit conserver /api/auth/register à la racine');
+
+  // C. Résilience face à une réponse vide (erreur Nginx 404/502 sans corps JSON)
+  mockFetchResponses.set('/api/auth/register', () => ({
+    ok: false,
+    status: 404,
+    statusText: 'Not Found',
+    text: async () => '',
+  }));
+  const emptyRes = await AuthManager.register('ValidPlayer', 'secret123');
+  assert.strictEqual(emptyRes.success, false);
+  assert.ok(
+    !emptyRes.error?.includes('Unexpected end of JSON input'),
+    'Ne doit jamais crasher avec "Unexpected end of JSON input" sur une réponse vide'
+  );
+  assert.ok(emptyRes.error?.includes('404') || emptyRes.error?.includes('serveur'));
+  console.log('   ✅ Résolution d\'API sous /toc/ et résilience face aux réponses vides validées.');
+
   console.log('\n✨ TOUS LES TESTS D\'AUTHENTIFICATION ET MODE INVITÉ ONT RÉUSSI AVEC SUCCÈS ! ✨\n');
 }
 

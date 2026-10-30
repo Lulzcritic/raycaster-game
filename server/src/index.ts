@@ -88,7 +88,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   const rawUrl = req.url ?? '/';
-  const pathName = rawUrl.split('?')[0];
+  let pathName = rawUrl.split('?')[0];
+
+  // Normalisation du chemin : si le reverse proxy (Nginx) transmet le préfixe /toc, on le retire
+  if (pathName.startsWith('/toc/')) {
+    pathName = pathName.substring(4); // ex: "/toc/api/auth/register" -> "/api/auth/register"
+  } else if (pathName === '/toc') {
+    pathName = '/';
+  }
 
   // 1. Healthcheck système & base de données
   if (pathName === '/health' || pathName === '/status') {
@@ -255,17 +262,20 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Fallback SPA
-    const indexPath = path.join(DIST_DIR, 'index.html');
-    if (fs.existsSync(indexPath)) {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      fs.createReadStream(indexPath).pipe(res);
-      return;
+    // Fallback SPA : UNIQUEMENT pour les requêtes GET / HEAD
+    // Une requête POST/PUT/DELETE sur une route non trouvée ne doit jamais renvoyer le HTML
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      const indexPath = path.join(DIST_DIR, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        fs.createReadStream(indexPath).pipe(res);
+        return;
+      }
     }
   }
 
-  res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Route non trouvée sur la passerelle' }));
+  res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify({ error: `Route non trouvée sur la passerelle (${req.method} ${rawUrl})` }));
 });
 
 const wss = new WebSocketServer({ server });

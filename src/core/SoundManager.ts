@@ -9,6 +9,13 @@ const SOUND_EFFECT_URLS = {
 
 const menuMusicUrl = new URL('../assets/audio/music/menuhub.mp3', import.meta.url).href;
 
+export const BOSS_MUSIC_URLS = {
+  bloodQueen: new URL('../assets/audio/music/bloodQueen.mp3', import.meta.url).href,
+  cakeBoss: new URL('../assets/audio/music/cakeBoss.mp3', import.meta.url).href,
+} as const;
+
+export type BossMusicName = keyof typeof BOSS_MUSIC_URLS;
+
 export type SoundEffectName = keyof typeof SOUND_EFFECT_URLS;
 
 export interface PlayOptions {
@@ -44,10 +51,17 @@ export class SoundManager {
   private static listenerY = 0;
   private static listenerAngle = 0;
 
-  // Musique de fond
+  // Musique de fond (Menu / Hub)
   private static musicAudio: HTMLAudioElement | null = null;
   private static isMusicPlaying = false;
   private static pendingMenuMusic = false;
+
+  // Musiques de combat des Boss
+  private static readonly bossAudios = new Map<BossMusicName, HTMLAudioElement>();
+  private static currentBossMusicName: BossMusicName | null = null;
+  private static currentBossAudio: HTMLAudioElement | null = null;
+  private static isBossMusicPlaying = false;
+  private static pendingBossMusic: BossMusicName | null = null;
 
   // Fallback pool pour clics de boutons si AudioContext n'est pas encore débloqué
   private static buttonPool: HTMLAudioElement[] = [];
@@ -86,7 +100,10 @@ export class SoundManager {
       console.warn('[SoundManager] Impossible d initialiser la musique :', err);
     }
 
-    // 4. Initialisation du pool de secours HTML5 Audio pour les boutons
+    // 4. Pré-instanciation des thèmes de boss
+    this.preloadBossMusics().catch(() => {});
+
+    // 5. Initialisation du pool de secours HTML5 Audio pour les boutons
     try {
       for (let i = 0; i < this.POOL_SIZE; i++) {
         const sfx = new Audio(SOUND_EFFECT_URLS.button);
@@ -98,7 +115,7 @@ export class SoundManager {
       console.warn('[SoundManager] Impossible d initialiser le pool SFX de secours :', err);
     }
 
-    // 5. Écouteur global capturant tous les clics sur des boutons d'interface
+    // 6. Écouteur global capturant tous les clics sur des boutons d'interface
     if (typeof document !== 'undefined') {
       document.addEventListener(
         'click',
@@ -122,7 +139,7 @@ export class SoundManager {
         true // Phase de capture : intercepte même si stopPropagation a été appelé
       );
 
-      // 6. Déblocage automatique de l'audio dès la première interaction utilisateur
+      // 7. Déblocage automatique de l'audio dès la première interaction utilisateur
       const unlockAutoplay = () => {
         if (this.audioCtx && this.audioCtx.state === 'suspended') {
           this.audioCtx.resume().catch(() => {});
@@ -130,6 +147,13 @@ export class SoundManager {
         if (this.pendingMenuMusic && this.musicAudio && this.isMusicPlaying) {
           this.musicAudio.play().catch(() => {});
           this.pendingMenuMusic = false;
+        }
+        if (this.pendingBossMusic && this.isBossMusicPlaying) {
+          const bossAudio = this.bossAudios.get(this.pendingBossMusic);
+          if (bossAudio) {
+            bossAudio.play().catch(() => {});
+          }
+          this.pendingBossMusic = null;
         }
       };
 
@@ -502,10 +526,220 @@ export class SoundManager {
     fadeStep();
   }
 
+  /**
+   * Associe un identifiant d'ennemi ou de boss au fichier audio correspondant.
+   * Gère:
+   * - blood_queen / bloodQueen / Reine de Sang -> bloodQueen.mp3
+   * - carrot_cake_king / cakeBoss / cakeKing / Roi Gâteau -> cakeBoss.mp3
+   */
+  public static resolveBossMusic(bossIdentifier: string): BossMusicName | null {
+    if (!bossIdentifier) return null;
+    const norm = bossIdentifier.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (
+      norm.includes('blood') ||
+      norm.includes('queen') ||
+      norm.includes('reine') ||
+      norm.includes('sang') ||
+      norm.includes('blob')
+    ) {
+      return 'bloodQueen';
+    }
+    if (
+      norm.includes('cake') ||
+      norm.includes('carrot') ||
+      norm.includes('carotte') ||
+      norm.includes('gateau')
+    ) {
+      return 'cakeBoss';
+    }
+    return null;
+  }
+
+  /**
+   * Précharge les fichiers audio des musiques de boss.
+   */
+  public static async preloadBossMusics(): Promise<void> {
+    if (typeof window === 'undefined' || typeof Audio === 'undefined') return;
+    const keys = Object.keys(BOSS_MUSIC_URLS) as BossMusicName[];
+    await Promise.all(
+      keys.map(async (key) => {
+        try {
+          if (!this.bossAudios.has(key)) {
+            const audio = new Audio(BOSS_MUSIC_URLS[key]);
+            audio.preload = 'auto';
+            audio.loop = true;
+            audio.volume = this.musicVolume;
+            this.bossAudios.set(key, audio);
+          }
+        } catch (err) {
+          console.warn(`[SoundManager] Erreur préchargement boss music ${key} :`, err);
+        }
+      })
+    );
+  }
+
+  /**
+   * Lance la musique de combat épique du boss spécifié.
+   * Si la musique est déjà active, ne la redémarre pas.
+   */
+  public static playBossMusic(name: BossMusicName, fadeInMs = 400): void {
+    if (this.currentBossMusicName === name && this.isBossMusicPlaying) {
+      return;
+    }
+
+    if (this.currentBossAudio && this.currentBossMusicName !== name) {
+      this.stopBossMusic(150);
+    }
+
+    // Assure l'arrêt immédiat de la musique de menu / hub
+    this.stopMenuMusic(150);
+
+    this.currentBossMusicName = name;
+    this.isBossMusicPlaying = true;
+    this.pendingBossMusic = null;
+
+    if (typeof window === 'undefined' || typeof Audio === 'undefined') {
+      return;
+    }
+
+    let audio = this.bossAudios.get(name);
+    if (!audio) {
+      try {
+        audio = new Audio(BOSS_MUSIC_URLS[name]);
+        audio.loop = true;
+        audio.preload = 'auto';
+        audio.volume = this.musicVolume;
+        this.bossAudios.set(name, audio);
+      } catch (err) {
+        console.warn(`[SoundManager] Erreur création audio boss ${name} :`, err);
+        return;
+      }
+    }
+
+    this.currentBossAudio = audio;
+
+    try {
+      audio.currentTime = 0;
+      if (fadeInMs > 0 && typeof requestAnimationFrame !== 'undefined') {
+        audio.volume = 0;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            this.pendingBossMusic = name;
+          });
+        }
+
+        const targetVolume = this.musicVolume;
+        const startTime = performance.now();
+        const fadeInStep = () => {
+          if (this.currentBossAudio !== audio || !this.isBossMusicPlaying) return;
+          const elapsed = performance.now() - startTime;
+          if (elapsed < fadeInMs) {
+            audio.volume = Math.min(targetVolume, targetVolume * (elapsed / fadeInMs));
+            requestAnimationFrame(fadeInStep);
+          } else {
+            audio.volume = targetVolume;
+          }
+        };
+        requestAnimationFrame(fadeInStep);
+      } else {
+        audio.volume = this.musicVolume;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            this.pendingBossMusic = name;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn(`[SoundManager] Erreur lecture musique boss ${name} :`, err);
+    }
+  }
+
+  /**
+   * Joue la musique de combat correspondant à un type d'ennemi boss.
+   */
+  public static playBossMusicForEnemy(enemyTypeId: string, fadeInMs = 400): void {
+    const musicName = this.resolveBossMusic(enemyTypeId);
+    if (musicName) {
+      this.playBossMusic(musicName, fadeInMs);
+    }
+  }
+
+  /**
+   * Arrête la musique de combat de boss avec un fondu doux.
+   */
+  public static stopBossMusic(fadeDurationMs = 800): void {
+    this.pendingBossMusic = null;
+    this.isBossMusicPlaying = false;
+    const stoppingMusic = this.currentBossAudio;
+    this.currentBossMusicName = null;
+    this.currentBossAudio = null;
+
+    if (!stoppingMusic || typeof window === 'undefined') {
+      return;
+    }
+
+    if (fadeDurationMs <= 0 || typeof requestAnimationFrame === 'undefined') {
+      try {
+        stoppingMusic.pause();
+        stoppingMusic.currentTime = 0;
+      } catch {}
+      stoppingMusic.volume = this.musicVolume;
+      return;
+    }
+
+    const startVol = stoppingMusic.volume;
+    const startTime = performance.now();
+
+    const fadeStep = () => {
+      // Si une nouvelle musique de boss a été réengagée pour ce même audio, on n'éteint pas
+      if (this.currentBossAudio === stoppingMusic && this.isBossMusicPlaying) {
+        return;
+      }
+
+      const elapsed = performance.now() - startTime;
+      if (elapsed < fadeDurationMs) {
+        stoppingMusic.volume = Math.max(0, startVol * (1 - elapsed / fadeDurationMs));
+        requestAnimationFrame(fadeStep);
+      } else {
+        try {
+          stoppingMusic.pause();
+          stoppingMusic.currentTime = 0;
+        } catch {}
+        stoppingMusic.volume = this.musicVolume;
+      }
+    };
+
+    fadeStep();
+  }
+
+  /**
+   * Retourne le nom de la musique de boss actuellement active, ou null.
+   */
+  public static getCurrentBossMusic(): BossMusicName | null {
+    return this.isBossMusicPlaying ? this.currentBossMusicName : null;
+  }
+
+  /**
+   * Indique si un thème musical de boss est en train d'être joué.
+   */
+  public static isBossMusicActive(): boolean {
+    return this.isBossMusicPlaying && this.currentBossMusicName !== null;
+  }
+
   public static setMusicVolume(volume: number): void {
     this.musicVolume = Math.max(0, Math.min(1, volume));
     if (this.musicAudio) {
       this.musicAudio.volume = this.musicVolume;
+    }
+    if (this.currentBossAudio && this.isBossMusicPlaying) {
+      this.currentBossAudio.volume = this.musicVolume;
+    }
+    for (const audio of this.bossAudios.values()) {
+      if (audio !== this.currentBossAudio) {
+        audio.volume = this.musicVolume;
+      }
     }
   }
 

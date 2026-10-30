@@ -274,8 +274,19 @@ export class Enemy extends Entity {
     this.health = Math.max(0, this.health - effective);
 
     // L'ennemi s'aggro immédiatement quand on l'attaque
+    const wasIdle = this.state === 'idle';
     this.state = 'hurt';
     this.stateTimer = 0.18;
+
+    if (wasIdle && this.type.rank === 'boss') {
+      if (this.type.id === 'carrot_cake_king') {
+        this.cakeKingSlideCooldown = 2.0;
+        this.onNotify?.("ATTENTION : LE ROI GÂTEAU À LA CAROTTE S'ÉVEILLE !");
+      } else if (this.type.id === 'blood_queen') {
+        this.onNotify?.("ATTENTION : LA REINE DE SANG ÉCARLATE S'ÉVEILLE !");
+      }
+      SoundManager.playBossMusicForEnemy(this.type.id);
+    }
 
     if (this.type.movementPattern === 'flee' && !this.isFleeing) {
       this.isFleeing = true;
@@ -303,6 +314,10 @@ export class Enemy extends Entity {
     this.state = 'dead';
     this.stateTimer = 0.42;
     this.currentElevation = 0;
+
+    if (this.type.rank === 'boss') {
+      SoundManager.stopBossMusic(1500);
+    }
 
     // Son de mort 3D spatialisé (SlimeDeath.mp3)
     SoundManager.play3D('slimeDeath', this.x, this.y, { volume: 0.75, pitchVariation: 0.1 });
@@ -535,6 +550,12 @@ export class Enemy extends Entity {
           if (this.type.id === 'carrot_cake_king') {
             this.cakeKingSlideCooldown = 2.0;
             this.onNotify?.("ATTENTION : LE ROI GÂTEAU À LA CAROTTE S'ÉVEILLE !");
+          }
+          if (this.type.id === 'blood_queen') {
+            this.onNotify?.("ATTENTION : LA REINE DE SANG ÉCARLATE S'ÉVEILLE !");
+          }
+          if (this.type.rank === 'boss') {
+            SoundManager.playBossMusicForEnemy(this.type.id);
           }
           if (this.type.movementPattern === 'flee' && !this.isFleeing) {
             this.isFleeing = true;

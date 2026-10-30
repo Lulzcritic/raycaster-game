@@ -76,6 +76,42 @@ async function runTests() {
   assert.strictEqual(farAudio.attenuation, 0);
   console.log('   ✅ Atténuation inverse et coupure hors de portée validées.');
 
+  console.log('6. Test de résolution des noms de musiques de boss...');
+  assert.strictEqual(SoundManager.resolveBossMusic('blood_queen'), 'bloodQueen');
+  assert.strictEqual(SoundManager.resolveBossMusic('bloodQueen'), 'bloodQueen');
+  assert.strictEqual(SoundManager.resolveBossMusic('Reine de Sang Écarlate'), 'bloodQueen');
+  assert.strictEqual(SoundManager.resolveBossMusic('blob_boss'), 'bloodQueen');
+  assert.strictEqual(SoundManager.resolveBossMusic('carrot_cake_king'), 'cakeBoss');
+  assert.strictEqual(SoundManager.resolveBossMusic('cakeBoss'), 'cakeBoss');
+  assert.strictEqual(SoundManager.resolveBossMusic('cake_king'), 'cakeBoss');
+  assert.strictEqual(SoundManager.resolveBossMusic('Roi Gâteau à la Carotte'), 'cakeBoss');
+  assert.strictEqual(SoundManager.resolveBossMusic('skeleton'), null);
+  assert.strictEqual(SoundManager.resolveBossMusic('goblin'), null);
+  console.log('   ✅ Résolution des thèmes de boss validée (bloodQueen.mp3 & cakeBoss.mp3).');
+
+  console.log('7. Test du cycle de lecture et arrêt des musiques de boss...');
+  assert.strictEqual(SoundManager.getCurrentBossMusic(), null);
+  assert.strictEqual(SoundManager.isBossMusicActive(), false);
+
+  // Démarrage combat Roi Gâteau
+  SoundManager.playBossMusicForEnemy('carrot_cake_king');
+  assert.strictEqual(SoundManager.getCurrentBossMusic(), 'cakeBoss');
+  assert.strictEqual(SoundManager.isBossMusicActive(), true);
+
+  // Transition vers Reine de Sang
+  SoundManager.playBossMusicForEnemy('blood_queen');
+  assert.strictEqual(SoundManager.getCurrentBossMusic(), 'bloodQueen');
+  assert.strictEqual(SoundManager.isBossMusicActive(), true);
+
+  // Arrêt du combat (mort du boss ou fuite/victoire)
+  SoundManager.stopBossMusic(0);
+  assert.strictEqual(SoundManager.getCurrentBossMusic(), null);
+  assert.strictEqual(SoundManager.isBossMusicActive(), false);
+
+  // Préchargement sans crash
+  await SoundManager.preloadBossMusics();
+  console.log('   ✅ Cycle de combat musical et gestion des états validés.');
+
   console.log('\n======================================================');
   console.log('🎉 TOUS LES TESTS DU SOUNDMANAGER ONT RÉUSSI !');
   console.log('======================================================\n');

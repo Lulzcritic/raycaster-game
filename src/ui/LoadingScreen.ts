@@ -20,6 +20,7 @@ export class LoadingScreen {
     'Méfiez-vous des coffres solitaires : certains se réveillent sous forme de Mimics féroces !',
     'Améliorez vos caractéristiques au Campement grâce aux pièces d\'or extraites des profondeurs de la Citadelle.',
     'L\'Homonculus de main gauche pulse et détecte la présence des coffres à travers les murs de pierre.',
+    'Chaque Boss de Sanctuaire possède son propre thème musical épique qui retentit dès le début de l\'affrontement.',
     'En donjon PvPvE, les autres aventuriers sont des rivaux : surveillez leurs pas et gardez vos distances.',
   ];
 

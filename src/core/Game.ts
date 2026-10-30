@@ -512,6 +512,8 @@ export class Game {
     net.onRemoteBossDefeated((data) => {
       if (!this.currentInstanceId) return;
 
+      SoundManager.stopBossMusic(1500);
+
       for (const ent of this.entities) {
         if (ent instanceof ExtractionPortal && ent.name.includes('Royal')) {
           ent.activateNow();
@@ -633,6 +635,10 @@ export class Game {
       {
         name: 'Harmonisation du moteur sonore 3D...',
         run: () => SoundManager.preloadAllEffects(),
+      },
+      {
+        name: 'Orchestration des thèmes musicaux des Boss...',
+        run: () => SoundManager.preloadBossMusics(),
       },
     ];
 
@@ -1039,6 +1045,7 @@ export class Game {
   }
 
   public startNewExtractionMatch(options?: { seed?: number; spawnIndex?: number }): void {
+    SoundManager.stopBossMusic(0);
     SoundManager.stopMenuMusic();
     WalletManager.resetSessionCoins();
     if (this.player.inventory.getItem('offhand')?.id === 'offhand_homonculus') {
@@ -1061,6 +1068,7 @@ export class Game {
   }
 
   public openHub(tab: 'play' | 'equipment' | 'shop' | 'quests' = 'play'): void {
+    SoundManager.stopBossMusic(0);
     SoundManager.playMenuMusic();
     if (this.currentInstanceId) {
       NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
@@ -1149,6 +1157,7 @@ export class Game {
   }
 
   public returnToMainMenu(): void {
+    SoundManager.stopBossMusic(0);
     SoundManager.playMenuMusic();
     if (this.currentInstanceId) {
       NetworkClient.getInstance().leaveMatch(this.currentInstanceId);
@@ -1227,6 +1236,9 @@ export class Game {
 
   private update(deltaTime: number): void {
     if (!this.player.isAlive()) {
+      if (SoundManager.isBossMusicActive()) {
+        SoundManager.stopBossMusic(1000);
+      }
       if (this.currentInstanceId && !this.hasSentDeathNotification) {
         this.hasSentDeathNotification = true;
         const equipped = this.player.inventory.getAllEquipped();
@@ -1307,6 +1319,9 @@ export class Game {
     }
 
     if (this.isExtracted) {
+      if (SoundManager.isBossMusicActive()) {
+        SoundManager.stopBossMusic(1000);
+      }
       if (
         this.input.consumeKeyPress('r') ||
         this.input.consumeKeyPress(' ') ||
@@ -1376,6 +1391,9 @@ export class Game {
           e.type.id === 'carrot_cake_king')
     );
     if (boss && !boss.isAlive()) {
+      if (SoundManager.isBossMusicActive()) {
+        SoundManager.stopBossMusic(1500);
+      }
       if (this.currentInstanceId && !this.hasSentBossDefeated) {
         this.hasSentBossDefeated = true;
         NetworkClient.getInstance().sendBossDefeated({
@@ -1393,6 +1411,20 @@ export class Game {
           ent.activateNow();
         }
       }
+    }
+
+    // Gestion de la musique de combat des Boss selon l'état d'engagement
+    const activeBoss = this.entities.find(
+      (e): e is Enemy =>
+        e instanceof Enemy &&
+        e.type.rank === 'boss' &&
+        e.isAlive() &&
+        e.state !== 'idle'
+    );
+    if (activeBoss) {
+      SoundManager.playBossMusicForEnemy(activeBoss.type.id);
+    } else if (SoundManager.isBossMusicActive()) {
+      SoundManager.stopBossMusic(1500);
     }
 
     // Détection des collisions boules de feu <-> ennemis vivants

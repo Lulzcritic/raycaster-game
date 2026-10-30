@@ -25,7 +25,7 @@ import type {
 import { InteractionPrompt } from '../ui/InteractionPrompt';
 import { PauseMenu } from '../ui/PauseMenu';
 import { MainMenu } from '../ui/MainMenu';
-import { HubUI } from '../ui/HubUI';
+import { HubUI, type HubTab } from '../ui/HubUI';
 import { WorldBillboardOverlay } from '../ui/WorldBillboardOverlay';
 import { HUDOverlay } from '../ui/HUDOverlay';
 import { PlayerHandOverlay } from '../ui/PlayerHandOverlay';
@@ -145,7 +145,10 @@ export class Game {
           // Ignore storage restrictions
         }
       },
-      initialFovDeg
+      initialFovDeg,
+      () => {
+        this.openHub('ladder');
+      }
     );
     this.pauseMenu = new PauseMenu(
       () => {
@@ -1071,7 +1074,7 @@ export class Game {
     );
   }
 
-  public openHub(tab: 'play' | 'equipment' | 'shop' | 'quests' = 'play'): void {
+  public openHub(tab: HubTab = 'play'): void {
     SoundManager.stopBossMusic(0);
     SoundManager.playMenuMusic();
     if (this.currentInstanceId) {

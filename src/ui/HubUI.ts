@@ -17,11 +17,12 @@ import { FIREBALL_CONFIG } from '../config/constants';
 import { GearScoreService } from '../core/GearScoreService';
 import { NetworkClient } from '../network/NetworkClient';
 import { SoundManager } from '../core/SoundManager';
+import { AuthManager } from '../core/AuthManager';
 import type { Player } from '../entities/Player';
 import type { EquipmentItem, EquipmentSlot } from '../types';
 import type { MatchFoundPayload, QueueStatusPayload } from '../types/network';
 
-export type HubTab = 'play' | 'equipment' | 'shop' | 'quests';
+export type HubTab = 'play' | 'equipment' | 'shop' | 'quests' | 'ladder';
 
 interface SkinOption {
   id: string;
@@ -91,6 +92,10 @@ export class HubUI {
   private readonly upgradesListContainer: HTMLElement | null;
   private readonly shopItemsListContainer: HTMLElement | null;
   private readonly questsListContainer: HTMLElement | null;
+  private readonly ladderTbody: HTMLElement | null;
+  private readonly ladderRefreshBtn: HTMLButtonElement | null;
+  private readonly ladderCurrentUserCard: HTMLElement | null;
+  private isLadderLoading = false;
 
   private currentSkinIndex = 0;
   private currentTab: HubTab = 'play';
@@ -135,9 +140,14 @@ export class HubUI {
     this.views = {
       play: document.getElementById('hub-view-play'),
       equipment: document.getElementById('hub-view-equipment'),
+      ladder: document.getElementById('hub-view-ladder'),
       shop: document.getElementById('hub-view-shop'),
       quests: document.getElementById('hub-view-quests'),
     };
+
+    this.ladderTbody = document.getElementById('hub-ladder-tbody');
+    this.ladderRefreshBtn = document.getElementById('hub-ladder-refresh-btn') as HTMLButtonElement | null;
+    this.ladderCurrentUserCard = document.getElementById('hub-ladder-current-user-card');
 
     // Avatar
     this.avatarImg = document.getElementById('hub-avatar-img') as HTMLImageElement | null;
@@ -329,6 +339,8 @@ export class HubUI {
       this.renderPlayView();
     } else if (tab === 'equipment') {
       this.renderEquipmentView();
+    } else if (tab === 'ladder') {
+      this.renderLadderView();
     } else if (tab === 'shop') {
       this.renderShopView();
     } else if (tab === 'quests') {
@@ -350,6 +362,12 @@ export class HubUI {
           this.switchTab(tab);
         }
       });
+    });
+
+    // Bouton de rafraîchissement du Ladder
+    this.ladderRefreshBtn?.addEventListener('click', () => {
+      SoundManager.playButtonSound();
+      this.renderLadderView();
     });
 
     // Lancement de la partie -> Ouverture de l'interface de file d'attente (Multijoueur)
@@ -1072,6 +1090,189 @@ export class HubUI {
       }
 
       this.questsListContainer.appendChild(card);
+    }
+  }
+
+  private getGearScoreTier(gs: number): { label: string; color: string } {
+    if (gs >= 1200) return { label: 'Légende', color: '#ef4444' };
+    if (gs >= 800) return { label: 'Maître', color: '#eab308' };
+    if (gs >= 450) return { label: 'Champion', color: '#a855f7' };
+    if (gs >= 250) return { label: 'Aventurier', color: '#3b82f6' };
+    if (gs >= 100) return { label: 'Initié', color: '#22c55e' };
+    if (gs >= 50) return { label: 'Novice', color: '#a8a29e' };
+    return { label: 'Débutant', color: '#78716c' };
+  }
+
+  // =========================================================================
+  // VUE 5 : CLASSEMENT (LADDER)
+  // =========================================================================
+  private async renderLadderView(): Promise<void> {
+    if (!this.ladderTbody) return;
+
+    if (this.isLadderLoading) return;
+    this.isLadderLoading = true;
+
+    // Animation du bouton refresh si présent
+    const refreshIcon = this.ladderRefreshBtn?.querySelector('.refresh-icon');
+    refreshIcon?.classList.add('spinning');
+
+    this.ladderTbody.innerHTML = `
+      <tr class="ladder-loading-row">
+        <td colspan="6">
+          <div class="ladder-loading-box">
+            <span class="ladder-loading-spinner">✦</span>
+            <span>Consultation des archives du Panthéon de la Citadelle...</span>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    const currentUser = AuthManager.getUser();
+    const currentGearScore = this.player ? GearScoreService.calculatePlayerGearScore(this.player) : 0;
+
+    try {
+      const { ladder, offline } = await AuthManager.fetchLadder(50);
+
+      if (offline) {
+        this.ladderTbody.innerHTML = `
+          <tr class="ladder-empty-row">
+            <td colspan="6">
+              <div class="ladder-empty-box">
+                <span class="ladder-empty-icon">📜</span>
+                <span class="ladder-empty-title">Le Panthéon sommeille</span>
+                <span class="ladder-empty-desc">La base de données PostgreSQL est actuellement hors-ligne. Démarrez le conteneur Docker ('docker compose up -d postgres') pour consulter le classement en direct.</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else if (!ladder || ladder.length === 0) {
+        this.ladderTbody.innerHTML = `
+          <tr class="ladder-empty-row">
+            <td colspan="6">
+              <div class="ladder-empty-box">
+                <span class="ladder-empty-icon">🛡️</span>
+                <span class="ladder-empty-title">Aucun explorateur classé pour le moment</span>
+                <span class="ladder-empty-desc">Soyez le premier aventurier à équiper du butin et à inscrire votre légende !</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        this.ladderTbody.innerHTML = '';
+
+        ladder.forEach((entry) => {
+          const isCurrentUser = currentUser && entry.username.toLowerCase() === currentUser.username.toLowerCase();
+          const tier = this.getGearScoreTier(entry.maxGearScore);
+
+          const row = document.createElement('tr');
+          row.className = `ladder-row ${isCurrentUser ? 'is-current-user' : ''} ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`;
+
+          let rankBadge = `#${entry.rank}`;
+          if (entry.rank === 1) rankBadge = '🥇 1';
+          else if (entry.rank === 2) rankBadge = '🥈 2';
+          else if (entry.rank === 3) rankBadge = '🥉 3';
+
+          row.innerHTML = `
+            <td class="td-rank">
+              <span class="ladder-rank-badge rank-${entry.rank}">${rankBadge}</span>
+            </td>
+            <td class="td-adventurer">
+              <div class="ladder-adventurer-cell">
+                <span class="ladder-adventurer-name">${entry.username}</span>
+                ${isCurrentUser ? '<span class="ladder-you-badge">VOUS</span>' : ''}
+              </div>
+            </td>
+            <td class="td-gearscore">
+              <span class="ladder-gs-val" style="color: ${tier.color};">
+                ⚔️ ${entry.maxGearScore}
+              </span>
+            </td>
+            <td class="td-tier">
+              <span class="ladder-tier-badge" style="border-color: ${tier.color}; color: ${tier.color};">
+                ${tier.label}
+              </span>
+            </td>
+            <td class="td-extractions">
+              <span class="ladder-extractions-val">🏆 ${entry.raidsWon}</span>
+            </td>
+            <td class="td-slain">
+              <span class="ladder-slain-val">💀 ${entry.monstersKilled}</span>
+            </td>
+          `;
+
+          this.ladderTbody?.appendChild(row);
+        });
+      }
+
+      // Carte utilisateur
+      if (this.ladderCurrentUserCard) {
+        if (currentUser) {
+          const userEntry = ladder.find((e) => e.username.toLowerCase() === currentUser.username.toLowerCase());
+          const maxGs = userEntry ? userEntry.maxGearScore : Math.max(0, currentGearScore);
+          const tier = this.getGearScoreTier(maxGs);
+          const rankText = userEntry ? `#${userEntry.rank}` : 'Non classé';
+
+          this.ladderCurrentUserCard.innerHTML = `
+            <div class="ladder-user-card-content">
+              <div class="ladder-user-card-avatar">🛡️</div>
+              <div class="ladder-user-card-meta">
+                <span class="ladder-user-card-tag">VOTRE RECORD PERSONNEL</span>
+                <span class="ladder-user-card-username">${currentUser.username}</span>
+              </div>
+              <div class="ladder-user-card-stats">
+                <div class="ladder-user-stat-block">
+                  <span class="stat-lbl">RANG :</span>
+                  <span class="stat-val rank-val">${rankText}</span>
+                </div>
+                <div class="ladder-user-stat-block">
+                  <span class="stat-lbl">GEAR SCORE MAX :</span>
+                  <span class="stat-val gs-val" style="color: ${tier.color};">⚔️ ${maxGs}</span>
+                </div>
+                <div class="ladder-user-stat-block">
+                  <span class="stat-lbl">TITRE :</span>
+                  <span class="stat-val tier-val" style="color: ${tier.color};">${tier.label}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          this.ladderCurrentUserCard.innerHTML = `
+            <div class="ladder-user-card-guest">
+              <span class="guest-warning-icon">⚠️</span>
+              <div class="guest-warning-text">
+                <strong>Mode Invité actif</strong> : Votre score actuel (${currentGearScore} GS) n'est pas sauvegardé sur la base de données.
+              </div>
+              <button id="hub-ladder-login-btn" class="main-menu-btn main-menu-btn-primary ladder-login-btn" type="button">
+                SE CONNECTER
+              </button>
+            </div>
+          `;
+
+          const loginBtn = document.getElementById('hub-ladder-login-btn');
+          loginBtn?.addEventListener('click', () => {
+            this.onReturnToMenuCallback?.();
+            const mainAuthBtn = document.getElementById('main-auth-btn');
+            mainAuthBtn?.click();
+          });
+        }
+      }
+    } catch (err: any) {
+      if (this.ladderTbody) {
+        this.ladderTbody.innerHTML = `
+          <tr class="ladder-empty-row">
+            <td colspan="6">
+              <div class="ladder-empty-box">
+                <span class="ladder-empty-icon">❌</span>
+                <span class="ladder-empty-title">Erreur lors de la récupération</span>
+                <span class="ladder-empty-desc">${err.message}</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+    } finally {
+      this.isLadderLoading = false;
+      refreshIcon?.classList.remove('spinning');
     }
   }
 

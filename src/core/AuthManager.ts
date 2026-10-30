@@ -1,4 +1,4 @@
-import type { AuthResponse, AuthUser, SyncPlayerDataPayload } from '../types/auth';
+import type { AuthResponse, AuthUser, LadderEntry, LadderResponse, SyncPlayerDataPayload } from '../types/auth';
 import type { Inventory } from '../entities/Inventory';
 import { WalletManager } from './WalletManager';
 import { StashManager } from './StashManager';
@@ -231,6 +231,30 @@ export class AuthManager {
       }
     } catch (err: any) {
       console.warn('[AuthManager] Impossible de rafraîchir les données joueur :', err.message);
+    }
+  }
+
+  /**
+   * Récupère le classement officiel des joueurs (Ladder) depuis le serveur.
+   */
+  public static async fetchLadder(limit = 50): Promise<{ ladder: LadderEntry[]; offline?: boolean; error?: string }> {
+    try {
+      const res = await fetch(`/api/ladder?limit=${encodeURIComponent(limit)}`);
+      const data = (await res.json()) as LadderResponse;
+      if (!res.ok || !data.success) {
+        return { ladder: [], error: data.error || 'Erreur lors de la récupération du ladder' };
+      }
+      return {
+        ladder: data.ladder || [],
+        offline: data.offline,
+        error: data.offline ? data.message : undefined,
+      };
+    } catch (err: any) {
+      return {
+        ladder: [],
+        offline: true,
+        error: `Impossible de joindre le serveur : ${err.message}`,
+      };
     }
   }
 

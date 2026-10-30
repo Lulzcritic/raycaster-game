@@ -117,11 +117,15 @@ export class Database {
           raids_won INT NOT NULL DEFAULT 0,
           monsters_killed INT NOT NULL DEFAULT 0,
           bosses_killed INT NOT NULL DEFAULT 0,
+          max_gear_score INT NOT NULL DEFAULT 0,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS max_gear_score INT NOT NULL DEFAULT 0;
+
       CREATE INDEX IF NOT EXISTS idx_player_profiles_coins ON player_profiles(coins);
+      CREATE INDEX IF NOT EXISTS idx_player_profiles_max_gear_score ON player_profiles(max_gear_score DESC);
 
       CREATE TABLE IF NOT EXISTS player_inventories (
           player_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

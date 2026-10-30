@@ -27,8 +27,21 @@ export interface DbPlayerProfile {
   raids_won: number;
   monsters_killed: number;
   bosses_killed: number;
+  max_gear_score: number;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface LadderEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  maxGearScore: number;
+  level: number;
+  raidsWon: number;
+  monstersKilled: number;
+  bossesKilled: number;
+  updatedAt: string;
 }
 
 export type EquippedItemsMap = Partial<Record<EquipmentSlot, EquipmentItem>>;

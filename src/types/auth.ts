@@ -35,6 +35,26 @@ export interface AuthResponse {
   message?: string;
 }
 
+export interface LadderEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  maxGearScore: number;
+  level: number;
+  raidsWon: number;
+  monstersKilled: number;
+  bossesKilled: number;
+  updatedAt?: string;
+}
+
+export interface LadderResponse {
+  success: boolean;
+  ladder: LadderEntry[];
+  offline?: boolean;
+  message?: string;
+  error?: string;
+}
+
 export interface SyncPlayerDataPayload {
   coins?: number;
   stats?: Record<string, any>;

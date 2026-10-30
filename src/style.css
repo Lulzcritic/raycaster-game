@@ -2686,6 +2686,26 @@ body {
   filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
 }
 
+/* Bouton Classement sur le menu principal */
+.main-menu-btn-ladder {
+  font-size: 16px;
+  padding: 13px 20px;
+  color: #fde047;
+  background:
+    linear-gradient(#2a2211, #2a2211) padding-box,
+    repeating-conic-gradient(#eab308 0% 25%, #713f12 0% 50%) 0 0 / 4px 4px border-box;
+  box-shadow: inset 0 0 0 2px #1c1508;
+}
+
+.main-menu-btn-ladder:hover {
+  background:
+    linear-gradient(#3a3018, #3a3018) padding-box,
+    repeating-conic-gradient(#fde047 0% 25%, #a16207 0% 50%) 0 0 / 4px 4px border-box;
+  color: #ffffff;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 6px 0 #000000) drop-shadow(6px 0 0 #000000) drop-shadow(-2px 0 0 #000000) drop-shadow(0 -2px 0 #000000);
+}
+
 /* Badge de statut du compte */
 .main-menu-account-status {
   display: flex;
@@ -5348,6 +5368,392 @@ body {
     color: #e0e7ff;
     text-shadow: 0 0 10px rgba(129, 140, 248, 0.8);
   }
+}
+
+/* =========================================================================
+   VUE CLASSEMENT (LADDER & GEAR SCORE RANKING)
+   ========================================================================= */
+.hub-ladder-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+  max-height: calc(100% - 10px);
+  max-width: 960px;
+  width: 100%;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+.hub-ladder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+}
+
+.hub-ladder-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.hub-ladder-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: var(--font-medieval);
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #fde047;
+  background: radial-gradient(circle at center, #2e2040 0%, #170f24 100%);
+  border: 2px solid #8b5cf6;
+  clip-path: var(--pixel-notch-small);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 0 6px rgba(139, 92, 246, 0.3);
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.hub-ladder-refresh-btn:hover {
+  background: radial-gradient(circle at center, #422d5c 0%, #201533 100%);
+  border-color: #a78bfa;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.hub-ladder-refresh-btn:active {
+  transform: translateY(1px);
+}
+
+.refresh-icon.spinning {
+  display: inline-block;
+  animation: spinIcon 0.8s linear infinite;
+}
+
+@keyframes spinIcon {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tableau du ladder */
+.hub-ladder-table-wrapper {
+  flex: 1;
+  min-height: 0;
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: rgba(13, 10, 24, 0.82);
+  backdrop-filter: blur(8px);
+  border: 2px solid #3b2a59;
+  clip-path: var(--pixel-notch-box);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.8), 0 6px 18px rgba(0, 0, 0, 0.6);
+  padding: 4px;
+}
+
+.hub-ladder-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 4px;
+  text-align: left;
+  font-family: 'Alagard', monospace;
+  font-size: 13px;
+}
+
+.hub-ladder-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #191228;
+  color: #facc15;
+  font-family: var(--font-medieval);
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 10px 14px;
+  border-bottom: 2px solid #5b21b6;
+  text-shadow: 1px 1px 0 #000;
+  white-space: nowrap;
+}
+
+.th-rank { width: 70px; text-align: center; }
+.th-adventurer { width: 220px; }
+.th-gearscore { width: 140px; }
+.th-tier { width: 130px; text-align: center; }
+.th-extractions { width: 120px; text-align: center; }
+.th-slain { width: 110px; text-align: center; }
+
+.ladder-row {
+  background: rgba(22, 17, 38, 0.75);
+  transition: background 0.1s ease, transform 0.1s ease;
+}
+
+.ladder-row:hover {
+  background: rgba(43, 33, 73, 0.85);
+}
+
+.ladder-row td {
+  padding: 9px 14px;
+  color: #e2e8f0;
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+  white-space: nowrap;
+}
+
+.td-rank { text-align: center; }
+.td-tier { text-align: center; }
+.td-extractions { text-align: center; }
+.td-slain { text-align: center; }
+
+/* Podium Rangs 1, 2, 3 */
+.ladder-row.top-1 {
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.22) 0%, rgba(26, 20, 42, 0.8) 100%);
+  border-left: 3px solid #facc15;
+}
+
+.ladder-row.top-2 {
+  background: linear-gradient(90deg, rgba(226, 232, 240, 0.16) 0%, rgba(26, 20, 42, 0.8) 100%);
+  border-left: 3px solid #cbd5e1;
+}
+
+.ladder-row.top-3 {
+  background: linear-gradient(90deg, rgba(251, 146, 60, 0.16) 0%, rgba(26, 20, 42, 0.8) 100%);
+  border-left: 3px solid #fb923c;
+}
+
+/* Ligne du joueur connecté */
+.ladder-row.is-current-user {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.22) 0%, rgba(31, 24, 52, 0.9) 100%) !important;
+  border: 1px solid #10b981;
+  box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.ladder-rank-badge {
+  display: inline-block;
+  font-family: var(--font-medieval);
+  font-size: 14px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #94a3b8;
+}
+
+.ladder-rank-badge.rank-1 {
+  color: #facc15;
+  text-shadow: 0 0 6px rgba(250, 204, 21, 0.6), 1px 1px 0 #000;
+  font-size: 15px;
+}
+
+.ladder-rank-badge.rank-2 {
+  color: #e2e8f0;
+  text-shadow: 0 0 6px rgba(226, 232, 240, 0.5), 1px 1px 0 #000;
+  font-size: 15px;
+}
+
+.ladder-rank-badge.rank-3 {
+  color: #fdba74;
+  text-shadow: 0 0 6px rgba(253, 186, 116, 0.5), 1px 1px 0 #000;
+  font-size: 15px;
+}
+
+.ladder-adventurer-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ladder-adventurer-name {
+  font-family: var(--font-medieval);
+  font-size: 15px;
+  color: #f8fafc;
+  letter-spacing: 0.5px;
+}
+
+.ladder-you-badge {
+  font-size: 10px;
+  font-weight: bold;
+  color: #042f2e;
+  background: #34d399;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+}
+
+.ladder-gs-val {
+  font-family: var(--font-medieval);
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.ladder-tier-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  background: rgba(10, 8, 16, 0.6);
+  letter-spacing: 0.5px;
+}
+
+.ladder-extractions-val {
+  color: #fef08a;
+  font-size: 12px;
+}
+
+.ladder-slain-val {
+  color: #f87171;
+  font-size: 12px;
+}
+
+/* États vides et de chargement */
+.ladder-loading-row td,
+.ladder-empty-row td {
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.ladder-loading-box,
+.ladder-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #94a3b8;
+}
+
+.ladder-loading-spinner {
+  font-size: 24px;
+  color: #a855f7;
+  animation: runePulse 1.5s ease-in-out infinite;
+}
+
+.ladder-empty-icon {
+  font-size: 32px;
+}
+
+.ladder-empty-title {
+  font-family: var(--font-medieval);
+  font-size: 17px;
+  color: #facc15;
+}
+
+.ladder-empty-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  max-width: 480px;
+  line-height: 1.4;
+}
+
+/* Carte position utilisateur en bas */
+.hub-ladder-current-user-card {
+  width: 100%;
+  margin-top: auto;
+}
+
+.ladder-user-card-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(15, 12, 28, 0.92);
+  border: 2px solid #8b5cf6;
+  clip-path: var(--pixel-notch-box);
+  padding: 10px 18px;
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.35);
+}
+
+.ladder-user-card-avatar {
+  font-size: 26px;
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.7));
+}
+
+.ladder-user-card-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.ladder-user-card-tag {
+  font-size: 10px;
+  color: #c084fc;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.ladder-user-card-username {
+  font-family: var(--font-medieval);
+  font-size: 18px;
+  color: #fef08a;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.ladder-user-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-left: auto;
+}
+
+.ladder-user-stat-block {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ladder-user-stat-block .stat-lbl {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.ladder-user-stat-block .stat-val {
+  font-family: var(--font-medieval);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.ladder-user-stat-block .stat-val.rank-val {
+  color: #facc15;
+}
+
+.ladder-user-card-guest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(24, 18, 12, 0.9);
+  border: 1px dashed #d97706;
+  border-radius: 4px;
+  padding: 8px 16px;
+}
+
+.guest-warning-icon {
+  font-size: 20px;
+}
+
+.guest-warning-text {
+  font-size: 12px;
+  color: #fde68a;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.ladder-login-btn {
+  margin-left: auto;
+  font-size: 13px !important;
+  padding: 8px 16px !important;
+  white-space: nowrap;
 }
 
 

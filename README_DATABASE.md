@@ -59,6 +59,7 @@ Le script d'initialisation automatique est situé dans [`docker/postgres/init.sq
    - `id` (UUID, clé primaire reliée à `users.id`)
    - `level` (INT, défaut 1)
    - `coins` (INT, solde de pièces d'or, défaut 100)
+   - `max_gear_score` (INT, score d'équipement maximum historique atteint, indexé)
    - `raids_played`, `raids_won`, `monsters_killed`, `bosses_killed` (INT)
    - `stats` (JSONB, statistiques de vie, mana, vitesse, etc.)
 
@@ -89,6 +90,31 @@ Tous les endpoints gèrent automatiquement les requêtes prévol CORS (`OPTIONS`
   - Réponse :
     ```json
     { "online": true, "totalCount": 1, "idleCount": 1, "waitingCount": 0 }
+    ```
+
+---
+
+### 🏆 Classement Officiel (Ladder selon Gear Score Max)
+- **`GET /api/ladder?limit=50`**
+  - **Authentification** : Non requise (public)
+  - Réponse HTTP 200 :
+    ```json
+    {
+      "success": true,
+      "ladder": [
+        {
+          "rank": 1,
+          "userId": "b3e045f2-...",
+          "username": "ShadowArchmage",
+          "maxGearScore": 1420,
+          "level": 10,
+          "raidsWon": 45,
+          "monstersKilled": 320,
+          "bossesKilled": 8,
+          "updatedAt": "2026-10-30T17:00:00.000Z"
+        }
+      ]
+    }
     ```
 
 ---

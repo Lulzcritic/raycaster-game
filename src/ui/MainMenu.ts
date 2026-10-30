@@ -14,6 +14,7 @@ export class MainMenu {
   private readonly settingsView: HTMLElement | null;
   private readonly playBtn: HTMLButtonElement | null;
   private readonly authBtn: HTMLButtonElement | null;
+  private readonly ladderBtn: HTMLButtonElement | null;
   private readonly accountBadge: HTMLElement | null;
   private readonly settingsBtn: HTMLButtonElement | null;
   private readonly settingsBackBtn: HTMLButtonElement | null;
@@ -25,12 +26,14 @@ export class MainMenu {
   private unsubscribeAuth?: () => void;
 
   private onPlayCallback?: () => void;
+  private onLadderCallback?: () => void;
   private onFovChangeCallback?: (fovDegrees: number) => void;
 
   constructor(
     onPlay?: () => void,
     onFovChange?: (fovDegrees: number) => void,
-    initialFovDegrees = 75
+    initialFovDegrees = 75,
+    onLadder?: () => void
   ) {
     this.menuElement = document.getElementById('main-menu');
     this.logoImg = document.getElementById('main-menu-logo') as HTMLImageElement | null;
@@ -38,6 +41,7 @@ export class MainMenu {
     this.settingsView = document.getElementById('main-menu-settings-view');
     this.playBtn = document.getElementById('main-play-btn') as HTMLButtonElement | null;
     this.authBtn = document.getElementById('main-auth-btn') as HTMLButtonElement | null;
+    this.ladderBtn = document.getElementById('main-ladder-btn') as HTMLButtonElement | null;
     this.accountBadge = document.getElementById('main-menu-account-badge');
     this.settingsBtn = document.getElementById('main-settings-btn') as HTMLButtonElement | null;
     this.settingsBackBtn = document.getElementById('main-settings-back-btn') as HTMLButtonElement | null;
@@ -47,6 +51,7 @@ export class MainMenu {
     this.coinText = document.getElementById('main-menu-coin-text');
 
     this.onPlayCallback = onPlay;
+    this.onLadderCallback = onLadder;
     this.onFovChangeCallback = onFovChange;
 
     this.authModal = new AuthModal(() => {
@@ -72,6 +77,7 @@ export class MainMenu {
 
     this.playBtn?.addEventListener('click', this.handlePlayClick);
     this.authBtn?.addEventListener('click', this.handleAuthClick);
+    this.ladderBtn?.addEventListener('click', this.handleLadderClick);
     this.settingsBtn?.addEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.addEventListener('click', this.handleBackClick);
     this.fovSlider?.addEventListener('input', this.handleFovInput);
@@ -84,6 +90,11 @@ export class MainMenu {
 
   private readonly handlePlayClick = (): void => {
     this.onPlayCallback?.();
+  };
+
+  private readonly handleLadderClick = (): void => {
+    SoundManager.playButtonSound();
+    this.onLadderCallback?.();
   };
 
   private readonly handleAuthClick = (): void => {
@@ -189,6 +200,7 @@ export class MainMenu {
   public destroy(): void {
     this.playBtn?.removeEventListener('click', this.handlePlayClick);
     this.authBtn?.removeEventListener('click', this.handleAuthClick);
+    this.ladderBtn?.removeEventListener('click', this.handleLadderClick);
     this.settingsBtn?.removeEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.removeEventListener('click', this.handleBackClick);
     this.fovSlider?.removeEventListener('input', this.handleFovInput);

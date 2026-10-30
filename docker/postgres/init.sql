@@ -45,11 +45,13 @@ CREATE TABLE IF NOT EXISTS player_profiles (
     raids_won INT NOT NULL DEFAULT 0,
     monsters_killed INT NOT NULL DEFAULT 0,
     bosses_killed INT NOT NULL DEFAULT 0,
+    max_gear_score INT NOT NULL DEFAULT 0, -- Gear Score maximum historique atteint
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_player_profiles_coins ON player_profiles(coins);
+CREATE INDEX IF NOT EXISTS idx_player_profiles_max_gear_score ON player_profiles(max_gear_score DESC);
 
 -- 4. Table des inventaires des joueurs (équipement actif et réserve/coffre du campement)
 CREATE TABLE IF NOT EXISTS player_inventories (

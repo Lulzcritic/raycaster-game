@@ -318,6 +318,9 @@
             <button id="main-auth-btn" class="main-menu-btn main-menu-btn-secondary main-menu-btn-auth" type="button">
               SE CONNECTER / S'INSCRIRE
             </button>
+            <button id="main-ladder-btn" class="main-menu-btn main-menu-btn-secondary main-menu-btn-ladder" type="button">
+              CLASSEMENT (LADDER)
+            </button>
             <button id="main-settings-btn" class="main-menu-btn main-menu-btn-secondary" type="button">
               PARAMÈTRES
             </button>
@@ -398,6 +401,9 @@
             </button>
             <button id="hub-tab-equipment" class="hub-nav-tab" type="button" data-tab="equipment">
               ÉQUIPEMENT
+            </button>
+            <button id="hub-tab-ladder" class="hub-nav-tab" type="button" data-tab="ladder">
+              CLASSEMENT
             </button>
             <button id="hub-tab-shop" class="hub-nav-tab hub-nav-tab-disabled" type="button" data-tab="shop" disabled title="Bientôt disponible dans une prochaine version">
               <span>BOUTIQUE</span>
@@ -498,6 +504,43 @@
                   <h3 class="hub-sub-title">STATISTIQUES DU HÉROS</h3>
                   <div id="hub-full-stats" class="hub-full-stats"></div>
                 </div>
+              </div>
+            </section>
+
+            <!-- Onglet CLASSEMENT (LADDER) -->
+            <section id="hub-view-ladder" class="hub-view hidden">
+              <div class="hub-ladder-container">
+                <div class="hub-ladder-header">
+                  <div class="hub-ladder-title-group">
+                    <h2 class="hub-view-title">PANTHÉON DES AVENTURIERS (LADDER)</h2>
+                    <p class="hub-view-subtitle">Classement officiel de la Citadelle selon le Gear Score maximum atteint par chaque explorateur.</p>
+                  </div>
+                  <button id="hub-ladder-refresh-btn" class="hub-ladder-refresh-btn" type="button" title="Actualiser le classement">
+                    <span class="refresh-icon">🔄</span> ACTUALISER
+                  </button>
+                </div>
+
+                <!-- Tableau du Classement -->
+                <div class="hub-ladder-table-wrapper">
+                  <table class="hub-ladder-table">
+                    <thead>
+                      <tr>
+                        <th class="th-rank">RANG</th>
+                        <th class="th-adventurer">AVENTURIER</th>
+                        <th class="th-gearscore">GEAR SCORE MAX</th>
+                        <th class="th-tier">RANG DE PUISSANCE</th>
+                        <th class="th-extractions">EXTRACTIONS</th>
+                        <th class="th-slain">MONSTRES</th>
+                      </tr>
+                    </thead>
+                    <tbody id="hub-ladder-tbody">
+                      <!-- Lignes générées dynamiquement -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Carte de position du joueur actuel -->
+                <div id="hub-ladder-current-user-card" class="hub-ladder-current-user-card"></div>
               </div>
             </section>
 

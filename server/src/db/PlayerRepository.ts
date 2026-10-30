@@ -3,6 +3,7 @@ import type {
   DbPlayerInventory,
   DbPlayerProfile,
   EquippedItemsMap,
+  LadderEntry,
   SavePlayerDataPayload,
 } from './types';
 import type { EquipmentItem } from '../../../src/types';
@@ -110,6 +111,11 @@ export class PlayerRepository {
       if (payload.bossesKilled !== undefined && payload.bossesKilled > 0) {
         profileUpdates.push(`bosses_killed = bosses_killed + $${pIdx++}`);
         profileParams.push(payload.bossesKilled);
+      }
+
+      if (payload.gearScore !== undefined && payload.gearScore > 0) {
+        profileUpdates.push(`max_gear_score = GREATEST(max_gear_score, $${pIdx++})`);
+        profileParams.push(Math.floor(payload.gearScore));
       }
 
       if (payload.raidOutcome) {
@@ -221,5 +227,49 @@ export class PlayerRepository {
       [userId, validTotal]
     );
     return res.rows[0]?.coins ?? 0;
+  }
+
+  /**
+   * Récupère le classement officiel des joueurs (Ladder) classés selon leur Gear Score maximum atteint.
+   */
+  public static async getLadder(limit: number = 50): Promise<LadderEntry[]> {
+    const validLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+    const res = await Database.query<{
+      id: string;
+      username: string;
+      max_gear_score: number;
+      level: number;
+      raids_won: number;
+      monsters_killed: number;
+      bosses_killed: number;
+      updated_at: Date;
+    }>(
+      `SELECT 
+         id,
+         username,
+         COALESCE(max_gear_score, 0) as max_gear_score,
+         level,
+         raids_won,
+         monsters_killed,
+         bosses_killed,
+         updated_at
+       FROM player_profiles
+       WHERE max_gear_score > 0 OR raids_played > 0 OR monsters_killed > 0
+       ORDER BY max_gear_score DESC, raids_won DESC, monsters_killed DESC, updated_at DESC
+       LIMIT $1`,
+      [validLimit]
+    );
+
+    return res.rows.map((row, index) => ({
+      rank: index + 1,
+      userId: row.id,
+      username: row.username,
+      maxGearScore: Number(row.max_gear_score) || 0,
+      level: Number(row.level) || 1,
+      raidsWon: Number(row.raids_won) || 0,
+      monstersKilled: Number(row.monsters_killed) || 0,
+      bossesKilled: Number(row.bosses_killed) || 0,
+      updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+    }));
   }
 }

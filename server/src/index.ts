@@ -209,7 +209,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 8. Distribution des fichiers statiques du client (si dist/ existe)
+  // 8. Classement officiel des joueurs (Ladder selon le Gear Score max)
+  if (req.method === 'GET' && pathName === '/api/ladder') {
+    if (!Database.isConnected()) {
+      sendJson(res, 200, {
+        success: true,
+        offline: true,
+        ladder: [],
+        message: 'PostgreSQL est actuellement hors-ligne (mode mémoire)',
+      });
+      return;
+    }
+    try {
+      const parsedUrl = new URL(req.url ?? '', `http://${req.headers.host || 'localhost'}`);
+      const limitParam = Number(parsedUrl.searchParams.get('limit')) || 50;
+      const ladder = await PlayerRepository.getLadder(limitParam);
+      sendJson(res, 200, { success: true, ladder });
+    } catch (err: any) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  // 9. Distribution des fichiers statiques du client (si dist/ existe)
   if (fs.existsSync(DIST_DIR)) {
     const cleanUrl = pathName === '/' ? '/index.html' : pathName;
     const safePath = path.normalize(cleanUrl).replace(/^(\.\.[/\\])+/, '');

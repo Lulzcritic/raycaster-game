@@ -112,6 +112,36 @@ async function runTests() {
   await SoundManager.preloadBossMusics();
   console.log('   ✅ Cycle de combat musical et gestion des états validés.');
 
+  console.log('8. Test du système de coupure audio (Mute Musique & Mute SFX)...');
+  // Réinitialisation préalable des états muets
+  SoundManager.setMusicMuted(false);
+  SoundManager.setSfxMuted(false);
+  assert.strictEqual(SoundManager.isMusicMute(), false, 'La musique doit être active par défaut');
+  assert.strictEqual(SoundManager.isSfxMute(), false, 'Les SFX doivent être actifs par défaut');
+
+  // Basculement de la musique
+  const musicMutedResult = SoundManager.toggleMusicMute();
+  assert.strictEqual(musicMutedResult, true, 'toggleMusicMute() doit retourner true quand muet');
+  assert.strictEqual(SoundManager.isMusicMute(), true);
+
+  // Basculement des effets sonores
+  const sfxMutedResult = SoundManager.toggleSfxMute();
+  assert.strictEqual(sfxMutedResult, true, 'toggleSfxMute() doit retourner true quand muet');
+  assert.strictEqual(SoundManager.isSfxMute(), true);
+
+  // Exécution de sons en état muet : ne doit provoquer aucune erreur et s'interrompre immédiatement
+  SoundManager.playButtonSound();
+  SoundManager.play2D('button');
+  SoundManager.play3D('chestOpening', 1, 1);
+  SoundManager.playMenuMusic();
+
+  // Rétablissement explicite
+  SoundManager.setMusicMuted(false);
+  SoundManager.setSfxMuted(false);
+  assert.strictEqual(SoundManager.isMusicMute(), false);
+  assert.strictEqual(SoundManager.isSfxMute(), false);
+  console.log('   ✅ Toggles et coupure audio validés (isMusicMute & isSfxMute).');
+
   console.log('\n======================================================');
   console.log('🎉 TOUS LES TESTS DU SOUNDMANAGER ONT RÉUSSI !');
   console.log('======================================================\n');

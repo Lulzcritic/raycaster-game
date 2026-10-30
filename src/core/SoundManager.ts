@@ -70,12 +70,28 @@ export class SoundManager {
 
   private static musicVolume = 0.35;
   private static sfxVolume = 0.50;
+  private static isMusicMuted = false;
+  private static isSfxMuted = false;
 
   public static init(): void {
     if (this.isInitialized || typeof window === 'undefined') {
       return;
     }
     this.isInitialized = true;
+
+    // Restauration des préférences de coupure audio
+    try {
+      const savedMusicMuted = localStorage.getItem('raycaster_music_muted');
+      if (savedMusicMuted !== null) {
+        this.isMusicMuted = savedMusicMuted === 'true';
+      }
+      const savedSfxMuted = localStorage.getItem('raycaster_sfx_muted');
+      if (savedSfxMuted !== null) {
+        this.isSfxMuted = savedSfxMuted === 'true';
+      }
+    } catch {
+      // Ignorer restrictions locales
+    }
 
     // 1. Initialisation de l'AudioContext Web Audio
     try {
@@ -95,6 +111,7 @@ export class SoundManager {
       this.musicAudio = new Audio(menuMusicUrl);
       this.musicAudio.loop = true;
       this.musicAudio.volume = this.musicVolume;
+      this.musicAudio.muted = this.isMusicMuted;
       this.musicAudio.preload = 'auto';
     } catch (err) {
       console.warn('[SoundManager] Impossible d initialiser la musique :', err);
@@ -108,6 +125,7 @@ export class SoundManager {
       for (let i = 0; i < this.POOL_SIZE; i++) {
         const sfx = new Audio(SOUND_EFFECT_URLS.button);
         sfx.volume = this.sfxVolume;
+        sfx.muted = this.isSfxMuted;
         sfx.preload = 'auto';
         this.buttonPool.push(sfx);
       }
@@ -294,6 +312,7 @@ export class SoundManager {
     sourceY: number,
     options?: Play3DOptions
   ): void {
+    if (this.isSfxMuted) return;
     if (typeof window === 'undefined') return;
     if (!this.isInitialized) {
       this.init();
@@ -349,6 +368,7 @@ export class SoundManager {
    * Joue un son direct 2D (sans atténuation spatiale), par exemple les actions du joueur ou l'UI.
    */
   public static play2D(soundName: SoundEffectName, options?: PlayOptions): void {
+    if (this.isSfxMuted) return;
     if (typeof window === 'undefined') return;
     if (!this.isInitialized) {
       this.init();
@@ -438,6 +458,7 @@ export class SoundManager {
    * Déclenche le son de clic de bouton (utilise Web Audio ou le pool HTML5 de secours).
    */
   public static playButtonSound(): void {
+    if (this.isSfxMuted) return;
     if (typeof window === 'undefined') return;
     if (!this.isInitialized) {
       this.init();
@@ -481,6 +502,7 @@ export class SoundManager {
 
     this.isMusicPlaying = true;
     this.musicAudio.volume = this.musicVolume;
+    this.musicAudio.muted = this.isMusicMuted;
 
     const playPromise = this.musicAudio.play();
     if (playPromise !== undefined) {
@@ -617,6 +639,7 @@ export class SoundManager {
     }
 
     this.currentBossAudio = audio;
+    audio.muted = this.isMusicMuted;
 
     try {
       audio.currentTime = 0;
@@ -748,5 +771,71 @@ export class SoundManager {
     for (const sfx of this.buttonPool) {
       sfx.volume = this.sfxVolume;
     }
+  }
+
+  /**
+   * Indique si la musique est actuellement coupée (muette).
+   */
+  public static isMusicMute(): boolean {
+    return this.isMusicMuted;
+  }
+
+  /**
+   * Indique si les effets sonores (SFX) sont actuellement coupés (muets).
+   */
+  public static isSfxMute(): boolean {
+    return this.isSfxMuted;
+  }
+
+  /**
+   * Active ou coupe la musique du jeu (menu, hub, combat de boss).
+   */
+  public static setMusicMuted(muted: boolean): void {
+    this.isMusicMuted = muted;
+    if (this.musicAudio) {
+      this.musicAudio.muted = muted;
+    }
+    if (this.currentBossAudio) {
+      this.currentBossAudio.muted = muted;
+    }
+    for (const audio of this.bossAudios.values()) {
+      audio.muted = muted;
+    }
+    try {
+      localStorage.setItem('raycaster_music_muted', String(muted));
+    } catch {
+      // Ignorer
+    }
+  }
+
+  /**
+   * Active ou coupe tous les effets sonores du jeu (SFX 2D/3D, bruits de pas, coffres, boutons).
+   */
+  public static setSfxMuted(muted: boolean): void {
+    this.isSfxMuted = muted;
+    for (const sfx of this.buttonPool) {
+      sfx.muted = muted;
+    }
+    try {
+      localStorage.setItem('raycaster_sfx_muted', String(muted));
+    } catch {
+      // Ignorer
+    }
+  }
+
+  /**
+   * Bascule l'état de la musique (on/off). Retourne le nouvel état muet.
+   */
+  public static toggleMusicMute(): boolean {
+    this.setMusicMuted(!this.isMusicMuted);
+    return this.isMusicMuted;
+  }
+
+  /**
+   * Bascule l'état des effets sonores (on/off). Retourne le nouvel état muet.
+   */
+  public static toggleSfxMute(): boolean {
+    this.setSfxMuted(!this.isSfxMuted);
+    return this.isSfxMuted;
   }
 }

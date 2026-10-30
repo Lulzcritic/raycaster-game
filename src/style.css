@@ -278,6 +278,94 @@ body {
   filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000) drop-shadow(-1px 0 0 #000000) drop-shadow(0 -1px 0 #000000);
 }
 
+/* ==========================================================================
+   CONTRÔLES AUDIO (PAUSE MENU & PARAMÈTRES)
+   ========================================================================== */
+
+.pause-audio-btn-group,
+.setting-audio-group {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
+}
+
+.pause-btn-audio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #bae6fd;
+  border: 3px solid transparent;
+  clip-path: var(--pixel-notch-small);
+  background:
+    linear-gradient(#0e2a38, #0e2a38) padding-box,
+    repeating-conic-gradient(#38bdf8 0% 25%, #0369a1 0% 50%) 0 0 / 4px 4px border-box;
+  box-shadow: inset 0 0 0 2px #04141e;
+  text-shadow: 2px 2px 0 #000000;
+  cursor: pointer;
+  user-select: none;
+  filter: drop-shadow(0 3px 0 #000000) drop-shadow(3px 0 0 #000000);
+  transition: transform 0.08s steps(2), filter 0.08s steps(2);
+  white-space: nowrap;
+}
+
+.pause-btn-audio:hover {
+  background:
+    linear-gradient(#153e53, #153e53) padding-box,
+    repeating-conic-gradient(#7dd3fc 0% 25%, #0284c7 0% 50%) 0 0 / 4px 4px border-box;
+  color: #f0f9ff;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 5px 0 #000000) drop-shadow(5px 0 0 #000000);
+}
+
+.pause-btn-audio:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 2px #02090e;
+  filter: drop-shadow(0 1px 0 #000000) drop-shadow(1px 0 0 #000000);
+}
+
+/* État coupé (muet) */
+.pause-btn-audio.is-muted {
+  color: #fca5a5;
+  background:
+    linear-gradient(#2d1518, #2d1518) padding-box,
+    repeating-conic-gradient(#f87171 0% 25%, #991b1b 0% 50%) 0 0 / 4px 4px border-box;
+  box-shadow: inset 0 0 0 2px #18090a;
+  opacity: 0.85;
+}
+
+.pause-btn-audio.is-muted:hover {
+  background:
+    linear-gradient(#411e22, #411e22) padding-box,
+    repeating-conic-gradient(#fca5a5 0% 25%, #b91c1c 0% 50%) 0 0 / 4px 4px border-box;
+  color: #fff1f2;
+  opacity: 1;
+}
+
+.pause-btn-audio.is-muted:active {
+  background:
+    linear-gradient(#1f0d0f, #1f0d0f) padding-box,
+    repeating-conic-gradient(#b91c1c 0% 25%, #7f1d1d 0% 50%) 0 0 / 4px 4px border-box;
+}
+
+.audio-btn-icon {
+  font-size: 15px;
+  line-height: 1;
+  display: inline-block;
+  transform: translateY(-1px);
+}
+
+.audio-btn-text {
+  font-family: var(--font-medieval);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
 .settings-group {
   width: 100%;
   display: flex;

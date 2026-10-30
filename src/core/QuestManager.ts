@@ -1,4 +1,5 @@
 import { WalletManager } from './WalletManager';
+import { I18nService } from './I18nService';
 
 export interface Quest {
   id: string;
@@ -93,6 +94,14 @@ export class QuestManager {
       console.warn('Impossible de charger les quêtes :', err);
     }
     this.isInitialized = true;
+  }
+
+  public static getQuestLocalized(quest: Quest): Quest {
+    return {
+      ...quest,
+      title: I18nService.t(`quest.${quest.id}.title`),
+      description: I18nService.t(`quest.${quest.id}.desc`),
+    };
   }
 
   public static getQuests(): readonly Quest[] {

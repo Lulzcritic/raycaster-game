@@ -1,5 +1,6 @@
 import type { ItemStats } from '../types';
 import { WalletManager } from './WalletManager';
+import { I18nService } from './I18nService';
 
 export type UpgradeId = 'vitality' | 'power' | 'defense' | 'speed' | 'casting';
 
@@ -96,6 +97,16 @@ export class UpgradeManager {
       console.warn('Impossible de charger les améliorations :', err);
     }
     this.isInitialized = true;
+  }
+
+  public static getUpgradeLocalized(id: UpgradeId): UpgradeDefinition {
+    const def = UPGRADE_DEFINITIONS[id];
+    return {
+      ...def,
+      name: I18nService.t(`upgrade.${id}.name`),
+      description: I18nService.t(`upgrade.${id}.desc`),
+      statEffect: I18nService.t(`upgrade.${id}.effect`),
+    };
   }
 
   public static getLevel(id: UpgradeId): number {

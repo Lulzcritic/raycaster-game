@@ -3,6 +3,7 @@ import { RARITY_COLORS } from '../entities/ItemCardBillboard';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 import { WalletManager } from '../core/WalletManager';
+import { I18nService } from '../core/I18nService';
 import type { SquadSummaryPayload } from '../types/network';
 
 const SLOT_NAMES: Record<string, string> = {
@@ -205,22 +206,26 @@ export class HUDOverlay {
       }
     }
 
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
+
     if (this.healthText) {
-      const slowSuffix = player.isSlowed() ? ' [GLAÇAGE : -55% VIT]' : '';
-      this.healthText.textContent = `PV ${Math.ceil(hp)} / ${maxHp}${slowSuffix}`;
+      const slowSuffix = player.isSlowed()
+        ? (isFr ? ' [GLAÇAGE : -55% VIT]' : ' [CHILLED: -55% SPD]')
+        : '';
+      this.healthText.textContent = `${isFr ? 'PV' : 'HP'} ${Math.ceil(hp)} / ${maxHp}${slowSuffix}`;
       this.healthText.style.color = player.isSlowed() ? '#fdba74' : '#ffffff';
     }
 
     // Zone & Chronomètre
     const distFromCenter = Math.hypot(player.x - 32, player.y - 32);
-    let zoneName = 'ZONE 1 - QUARTIER DE DEPART';
+    let zoneName = isFr ? 'ZONE 1 - QUARTIER DE DÉPART' : 'ZONE 1 - STARTING DISTRICT';
     let zoneColor = '#38bdf8';
 
     if (distFromCenter <= 7) {
-      zoneName = 'ZONE 3 - SANCTUAIRE DU BOSS';
+      zoneName = isFr ? 'ZONE 3 - SANCTUAIRE DU BOSS' : 'ZONE 3 - BOSS SANCTUARY';
       zoneColor = '#ef4444';
     } else if (distFromCenter <= 19) {
-      zoneName = 'ZONE 2 - ANNEAU CENTRAL (PARTAGEE)';
+      zoneName = isFr ? 'ZONE 2 - ANNEAU CENTRAL (PARTAGÉE)' : 'ZONE 2 - CENTRAL RING (SHARED)';
       zoneColor = '#f59e0b';
     }
 
@@ -304,15 +309,16 @@ export class HUDOverlay {
     raidTimerSec: number,
     lostHomonculusOnExtract = false
   ): void {
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
     const timerMin = Math.floor(raidTimerSec / 60);
     const timerSec = Math.floor(raidTimerSec % 60);
     const formattedTimer = `${timerMin.toString().padStart(2, '0')}:${timerSec.toString().padStart(2, '0')}`;
 
     if (this.extractionStats) {
       this.extractionStats.innerHTML = `
-        <span>⏱️ TEMPS DE RAID : <strong style="color: #f59e0b;">${formattedTimer}</strong></span>
-        <span>❤️ PV RESTANTS : <strong style="color: #ef4444;">${Math.ceil(player.health)}/${player.maxHealth}</strong></span>
-        <span>💰 BUTIN D'OR : <strong style="color: #fbbf24;">+${WalletManager.getSessionCoins()} (TOTAL : ${WalletManager.getCoins()})</strong></span>
+        <span>⏱️ ${isFr ? 'TEMPS DE RAID' : 'RAID TIME'} : <strong style="color: #f59e0b;">${formattedTimer}</strong></span>
+        <span>❤️ ${isFr ? 'PV RESTANTS' : 'REMAINING HP'} : <strong style="color: #ef4444;">${Math.ceil(player.health)}/${player.maxHealth}</strong></span>
+        <span>💰 ${isFr ? "BUTIN D'OR" : 'GOLD LOOT'} : <strong style="color: #fbbf24;">+${WalletManager.getSessionCoins()} (TOTAL : ${WalletManager.getCoins()})</strong></span>
       `;
     }
 
@@ -335,7 +341,8 @@ export class HUDOverlay {
           row.className = 'extraction-loot-row';
 
           const rarityColor = RARITY_COLORS[item.rarity] ?? '#ffffff';
-          const slotLabel = SLOT_NAMES[item.slot] ?? item.slot.toUpperCase();
+          const slotLabel = I18nService.getSlotLabel(item.slot) || SLOT_NAMES[item.slot] || item.slot.toUpperCase();
+          const translatedItem = I18nService.getItemTranslation(item);
           const spriteUrl = ItemSpriteManager.getItemSpriteUrl(item);
           const iconHtml = spriteUrl
             ? `<img src="${spriteUrl}" alt="" style="width: 20px; height: 20px; object-fit: contain; image-rendering: pixelated; margin-right: 6px; vertical-align: middle;">`
@@ -343,7 +350,7 @@ export class HUDOverlay {
 
           row.innerHTML = `
             <span class="extraction-loot-slot" style="display: flex; align-items: center;">${iconHtml}[${slotLabel}]</span>
-            <span class="extraction-loot-name" style="color: ${rarityColor};">${item.name}</span>
+            <span class="extraction-loot-name" style="color: ${rarityColor};">${translatedItem.name}</span>
           `;
           this.extractionLootList.appendChild(row);
         }
@@ -357,9 +364,9 @@ export class HUDOverlay {
         unextractableRow.style.paddingLeft = '8px';
         unextractableRow.style.marginTop = '6px';
         unextractableRow.innerHTML = `
-          <span class="extraction-loot-slot" style="color: #c084fc;">[NON EXTRACTIBLE]</span>
+          <span class="extraction-loot-slot" style="color: #c084fc;">[${isFr ? 'NON EXTRACTIBLE' : 'NON-EXTRACTABLE'}]</span>
           <span class="extraction-loot-name" style="color: #e879f9; text-decoration: line-through;">Homonculus</span>
-          <span style="font-size: 11px; color: #a855f7; margin-left: 6px;">(dissous dans le portail)</span>
+          <span style="font-size: 11px; color: #a855f7; margin-left: 6px;">(${isFr ? 'dissous dans le portail' : 'dissolved in portal'})</span>
         `;
         this.extractionLootList.appendChild(unextractableRow);
       }
@@ -367,7 +374,7 @@ export class HUDOverlay {
       if (!hasItems && !lostHomonculusOnExtract) {
         const emptyNotice = document.createElement('div');
         emptyNotice.className = 'extraction-loot-empty';
-        emptyNotice.textContent = '(Aucun équipement emporté)';
+        emptyNotice.textContent = isFr ? '(Aucun équipement emporté)' : '(No equipment carried)';
         this.extractionLootList.appendChild(emptyNotice);
       }
     }
@@ -382,19 +389,21 @@ export class HUDOverlay {
       return;
     }
 
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
+
     container.classList.remove('hidden');
     container.innerHTML = `
-      <div class="extraction-loot-title" style="margin-top: 12px; margin-bottom: 8px;">--- RAPPORT DE L'EXPÉDITION (JOUEURS) ---</div>
+      <div class="extraction-loot-title" style="margin-top: 12px; margin-bottom: 8px;">--- ${isFr ? "RAPPORT DE L'EXPÉDITION (JOUEURS)" : 'EXPEDITION REPORT (PLAYERS)'} ---</div>
       <div class="extraction-squad-grid" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
         ${squadSummary.players
           .map((p) => {
             const isExt = p.status === 'extracted';
             const isDead = p.status === 'dead';
             const statusHtml = isExt
-              ? `<span style="color: #34d399; font-weight: bold;">🏆 EXTRAIT (${p.portalName ?? 'Portail'})</span>`
+              ? `<span style="color: #34d399; font-weight: bold;">🏆 ${isFr ? 'EXTRAIT' : 'EXTRACTED'} (${p.portalName ?? (isFr ? 'Portail' : 'Portal')})</span>`
               : isDead
-              ? `<span style="color: #f87171; font-weight: bold;">💀 MORT</span>`
-              : `<span style="color: #60a5fa; font-weight: bold;">⚔️ EN DONJON</span>`;
+              ? `<span style="color: #f87171; font-weight: bold;">💀 ${isFr ? 'MORT' : 'DEAD'}</span>`
+              : `<span style="color: #60a5fa; font-weight: bold;">⚔️ ${isFr ? 'EN DONJON' : 'IN DUNGEON'}</span>`;
 
             return `
               <div class="extraction-squad-card ${p.status}" style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 12, 28, 0.7); border: 1px solid rgba(255, 255, 255, 0.15); padding: 6px 12px;">

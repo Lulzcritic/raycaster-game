@@ -26,7 +26,7 @@ async function runTests() {
     'index.html doit contenir l\'indicateur d\'état audio dans les paramètres du menu principal (#main-audio-indicator)'
   );
   assert.ok(
-    indexHtml.includes('RÉGLAGES AUDIO'),
+    indexHtml.includes('RÉGLAGES AUDIO') || indexHtml.includes('AUDIO SETTINGS'),
     'index.html doit afficher l\'en-tête de section "RÉGLAGES AUDIO"'
   );
   console.log('   ✅ Boutons audio et indicateur présents dans la vue Paramètres du Menu Principal.');

@@ -2,6 +2,7 @@ import type { EquipmentItem, ItemStats } from '../types';
 import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { GearScoreService } from '../core/GearScoreService';
+import { I18nService } from '../core/I18nService';
 
 export const ITEM_CARD_STAT_LABELS: Array<{
   key: keyof ItemStats;
@@ -59,16 +60,18 @@ export function fillItemCardElement(
   card.appendChild(iconWrapper);
 
   // 2. Nom de l'item avec la couleur liée à sa rareté
+  const trans = I18nService.getItemTranslation(item);
   const nameEl = document.createElement('div');
   nameEl.className = 'world-card-name';
-  nameEl.textContent = item.name;
+  nameEl.textContent = trans.name;
   nameEl.style.color = rarityColor;
   card.appendChild(nameEl);
 
   // Badge de rareté rétro pixel-art
   const badgeEl = document.createElement('div');
   badgeEl.className = 'world-card-rarity';
-  badgeEl.textContent = `[ ${RARITY_LABELS[item.rarity] ?? 'OBJET'} ]`;
+  const rarityLabel = I18nService.getRarityLabel(item.rarity) || (RARITY_LABELS[item.rarity] ?? 'ITEM');
+  badgeEl.textContent = `[ ${rarityLabel} ]`;
   badgeEl.style.color = rarityColor;
   badgeEl.style.borderColor = rarityColor;
   card.appendChild(badgeEl);
@@ -95,7 +98,7 @@ export function fillItemCardElement(
     }
   }
 
-  gsEl.innerHTML = `<span>⭐ PUISSANCE : ${gs}</span>${gsArrowHtml}`;
+  gsEl.innerHTML = `<span>${I18nService.t('tooltip.power', { score: gs })}</span>${gsArrowHtml}`;
   card.appendChild(gsEl);
 
   // 3. Stats de l'item avec flèches comparatives verte (haut) / rouge (bas)
@@ -133,9 +136,10 @@ export function fillItemCardElement(
           : ` [${range.min}-${range.max}]`)
       : '';
 
+    const statLabel = I18nService.t(`hub.stat_${statDef.key}`) || statDef.label;
     const labelText = statDef.isMultiplier
-      ? `${sign}${Math.round(rawValue * 100)}% ${statDef.label}${rangeText}`
-      : `${sign}${rawValue} ${statDef.label}${rangeText}`;
+      ? `${sign}${Math.round(rawValue * 100)}% ${statLabel}${rangeText}`
+      : `${sign}${rawValue} ${statLabel}${rangeText}`;
 
     let arrowHtml = '';
     if (comparedItem !== undefined) {
@@ -171,18 +175,18 @@ export function fillItemCardElement(
   }
 
   // 4. Effet spécial de l'item en vert s'il en a un
-  if (item.effect && item.effect.trim().length > 0) {
+  if (trans.effect && trans.effect.trim().length > 0) {
     const effectEl = document.createElement('div');
     effectEl.className = 'world-card-effect';
-    effectEl.innerHTML = `<span class="world-card-effect-tag">✦ Effet :</span> ${item.effect}`;
+    effectEl.innerHTML = `<span class="world-card-effect-tag">✦ ${I18nService.getCurrentLanguage() === 'fr' ? 'Effet' : 'Effect'} :</span> ${trans.effect}`;
     card.appendChild(effectEl);
   }
 
   // 5. Description poétique ou lore en jaune
-  if (item.description && item.description.trim().length > 0) {
+  if (trans.description && trans.description.trim().length > 0) {
     const descEl = document.createElement('div');
     descEl.className = 'world-card-description';
-    descEl.textContent = `« ${item.description} »`;
+    descEl.textContent = `« ${trans.description} »`;
     card.appendChild(descEl);
   }
 }

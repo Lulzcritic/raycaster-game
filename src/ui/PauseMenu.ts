@@ -1,5 +1,6 @@
 import { SoundManager } from '../core/SoundManager';
 import { ControlsManager, type KeyboardLayout } from '../core/ControlsManager';
+import { I18nService, type Language } from '../core/I18nService';
 
 export class PauseMenu {
   private readonly menuElement: HTMLElement | null;
@@ -14,6 +15,12 @@ export class PauseMenu {
   private readonly mainMenuButton: HTMLButtonElement | null;
   private readonly fovSlider: HTMLInputElement | null;
   private readonly fovValueDisplay: HTMLElement | null;
+
+  // Éléments pour le switch de langue (EN / FR)
+  private readonly pauseLangIndicator: HTMLElement | null;
+  private readonly pauseLangEnBtn: HTMLButtonElement | null;
+  private readonly pauseLangFrBtn: HTMLButtonElement | null;
+  private unsubscribeLanguage?: () => void;
 
   // Éléments pour le switch de disposition du clavier (QWERTY / AZERTY)
   private readonly pauseLayoutIndicator: HTMLElement | null;
@@ -67,6 +74,11 @@ export class PauseMenu {
     this.fovSlider = document.getElementById('fov-slider') as HTMLInputElement | null;
     this.fovValueDisplay = document.getElementById('fov-value');
 
+    // Récupération des éléments du commutateur de langue
+    this.pauseLangIndicator = document.getElementById('pause-lang-indicator');
+    this.pauseLangEnBtn = document.getElementById('pause-lang-en-btn') as HTMLButtonElement | null;
+    this.pauseLangFrBtn = document.getElementById('pause-lang-fr-btn') as HTMLButtonElement | null;
+
     // Récupération des éléments du commutateur clavier
     this.pauseLayoutIndicator = document.getElementById('pause-layout-indicator');
     this.pauseLayoutQwertyBtn = document.getElementById('pause-layout-qwerty-btn') as HTMLButtonElement | null;
@@ -107,6 +119,10 @@ export class PauseMenu {
     this.mainMenuButton?.addEventListener('click', this.handleMainMenuClick);
     this.fovSlider?.addEventListener('input', this.handleFovInput);
 
+    // Écouteurs pour le commutateur de langue (EN / FR)
+    this.pauseLangEnBtn?.addEventListener('click', this.handleLangEnClick);
+    this.pauseLangFrBtn?.addEventListener('click', this.handleLangFrClick);
+
     // Écouteurs pour le basculement audio
     this.pauseMusicBtn?.addEventListener('click', this.handleMusicToggle);
     this.pauseSfxBtn?.addEventListener('click', this.handleSfxToggle);
@@ -120,6 +136,11 @@ export class PauseMenu {
     // Abonnement aux changements de disposition du clavier
     this.unsubscribeControls = ControlsManager.subscribe((layout) => {
       this.updateLayoutDisplay(layout);
+    });
+
+    // Abonnement aux changements de langue
+    this.unsubscribeLanguage = I18nService.subscribe((lang) => {
+      this.updateLanguageDisplay(lang);
     });
 
     // Abonnement aux changements d'état muet audio
@@ -183,6 +204,38 @@ export class PauseMenu {
     }
   };
 
+  private readonly handleLangEnClick = (): void => {
+    I18nService.setLanguage('en');
+    SoundManager.playButtonSound();
+  };
+
+  private readonly handleLangFrClick = (): void => {
+    I18nService.setLanguage('fr');
+    SoundManager.playButtonSound();
+  };
+
+  /**
+   * Met à jour les libellés, styles visuels et indicateurs du commutateur de langue.
+   */
+  public updateLanguageDisplay(lang: Language): void {
+    const isFr = lang === 'fr';
+    if (this.pauseLangIndicator) {
+      this.pauseLangIndicator.textContent = isFr ? 'FRANÇAIS' : 'ENGLISH';
+    }
+    if (this.pauseLangEnBtn) {
+      this.pauseLangEnBtn.classList.toggle('active', !isFr);
+      this.pauseLangEnBtn.setAttribute('aria-pressed', String(!isFr));
+    }
+    if (this.pauseLangFrBtn) {
+      this.pauseLangFrBtn.classList.toggle('active', isFr);
+      this.pauseLangFrBtn.setAttribute('aria-pressed', String(isFr));
+    }
+
+    this.updateAudioButtons();
+    this.updateLayoutDisplay(ControlsManager.getLayout());
+    I18nService.translateDOM(this.menuElement ?? document);
+  }
+
   private readonly handleQwertyClick = (): void => {
     ControlsManager.setLayout('qwerty');
     SoundManager.playButtonSound();
@@ -211,11 +264,18 @@ export class PauseMenu {
     }
 
     const labels = ControlsManager.getLabels(layout);
+    const forwardBackwardLabel = I18nService.getCurrentLanguage() === 'fr'
+      ? 'AVANCER / RECULER'
+      : 'FORWARD / BACKWARD';
+    const strafeLabel = I18nService.getCurrentLanguage() === 'fr'
+      ? 'GAUCHE / DROITE'
+      : 'STRAFE LEFT / RIGHT';
+
     if (this.pauseCtrlMove) {
-      this.pauseCtrlMove.textContent = `${labels.forwardBackward} : AVANCER / RECULER`;
+      this.pauseCtrlMove.textContent = `${labels.forwardBackward} : ${forwardBackwardLabel}`;
     }
     if (this.pauseCtrlStrafe) {
-      this.pauseCtrlStrafe.textContent = `${labels.strafe} : GAUCHE / DROITE`;
+      this.pauseCtrlStrafe.textContent = `${labels.strafe} : ${strafeLabel}`;
     }
   }
 
@@ -227,12 +287,16 @@ export class PauseMenu {
     const isSfxMuted = SoundManager.isSfxMute();
 
     const musicIcon = isMusicMuted ? '🔇' : '🎵';
-    const musicText = isMusicMuted ? 'MUSIQUE : OFF' : 'MUSIQUE : ON';
-    const musicTitle = isMusicMuted ? 'Activer la musique' : 'Couper la musique';
+    const musicText = isMusicMuted ? I18nService.t('settings.music_off') : I18nService.t('settings.music_on');
+    const musicTitle = isMusicMuted
+      ? (I18nService.getCurrentLanguage() === 'fr' ? 'Activer la musique' : 'Enable music')
+      : (I18nService.getCurrentLanguage() === 'fr' ? 'Couper la musique' : 'Mute music');
 
     const sfxIcon = isSfxMuted ? '🔇' : '🔊';
-    const sfxText = isSfxMuted ? 'EFFETS : OFF' : 'EFFETS : ON';
-    const sfxTitle = isSfxMuted ? 'Activer les effets sonores' : 'Couper les effets sonores';
+    const sfxText = isSfxMuted ? I18nService.t('settings.sfx_off') : I18nService.t('settings.sfx_on');
+    const sfxTitle = isSfxMuted
+      ? (I18nService.getCurrentLanguage() === 'fr' ? 'Activer les effets sonores' : 'Enable sound effects')
+      : (I18nService.getCurrentLanguage() === 'fr' ? 'Couper les effets sonores' : 'Mute sound effects');
 
     // Mise à jour de la vue Pause Principale
     if (this.pauseMusicIcon) this.pauseMusicIcon.textContent = musicIcon;
@@ -266,13 +330,13 @@ export class PauseMenu {
 
     if (this.pauseAudioIndicator) {
       if (isMusicMuted && isSfxMuted) {
-        this.pauseAudioIndicator.textContent = 'TOUT COUPÉ';
+        this.pauseAudioIndicator.textContent = I18nService.t('settings.sound_muted');
         this.pauseAudioIndicator.style.color = '#f87171';
       } else if (!isMusicMuted && !isSfxMuted) {
-        this.pauseAudioIndicator.textContent = 'SON ACTIF';
+        this.pauseAudioIndicator.textContent = I18nService.t('settings.sound_active');
         this.pauseAudioIndicator.style.color = '#facc15';
       } else {
-        this.pauseAudioIndicator.textContent = 'PARTIEL';
+        this.pauseAudioIndicator.textContent = I18nService.t('settings.sound_partial');
         this.pauseAudioIndicator.style.color = '#38bdf8';
       }
     }
@@ -325,6 +389,9 @@ export class PauseMenu {
 
     this.pauseLayoutQwertyBtn?.removeEventListener('click', this.handleQwertyClick);
     this.pauseLayoutAzertyBtn?.removeEventListener('click', this.handleAzertyClick);
+    this.pauseLangEnBtn?.removeEventListener('click', this.handleLangEnClick);
+    this.pauseLangFrBtn?.removeEventListener('click', this.handleLangFrClick);
+    this.unsubscribeLanguage?.();
     this.unsubscribeControls?.();
     this.unsubscribeAudio?.();
   }

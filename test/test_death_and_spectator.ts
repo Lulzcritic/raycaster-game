@@ -189,7 +189,8 @@ async function runTests() {
     'Le bouton d\'abandon #pause-abandon-btn doit être présent dans le menu pause'
   );
   assert.ok(
-    htmlContent.includes('ABANDONNER L\'EXPÉDITION (MORT)'),
+    htmlContent.includes('ABANDONNER L\'EXPÉDITION (MORT)') ||
+      htmlContent.includes('ABANDON EXPEDITION (DEATH)'),
     'Le libellé doit indiquer explicitement la mort en cas d\'abandon'
   );
   console.log('   ✅ Aucun bouton direct de retour au hub en jeu, bouton d\'abandon mortel validé.');

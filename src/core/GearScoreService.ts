@@ -10,6 +10,7 @@ import type {
 import type { Player } from '../entities/Player';
 import { UpgradeManager } from './UpgradeManager';
 import { ItemDatabase } from '../config/ItemDatabase';
+import { I18nService, type GearTierKey, type Language } from './I18nService';
 
 const RARITY_BASE_SCORE: Record<ItemRarity, number> = {
   common: 15,
@@ -140,15 +141,38 @@ export class GearScoreService {
    * - 1450 - 1899 : Maître (set légendaire complet)
    * - 1900+ : Légende (artéfacts et endgame optimisé)
    */
-  public static getGearScoreTier(gs: number): { label: string; color: string } {
-    if (gs >= 1900) return { label: 'Légende', color: '#ef4444' };
-    if (gs >= 1450) return { label: 'Maître', color: '#f59e0b' };
-    if (gs >= 1050) return { label: 'Champion', color: '#a855f7' };
-    if (gs >= 750) return { label: 'Vétéran', color: '#8b5cf6' };
-    if (gs >= 500) return { label: 'Aventurier', color: '#3b82f6' };
-    if (gs >= 300) return { label: 'Initié', color: '#22c55e' };
-    if (gs >= 150) return { label: 'Novice', color: '#94a3b8' };
-    return { label: 'Débutant', color: '#78716c' };
+  public static getGearScoreTier(
+    gs: number,
+    lang?: Language
+  ): { label: string; color: string; tierKey: GearTierKey } {
+    let tierKey: GearTierKey = 'beginner';
+    let color = '#78716c';
+
+    if (gs >= 1900) {
+      tierKey = 'legend';
+      color = '#ef4444';
+    } else if (gs >= 1450) {
+      tierKey = 'master';
+      color = '#f59e0b';
+    } else if (gs >= 1050) {
+      tierKey = 'champion';
+      color = '#a855f7';
+    } else if (gs >= 750) {
+      tierKey = 'veteran';
+      color = '#8b5cf6';
+    } else if (gs >= 500) {
+      tierKey = 'adventurer';
+      color = '#3b82f6';
+    } else if (gs >= 300) {
+      tierKey = 'initiate';
+      color = '#22c55e';
+    } else if (gs >= 150) {
+      tierKey = 'novice';
+      color = '#94a3b8';
+    }
+
+    const label = I18nService.t(`tier.${tierKey}`, undefined, lang);
+    return { label, color, tierKey };
   }
 
   /**

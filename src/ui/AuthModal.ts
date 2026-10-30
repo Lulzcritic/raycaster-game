@@ -1,5 +1,6 @@
 import { AuthManager } from '../core/AuthManager';
 import { SoundManager } from '../core/SoundManager';
+import { I18nService } from '../core/I18nService';
 
 export type AuthModalTab = 'login' | 'register';
 
@@ -85,7 +86,13 @@ export class AuthModal {
       this.onAuthChangedCallback?.();
       this.switchTab('login');
       this.updateViewMode();
-      this.showFeedback('Déconnexion réussie. Vous êtes repassé en Mode Invité.', 'success');
+      const isFr = I18nService.getCurrentLanguage() === 'fr';
+      this.showFeedback(
+        isFr
+          ? 'Déconnexion réussie. Vous êtes repassé en Mode Invité.'
+          : 'Logged out successfully. You returned to Guest Mode.',
+        'success'
+      );
     });
 
     // Fermeture avec la touche Échap
@@ -134,24 +141,25 @@ export class AuthModal {
   public switchTab(tab: AuthModalTab): void {
     this.currentTab = tab;
     this.clearFeedback();
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     if (tab === 'login') {
       this.tabLoginBtn?.classList.add('active');
       this.tabRegisterBtn?.classList.remove('active');
       if (this.submitBtn) {
-        this.submitBtn.textContent = 'SE CONNECTER';
+        this.submitBtn.textContent = isFr ? 'SE CONNECTER' : 'LOG IN';
       }
       if (this.titleElement) {
-        this.titleElement.textContent = 'CONNEXION À LA CITADELLE';
+        this.titleElement.textContent = isFr ? 'CONNEXION À LA CITADELLE' : 'CITADEL LOGIN';
       }
     } else {
       this.tabRegisterBtn?.classList.add('active');
       this.tabLoginBtn?.classList.remove('active');
       if (this.submitBtn) {
-        this.submitBtn.textContent = 'CRÉER UN COMPTE';
+        this.submitBtn.textContent = isFr ? 'CRÉER UN COMPTE' : 'CREATE AN ACCOUNT';
       }
       if (this.titleElement) {
-        this.titleElement.textContent = 'NOUVEL AVENTURIER (INSCRIPTION)';
+        this.titleElement.textContent = isFr ? 'NOUVEL AVENTURIER (INSCRIPTION)' : 'NEW ADVENTURER (SIGN UP)';
       }
     }
   }
@@ -159,6 +167,7 @@ export class AuthModal {
   private updateViewMode(): void {
     const isLogged = AuthManager.isLoggedIn();
     const user = AuthManager.getUser();
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     if (isLogged && user) {
       this.viewForm?.classList.add('hidden');
@@ -167,7 +176,7 @@ export class AuthModal {
         this.accountUsername.textContent = user.username;
       }
       if (this.titleElement) {
-        this.titleElement.textContent = 'MON COMPTE D\'AVENTURIER';
+        this.titleElement.textContent = isFr ? "MON COMPTE D'AVENTURIER" : 'MY ADVENTURER ACCOUNT';
       }
     } else {
       this.viewAccount?.classList.add('hidden');
@@ -178,17 +187,24 @@ export class AuthModal {
   private async handleSubmit(): Promise<void> {
     if (this.isSubmitting) return;
 
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
     const username = this.usernameInput?.value?.trim() ?? '';
     const password = this.passwordInput?.value ?? '';
 
     if (!username) {
-      this.showFeedback('Veuillez entrer votre nom d\'aventurier.', 'error');
+      this.showFeedback(
+        isFr ? "Veuillez entrer votre nom d'aventurier." : 'Please enter your adventurer name.',
+        'error'
+      );
       this.usernameInput?.focus();
       return;
     }
 
     if (!password) {
-      this.showFeedback('Veuillez renseigner votre mot de passe.', 'error');
+      this.showFeedback(
+        isFr ? 'Veuillez renseigner votre mot de passe.' : 'Please enter your password.',
+        'error'
+      );
       this.passwordInput?.focus();
       return;
     }
@@ -196,7 +212,9 @@ export class AuthModal {
     this.isSubmitting = true;
     if (this.submitBtn) {
       this.submitBtn.disabled = true;
-      this.submitBtn.textContent = 'COMMUNICATION AVEC LA CITADELLE...';
+      this.submitBtn.textContent = isFr
+        ? 'COMMUNICATION AVEC LA CITADELLE...'
+        : 'COMMUNICATING WITH CITADEL...';
     }
 
     try {
@@ -212,8 +230,8 @@ export class AuthModal {
         SoundManager.playButtonSound();
         this.showFeedback(
           this.currentTab === 'login'
-            ? 'Connexion réussie ! Vos données ont été chargées.'
-            : 'Inscription réussie ! Bienvenue dans la Citadelle.',
+            ? (isFr ? 'Connexion réussie ! Vos données ont été chargées.' : 'Login successful! Profile loaded.')
+            : (isFr ? 'Inscription réussie ! Bienvenue dans la Citadelle.' : 'Registration successful! Welcome to the Citadel.'),
           'success'
         );
         this.onAuthChangedCallback?.();
@@ -222,16 +240,18 @@ export class AuthModal {
           this.resetInputs();
         }, 650);
       } else {
-        this.showFeedback(result.error || 'Erreur lors de l\'opération.', 'error');
+        this.showFeedback(result.error || (isFr ? "Erreur lors de l'opération." : 'Operation failed.'), 'error');
       }
     } catch (err: any) {
-      this.showFeedback(`Erreur inattendue : ${err.message}`, 'error');
+      this.showFeedback(`${isFr ? 'Erreur inattendue' : 'Unexpected error'} : ${err.message}`, 'error');
     } finally {
       this.isSubmitting = false;
       if (this.submitBtn) {
         this.submitBtn.disabled = false;
         this.submitBtn.textContent =
-          this.currentTab === 'login' ? 'SE CONNECTER' : 'CRÉER UN COMPTE';
+          this.currentTab === 'login'
+            ? (isFr ? 'SE CONNECTER' : 'LOG IN')
+            : (isFr ? 'CRÉER UN COMPTE' : 'CREATE AN ACCOUNT');
       }
     }
   }

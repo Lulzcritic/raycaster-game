@@ -4,6 +4,7 @@ import type { GameMap } from '../world/GameMap';
 import { Entity } from './Entity';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import { GearScoreService } from '../core/GearScoreService';
+import { I18nService } from '../core/I18nService';
 
 export const RARITY_COLORS: Record<ItemRarity, string> = {
   common: '#ffffff',    // Commun : Blanc
@@ -163,7 +164,7 @@ export class ItemCardBillboard extends Entity {
     currentY += iconBoxSize + 4;
 
     // Petit badge de rareté sous l'icône
-    const rarityLabel = RARITY_LABELS[this.item.rarity] ?? 'OBJET';
+    const rarityLabel = I18nService.getRarityLabel(this.item.rarity) || (RARITY_LABELS[this.item.rarity] ?? 'ITEM');
     ctx.font = '5px "Press Start 2P", monospace';
     this.drawText(ctx, `[ ${rarityLabel} ]`, w / 2, currentY + 4, rarityColor, 'center');
     currentY += 8;
@@ -171,12 +172,13 @@ export class ItemCardBillboard extends Entity {
     // Ligne de puissance / GearScore de l'objet
     const gs = this.item.gearScore ?? GearScoreService.calculateItemGearScore(this.item);
     ctx.font = 'bold 5.5px "Press Start 2P", monospace';
-    this.drawText(ctx, `⭐ PUISSANCE : ${gs}`, w / 2, currentY + 4, '#ffe600', 'center');
+    this.drawText(ctx, I18nService.t('tooltip.power', { score: gs }), w / 2, currentY + 4, '#ffe600', 'center');
     currentY += 8;
 
     // 4. NOM DE L'ITEM avec la couleur liée à sa rareté
+    const trans = I18nService.getItemTranslation(this.item);
     ctx.font = 'bold 7px "Press Start 2P", monospace';
-    const nameLines = this.wrapText(ctx, this.item.name.toUpperCase(), w - 20);
+    const nameLines = this.wrapText(ctx, trans.name.toUpperCase(), w - 20);
     for (const line of nameLines) {
       this.drawText(ctx, line, w / 2, currentY + 6, rarityColor, 'center');
       currentY += 9;
@@ -195,22 +197,23 @@ export class ItemCardBillboard extends Entity {
       }
 
       const sign = rawValue > 0 ? '+' : '';
+      const statLabel = I18nService.t(`hub.stat_${statDef.key}`) || statDef.label;
       const text = statDef.isMultiplier
-        ? `${sign}${Math.round(rawValue * 100)}% ${statDef.label}`
-        : `${sign}${rawValue} ${statDef.label}`;
+        ? `${sign}${Math.round(rawValue * 100)}% ${statLabel}`
+        : `${sign}${rawValue} ${statLabel}`;
 
       this.drawText(ctx, text, w / 2, currentY + 5, '#ffffff', 'center');
       currentY += 8;
     }
 
     // 6. EFFET DE L'ITEM en vert s'il en a un
-    if (this.item.effect && this.item.effect.trim().length > 0) {
+    if (trans.effect && trans.effect.trim().length > 0) {
       currentY += 2;
       this.drawSeparator(ctx, currentY, w);
       currentY += 5;
 
       ctx.font = '5.5px "Press Start 2P", monospace';
-      const effectLines = this.wrapText(ctx, this.item.effect, w - 18);
+      const effectLines = this.wrapText(ctx, trans.effect, w - 18);
       for (const line of effectLines) {
         this.drawText(ctx, line, w / 2, currentY + 5, '#4eff4e', 'center');
         currentY += 7.5;

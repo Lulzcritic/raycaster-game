@@ -2,6 +2,7 @@ import { RARITY_COLORS, RARITY_LABELS } from '../entities/ItemCardBillboard';
 import { ItemSpriteManager } from '../graphics/ItemSpriteManager';
 import type { Merchant, MysteryCard } from '../entities/Merchant';
 import type { EquipmentItem, ItemStats } from '../types';
+import { I18nService } from '../core/I18nService';
 
 const STAT_LABELS: Array<{
   key: keyof ItemStats;
@@ -127,8 +128,12 @@ export class MerchantUI {
 
       const runeText = isLocked ? '🔒' : '🔮';
       const runeStyle = isLocked ? 'animation: none; filter: none; opacity: 0.35;' : '';
-      const tagText = isLocked ? 'DESTIN SCELLÉ' : 'CARTE DU DESTIN';
-      const promptText = isLocked ? '🔒 Non sélectionnée' : '✦ Cliquer pour révéler ✦';
+      const tagText = isLocked
+        ? I18nService.t('merchant.sealed')
+        : (I18nService.getCurrentLanguage() === 'fr' ? 'CARTE DU DESTIN' : 'CARD OF DESTINY');
+      const promptText = isLocked
+        ? `🔒 ${I18nService.t('merchant.sealed')}`
+        : `✦ ${I18nService.t('merchant.pick')} ✦`;
       const promptClass = isLocked ? 'card-mystery-prompt locked' : 'card-mystery-prompt';
 
       cardEl.innerHTML = `
@@ -154,8 +159,9 @@ export class MerchantUI {
 
     // 2. CARTE RÉVÉLÉE (FACE DÉVOILÉE AVEC OBJET)
     const item = card.item;
+    const trans = I18nService.getItemTranslation(item);
     const rarityColor = RARITY_COLORS[item.rarity] ?? '#ffffff';
-    const rarityLabel = RARITY_LABELS[item.rarity] ?? 'OBJET';
+    const rarityLabel = I18nService.getRarityLabel(item.rarity) || (RARITY_LABELS[item.rarity] ?? 'ITEM');
 
     cardEl.className = `merchant-card merchant-card-revealed ${card.taken ? 'taken' : ''} ${card.refused ? 'refused' : ''}`;
     cardEl.style.borderColor = rarityColor;
@@ -181,7 +187,7 @@ export class MerchantUI {
     // Titre et Rareté
     const titleEl = document.createElement('div');
     titleEl.className = 'merchant-card-title';
-    titleEl.textContent = item.name.toUpperCase();
+    titleEl.textContent = trans.name.toUpperCase();
     titleEl.style.color = rarityColor;
     headerEl.appendChild(titleEl);
 
@@ -206,7 +212,8 @@ export class MerchantUI {
         const formatted = statDef.isMultiplier
           ? `${val > 0 ? '+' : ''}${Math.round(val * 100)}%`
           : `${val > 0 ? '+' : ''}${val}`;
-        row.innerHTML = `<span>${statDef.label}</span><strong style="color: ${val > 0 ? '#4ade80' : '#f87171'}">${formatted}</strong>`;
+        const statLabel = I18nService.t(`hub.stat_${statDef.key}`) || statDef.label;
+        row.innerHTML = `<span>${statLabel}</span><strong style="color: ${val > 0 ? '#4ade80' : '#f87171'}">${formatted}</strong>`;
         statsContainer.appendChild(row);
       }
     }
@@ -215,18 +222,18 @@ export class MerchantUI {
     }
 
     // Effet
-    if (item.effect && item.effect.trim().length > 0) {
+    if (trans.effect && trans.effect.trim().length > 0) {
       const effectEl = document.createElement('div');
       effectEl.className = 'merchant-card-effect';
-      effectEl.innerHTML = `<span style="color: #6ee7b7; font-weight: bold;">✦ Effet :</span> ${item.effect}`;
+      effectEl.innerHTML = `<span style="color: #6ee7b7; font-weight: bold;">✦ ${I18nService.getCurrentLanguage() === 'fr' ? 'Effet' : 'Effect'} :</span> ${trans.effect}`;
       cardEl.appendChild(effectEl);
     }
 
     // Description
-    if (item.description && item.description.trim().length > 0) {
+    if (trans.description && trans.description.trim().length > 0) {
       const descEl = document.createElement('div');
       descEl.className = 'merchant-card-desc';
-      descEl.textContent = `« ${item.description} »`;
+      descEl.textContent = `« ${trans.description} »`;
       cardEl.appendChild(descEl);
     }
 
@@ -237,18 +244,18 @@ export class MerchantUI {
     if (card.taken) {
       const takenBadge = document.createElement('div');
       takenBadge.className = 'merchant-badge-taken';
-      takenBadge.textContent = '👑 CHOISI & ÉQUIPÉ';
+      takenBadge.textContent = I18nService.getCurrentLanguage() === 'fr' ? '👑 CHOISI & ÉQUIPÉ' : '👑 CHOSEN & EQUIPPED';
       actionsEl.appendChild(takenBadge);
     } else if (isMerchantClaimed) {
       const lockBadge = document.createElement('div');
       lockBadge.className = 'merchant-badge-locked';
-      lockBadge.textContent = '🔒 VERROUILLÉ';
+      lockBadge.textContent = I18nService.getCurrentLanguage() === 'fr' ? '🔒 VERROUILLÉ' : '🔒 LOCKED';
       actionsEl.appendChild(lockBadge);
     } else {
       const takeBtn = document.createElement('button');
       takeBtn.type = 'button';
       takeBtn.className = 'merchant-btn merchant-btn-take';
-      takeBtn.textContent = 'PRENDRE';
+      takeBtn.textContent = I18nService.t('btn.take');
       takeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         card.taken = true;
@@ -263,7 +270,9 @@ export class MerchantUI {
       const refuseBtn = document.createElement('button');
       refuseBtn.type = 'button';
       refuseBtn.className = 'merchant-btn merchant-btn-refuse';
-      refuseBtn.textContent = card.refused ? 'REFUSÉ' : 'REFUSER';
+      refuseBtn.textContent = card.refused
+        ? (I18nService.getCurrentLanguage() === 'fr' ? 'REFUSÉ' : 'REFUSED')
+        : (I18nService.getCurrentLanguage() === 'fr' ? 'REFUSER' : 'DECLINE');
       if (card.refused) {
         refuseBtn.classList.add('active');
       }

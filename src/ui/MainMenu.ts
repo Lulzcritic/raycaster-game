@@ -7,6 +7,7 @@ import { AuthModal } from './AuthModal';
 import { SoundManager } from '../core/SoundManager';
 import { ControlsManager, type KeyboardLayout } from '../core/ControlsManager';
 import { APP_TITLE_WITH_VERSION } from '../config/version';
+import { I18nService, type Language } from '../core/I18nService';
 import type { AuthUser } from '../types/auth';
 
 export class MainMenu {
@@ -26,6 +27,12 @@ export class MainMenu {
   private readonly coinText: HTMLElement | null;
   private readonly authModal: AuthModal;
   private unsubscribeAuth?: () => void;
+
+  // Éléments du commutateur de langue (EN / FR)
+  private readonly mainLangIndicator: HTMLElement | null;
+  private readonly mainLangEnBtn: HTMLButtonElement | null;
+  private readonly mainLangFrBtn: HTMLButtonElement | null;
+  private unsubscribeLanguage?: () => void;
 
   // Éléments du commutateur clavier (QWERTY / AZERTY)
   private readonly mainLayoutIndicator: HTMLElement | null;
@@ -76,6 +83,11 @@ export class MainMenu {
     this.fovValueDisplay = document.getElementById('main-fov-value');
     this.coinIcon = document.getElementById('main-menu-coin-icon') as HTMLImageElement | null;
     this.coinText = document.getElementById('main-menu-coin-text');
+
+    // Récupération des éléments du commutateur de langue
+    this.mainLangIndicator = document.getElementById('main-lang-indicator');
+    this.mainLangEnBtn = document.getElementById('main-lang-en-btn') as HTMLButtonElement | null;
+    this.mainLangFrBtn = document.getElementById('main-lang-fr-btn') as HTMLButtonElement | null;
 
     // Récupération des éléments du commutateur clavier
     this.mainLayoutIndicator = document.getElementById('main-layout-indicator');
@@ -130,6 +142,10 @@ export class MainMenu {
     this.settingsBackBtn?.addEventListener('click', this.handleBackClick);
     this.fovSlider?.addEventListener('input', this.handleFovInput);
 
+    // Écouteurs pour le commutateur de langue (EN / FR)
+    this.mainLangEnBtn?.addEventListener('click', this.handleLangEnClick);
+    this.mainLangFrBtn?.addEventListener('click', this.handleLangFrClick);
+
     // Écouteurs audio
     this.mainSettingsMusicBtn?.addEventListener('click', this.handleMusicToggle);
     this.mainSettingsSfxBtn?.addEventListener('click', this.handleSfxToggle);
@@ -143,6 +159,11 @@ export class MainMenu {
       this.updateAudioButtons();
     });
 
+    // Abonnement aux changements de langue
+    this.unsubscribeLanguage = I18nService.subscribe((lang) => {
+      this.updateLanguageDisplay(lang);
+    });
+
     // Abonnement aux changements de disposition clavier
     this.unsubscribeControls = ControlsManager.subscribe((layout) => {
       this.updateLayoutDisplay(layout);
@@ -154,6 +175,41 @@ export class MainMenu {
     });
 
     this.updateAudioButtons();
+    this.updateLanguageDisplay(I18nService.getCurrentLanguage());
+  }
+
+  private readonly handleLangEnClick = (): void => {
+    I18nService.setLanguage('en');
+    SoundManager.playButtonSound();
+  };
+
+  private readonly handleLangFrClick = (): void => {
+    I18nService.setLanguage('fr');
+    SoundManager.playButtonSound();
+  };
+
+  /**
+   * Met à jour les libellés, styles visuels et indicateurs du commutateur de langue.
+   */
+  public updateLanguageDisplay(lang: Language): void {
+    const isFr = lang === 'fr';
+    if (this.mainLangIndicator) {
+      this.mainLangIndicator.textContent = isFr ? 'FRANÇAIS' : 'ENGLISH';
+    }
+    if (this.mainLangEnBtn) {
+      this.mainLangEnBtn.classList.toggle('active', !isFr);
+      this.mainLangEnBtn.setAttribute('aria-pressed', String(!isFr));
+    }
+    if (this.mainLangFrBtn) {
+      this.mainLangFrBtn.classList.toggle('active', isFr);
+      this.mainLangFrBtn.setAttribute('aria-pressed', String(isFr));
+    }
+
+    // Réactualisation des textes dynamiques
+    this.updateAccountDisplay(AuthManager.getUser());
+    this.updateAudioButtons();
+    this.updateLayoutDisplay(ControlsManager.getLayout());
+    I18nService.translateDOM(this.menuElement ?? document);
   }
 
   private readonly handleQwertyClick = (): void => {
@@ -210,19 +266,19 @@ export class MainMenu {
     if (this.authBtn) {
       if (user) {
         this.authBtn.textContent = `👤 ${user.username.toUpperCase()}`;
-        this.authBtn.title = `Connecté en tant que ${user.username}. Cliquez pour gérer votre compte.`;
+        this.authBtn.title = I18nService.t('menu.connected_tooltip', { name: user.username });
       } else {
-        this.authBtn.textContent = `SE CONNECTER / S'INSCRIRE`;
-        this.authBtn.title = `Connectez-vous pour sauvegarder votre butin et votre or sur la base de données.`;
+        this.authBtn.textContent = I18nService.t('menu.login_register');
+        this.authBtn.title = I18nService.t('menu.guest_tooltip');
       }
     }
 
     if (this.accountBadge) {
       if (user) {
-        this.accountBadge.textContent = `🛡️ Aventurier : ${user.username} (Sauvegarde active)`;
+        this.accountBadge.textContent = I18nService.t('menu.connected_badge', { name: user.username });
         this.accountBadge.className = 'account-badge authenticated';
       } else {
-        this.accountBadge.textContent = `Mode Invité (sauvegarde inactive)`;
+        this.accountBadge.textContent = I18nService.t('menu.guest_badge');
         this.accountBadge.className = 'account-badge guest';
       }
     }
@@ -254,12 +310,16 @@ export class MainMenu {
     const isSfxMuted = SoundManager.isSfxMute();
 
     const musicIcon = isMusicMuted ? '🔇' : '🎵';
-    const musicText = isMusicMuted ? 'MUSIQUE : OFF' : 'MUSIQUE : ON';
-    const musicTitle = isMusicMuted ? 'Activer la musique' : 'Couper la musique';
+    const musicText = isMusicMuted ? I18nService.t('settings.music_off') : I18nService.t('settings.music_on');
+    const musicTitle = isMusicMuted
+      ? (I18nService.getCurrentLanguage() === 'fr' ? 'Activer la musique' : 'Enable music')
+      : (I18nService.getCurrentLanguage() === 'fr' ? 'Couper la musique' : 'Mute music');
 
     const sfxIcon = isSfxMuted ? '🔇' : '🔊';
-    const sfxText = isSfxMuted ? 'EFFETS : OFF' : 'EFFETS : ON';
-    const sfxTitle = isSfxMuted ? 'Activer les effets sonores' : 'Couper les effets sonores';
+    const sfxText = isSfxMuted ? I18nService.t('settings.sfx_off') : I18nService.t('settings.sfx_on');
+    const sfxTitle = isSfxMuted
+      ? (I18nService.getCurrentLanguage() === 'fr' ? 'Activer les effets sonores' : 'Enable sound effects')
+      : (I18nService.getCurrentLanguage() === 'fr' ? 'Couper les effets sonores' : 'Mute sound effects');
 
     if (this.mainSettingsMusicIcon) this.mainSettingsMusicIcon.textContent = musicIcon;
     if (this.mainSettingsMusicText) this.mainSettingsMusicText.textContent = musicText;
@@ -277,13 +337,13 @@ export class MainMenu {
 
     if (this.mainAudioIndicator) {
       if (isMusicMuted && isSfxMuted) {
-        this.mainAudioIndicator.textContent = 'TOUT COUPÉ';
+        this.mainAudioIndicator.textContent = I18nService.t('settings.sound_muted');
         this.mainAudioIndicator.style.color = '#f87171';
       } else if (!isMusicMuted && !isSfxMuted) {
-        this.mainAudioIndicator.textContent = 'SON ACTIF';
+        this.mainAudioIndicator.textContent = I18nService.t('settings.sound_active');
         this.mainAudioIndicator.style.color = '#facc15';
       } else {
-        this.mainAudioIndicator.textContent = 'PARTIEL';
+        this.mainAudioIndicator.textContent = I18nService.t('settings.sound_partial');
         this.mainAudioIndicator.style.color = '#38bdf8';
       }
     }
@@ -395,6 +455,9 @@ export class MainMenu {
     this.fovSlider?.removeEventListener('input', this.handleFovInput);
     this.mainLayoutQwertyBtn?.removeEventListener('click', this.handleQwertyClick);
     this.mainLayoutAzertyBtn?.removeEventListener('click', this.handleAzertyClick);
+    this.mainLangEnBtn?.removeEventListener('click', this.handleLangEnClick);
+    this.mainLangFrBtn?.removeEventListener('click', this.handleLangFrClick);
+    this.unsubscribeLanguage?.();
     this.unsubscribeControls?.();
     this.unsubscribeAuth?.();
     this.unsubscribeAudio?.();

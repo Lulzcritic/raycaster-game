@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { GearScoreService } from '../src/core/GearScoreService';
 import { ItemDatabase } from '../src/config/ItemDatabase';
+import { I18nService } from '../src/core/I18nService';
 import type { EquipmentItem } from '../src/types';
 
 console.log('🧪 Démarrage des tests unitaires du Rééquilibrage du Gear Score & Assainissement...\n');
@@ -105,8 +106,8 @@ console.log('   ✅ Progression saine et équilibrée sans emballement exponenti
 console.log('4. Test des paliers de rangs et correction du rang Champion prématuré...');
 assert.strictEqual(
   GearScoreService.getGearScoreTier(0).label,
-  'Débutant',
-  '0 GS doit être Débutant'
+  'Beginner',
+  '0 GS doit être Beginner (EN par défaut)'
 );
 assert.strictEqual(
   GearScoreService.getGearScoreTier(200).label,
@@ -115,18 +116,18 @@ assert.strictEqual(
 );
 assert.strictEqual(
   GearScoreService.getGearScoreTier(350).label,
-  'Initié',
-  '350 GS (set peu commun) doit être Initié'
+  'Initiate',
+  '350 GS (set peu commun) doit être Initiate'
 );
 assert.strictEqual(
   GearScoreService.getGearScoreTier(582).label,
-  'Aventurier',
-  '582 GS (set rare / début épique) doit être Aventurier et SURTOUT PAS Champion'
+  'Adventurer',
+  '582 GS (set rare / début épique) doit être Adventurer et SURTOUT PAS Champion'
 );
 assert.strictEqual(
   GearScoreService.getGearScoreTier(850).label,
-  'Vétéran',
-  '850 GS (set épique) doit être Vétéran'
+  'Veteran',
+  '850 GS (set épique) doit être Veteran'
 );
 assert.strictEqual(
   GearScoreService.getGearScoreTier(1150).label,
@@ -135,15 +136,22 @@ assert.strictEqual(
 );
 assert.strictEqual(
   GearScoreService.getGearScoreTier(1550).label,
-  'Maître',
-  '1550 GS (full légendaire) doit être Maître'
+  'Master',
+  '1550 GS (full légendaire) doit être Master'
 );
 assert.strictEqual(
   GearScoreService.getGearScoreTier(2000).label,
-  'Légende',
-  '2000 GS (artéfacts) doit être Légende'
+  'Legend',
+  '2000 GS (artéfacts) doit être Legend'
 );
-console.log('   ✅ Rangs calibrés avec succès : 582 GS est désormais un Aventurier, le rang Champion requiert >= 1050 GS.');
+
+// Vérification de la localisation FR
+I18nService.setLanguage('fr');
+assert.strictEqual(GearScoreService.getGearScoreTier(582).label, 'Aventurier', '582 GS en FR doit être Aventurier');
+assert.strictEqual(GearScoreService.getGearScoreTier(1150).label, 'Champion', '1150 GS en FR doit être Champion');
+I18nService.setLanguage('en'); // Retour à l'anglais par défaut
+
+console.log('   ✅ Rangs calibrés avec succès : 582 GS est désormais un Aventurier (Adventurer), le rang Champion requiert >= 1050 GS.');
 
 console.log('\n======================================================');
 console.log('🎉 TOUS LES TESTS DE RÉÉQUILIBRAGE DU GEAR SCORE ONT RÉUSSI !');

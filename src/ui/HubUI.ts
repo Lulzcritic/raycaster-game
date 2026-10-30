@@ -18,6 +18,7 @@ import { GearScoreService } from '../core/GearScoreService';
 import { NetworkClient } from '../network/NetworkClient';
 import { SoundManager } from '../core/SoundManager';
 import { AuthManager } from '../core/AuthManager';
+import { I18nService, type Language } from '../core/I18nService';
 import type { Player } from '../entities/Player';
 import type { EquipmentItem, EquipmentSlot } from '../types';
 import type { MatchFoundPayload, QueueStatusPayload } from '../types/network';
@@ -111,13 +112,16 @@ export class HubUI {
   private onReturnToMenuCallback?: () => void;
   private onOpenSettingsCallback?: () => void;
 
-  // Contrôles audio et paramètres du Hub
+  // Contrôles audio, paramètres et langue du Hub
   private readonly hubMusicBtn: HTMLButtonElement | null;
   private readonly hubMusicIcon: HTMLElement | null;
   private readonly hubSfxBtn: HTMLButtonElement | null;
   private readonly hubSfxIcon: HTMLElement | null;
   private readonly hubSettingsBtn: HTMLButtonElement | null;
+  private readonly hubLangBtn: HTMLButtonElement | null;
+  private readonly hubLangBadge: HTMLElement | null;
   private unsubscribeAudio?: () => void;
+  private unsubscribeLanguage?: () => void;
 
   // Nouvelle interface de file d'attente Multijoueur
   private readonly queueOverlay: HTMLElement | null;
@@ -149,12 +153,14 @@ export class HubUI {
     this.menuBtn = document.getElementById('hub-btn-menu') as HTMLButtonElement | null;
     this.launchGameBtn = document.getElementById('hub-launch-game-btn') as HTMLButtonElement | null;
 
-    // Contrôles Audio et Paramètres
+    // Contrôles Audio, Paramètres et Langue
     this.hubMusicBtn = document.getElementById('hub-music-btn') as HTMLButtonElement | null;
     this.hubMusicIcon = document.getElementById('hub-music-icon');
     this.hubSfxBtn = document.getElementById('hub-sfx-btn') as HTMLButtonElement | null;
     this.hubSfxIcon = document.getElementById('hub-sfx-icon');
     this.hubSettingsBtn = document.getElementById('hub-btn-settings') as HTMLButtonElement | null;
+    this.hubLangBtn = document.getElementById('hub-lang-btn') as HTMLButtonElement | null;
+    this.hubLangBadge = document.getElementById('hub-lang-badge');
 
     this.views = {
       play: document.getElementById('hub-view-play'),
@@ -476,6 +482,17 @@ export class HubUI {
       }
     });
 
+    // Bouton Changement Rapide de Langue du Hub
+    this.hubLangBtn?.addEventListener('click', () => {
+      I18nService.toggleLanguage();
+      SoundManager.playButtonSound();
+    });
+
+    // Abonnement aux changements de langue
+    this.unsubscribeLanguage = I18nService.subscribe((lang) => {
+      this.updateLanguageDisplay(lang);
+    });
+
     // Bouton Paramètres du Hub
     this.hubSettingsBtn?.addEventListener('click', () => {
       SoundManager.playButtonSound();
@@ -491,17 +508,36 @@ export class HubUI {
 
   public destroy(): void {
     this.unsubscribeAudio?.();
+    this.unsubscribeLanguage?.();
+  }
+
+  public updateLanguageDisplay(lang: Language): void {
+    if (this.hubLangBadge) {
+      this.hubLangBadge.textContent = lang.toUpperCase();
+    }
+    this.renderAvatar();
+    if (this.isVisible()) {
+      if (this.currentTab === 'play') this.renderPlayView();
+      else if (this.currentTab === 'equipment') this.renderEquipmentView();
+      else if (this.currentTab === 'ladder') this.renderLadderView();
+      else if (this.currentTab === 'shop') this.renderShopView();
+      else if (this.currentTab === 'quests') this.renderQuestsView();
+    }
+    I18nService.translateDOM(this.hubElement ?? document);
   }
 
   public updateAudioButtons(): void {
     const isMusicMuted = SoundManager.isMusicMute();
     const isSfxMuted = SoundManager.isSfxMute();
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     if (this.hubMusicIcon) {
       this.hubMusicIcon.textContent = isMusicMuted ? '🔇' : '🎵';
     }
     if (this.hubMusicBtn) {
-      this.hubMusicBtn.title = isMusicMuted ? 'Activer la musique' : 'Couper la musique';
+      this.hubMusicBtn.title = isMusicMuted
+        ? (isFr ? 'Activer la musique' : 'Unmute music')
+        : (isFr ? 'Couper la musique' : 'Mute music');
       this.hubMusicBtn.classList.toggle('is-muted', isMusicMuted);
     }
 
@@ -509,7 +545,9 @@ export class HubUI {
       this.hubSfxIcon.textContent = isSfxMuted ? '🔇' : '🔊';
     }
     if (this.hubSfxBtn) {
-      this.hubSfxBtn.title = isSfxMuted ? 'Activer les effets sonores' : 'Couper les effets sonores';
+      this.hubSfxBtn.title = isSfxMuted
+        ? (isFr ? 'Activer les effets sonores' : 'Unmute sound effects')
+        : (isFr ? 'Couper les effets sonores' : 'Mute sound effects');
       this.hubSfxBtn.classList.toggle('is-muted', isSfxMuted);
     }
   }
@@ -541,17 +579,22 @@ export class HubUI {
   }
 
   private updateQueueStatusUI(status: QueueStatusPayload): void {
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
     if (this.queueTimerText) {
       this.queueTimerText.textContent = `${status.cycleCountdownSec}s`;
     }
     if (this.queueRosterCount) {
-      this.queueRosterCount.textContent = `${status.queuedCount} / ${status.maxPlayers} PRÊTS`;
+      this.queueRosterCount.textContent = `${status.queuedCount} / ${status.maxPlayers} ${isFr ? 'PRÊTS' : 'READY'}`;
     }
     if (this.queueStatusText) {
       if (status.cycleCountdownSec <= 5) {
-        this.queueStatusText.textContent = `⚡ DÉPART IMMINENT DU CONVOI !`;
+        this.queueStatusText.textContent = isFr
+          ? `⚡ DÉPART IMMINENT DU CONVOI !`
+          : `⚡ CONVOY DEPARTURE IMMINENT!`;
       } else {
-        this.queueStatusText.textContent = `RECHERCHE D'AVENTURIERS EN COURS...`;
+        this.queueStatusText.textContent = isFr
+          ? `RECHERCHE D'AVENTURIERS EN COURS...`
+          : `SEARCHING FOR ADVENTURERS...`;
       }
     }
 
@@ -566,6 +609,7 @@ export class HubUI {
     if (!this.queueSlotsList) return;
     this.queueSlotsList.innerHTML = '';
 
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
     const maxSlots = 4;
     const currentSkin = SKINS[this.currentSkinIndex];
     const localExpectedName = this.localQueuePlayerName || this.getQueuePlayerName();
@@ -578,20 +622,21 @@ export class HubUI {
         const matchedSkin = SKINS.find((s) => s.id === p.skinId) ?? currentSkin;
         const avatarUrl = matchedSkin?.url ?? puzzleLordUrl;
         const isLocal = p.name === localExpectedName || (i === 0 && !queuedPlayers.some((other) => other.name === localExpectedName));
+        const skinName = I18nService.t(`skin.${matchedSkin?.id}.name`) || matchedSkin?.name || '';
 
         slotCard.className = `hub-queue-player-card${isLocal ? ' is-local' : ''}`;
         slotCard.innerHTML = `
           <img src="${avatarUrl}" class="hub-queue-card-avatar" alt="${p.name}" />
-          <div class="hub-queue-card-name" title="${p.name}">${p.name}${isLocal ? ' (Vous)' : ''}</div>
-          <div class="hub-queue-card-skin" style="font-size: 10px; color: #94a3b8; margin-top: -2px;">${matchedSkin?.name ?? ''}</div>
+          <div class="hub-queue-card-name" title="${p.name}">${p.name}${isLocal ? (isFr ? ' (Vous)' : ' (You)') : ''}</div>
+          <div class="hub-queue-card-skin" style="font-size: 10px; color: #94a3b8; margin-top: -2px;">${skinName}</div>
           <div class="hub-queue-card-gs">⭐ ${p.gearScore} GS</div>
-          <div class="hub-queue-card-status">✅ PRÊT</div>
+          <div class="hub-queue-card-status">✅ ${isFr ? 'PRÊT' : 'READY'}</div>
         `;
       } else {
         slotCard.className = 'hub-queue-player-card empty-slot';
         slotCard.innerHTML = `
           <div class="hub-queue-empty-icon">⏳</div>
-          <div class="hub-queue-empty-text">Emplacement libre #${i + 1}</div>
+          <div class="hub-queue-empty-text">${isFr ? 'Emplacement libre #' : 'Open slot #'}${i + 1}</div>
         `;
       }
 
@@ -600,9 +645,12 @@ export class HubUI {
   }
 
   private showMatchFoundNotification(data: MatchFoundPayload): void {
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
     if (this.isQueueOpen()) {
       if (this.queueStatusText) {
-        this.queueStatusText.textContent = `⚔️ CONVOI EN ROUTE ! Téléportation dans ${data.countdownSec}s...`;
+        this.queueStatusText.textContent = isFr
+          ? `⚔️ CONVOI EN ROUTE ! Téléportation dans ${data.countdownSec}s...`
+          : `⚔️ CONVOY EN ROUTE! Teleporting in ${data.countdownSec}s...`;
       }
       if (this.queueTimerText) {
         this.queueTimerText.textContent = `${data.countdownSec}s`;
@@ -615,9 +663,9 @@ export class HubUI {
     const toast = document.createElement('div');
     toast.className = 'hub-match-found-banner';
     toast.innerHTML = `
-      <div class="hub-mf-title">⚔️ CONVOI EN ROUTE !</div>
-      <div class="hub-mf-desc">Téléportation vers la Citadelle dans <strong>${data.countdownSec}s</strong></div>
-      <div class="hub-mf-crypt">Crypte assignée : Angle #${data.spawnIndex + 1} (${data.totalPlayers} aventurier(s))</div>
+      <div class="hub-mf-title">⚔️ ${isFr ? 'CONVOI EN ROUTE !' : 'CONVOY EN ROUTE!'}</div>
+      <div class="hub-mf-desc">${isFr ? 'Téléportation vers la Citadelle dans' : 'Teleporting to Citadel in'} <strong>${data.countdownSec}s</strong></div>
+      <div class="hub-mf-crypt">${isFr ? 'Crypte assignée : Angle #' : 'Assigned crypt: Corner #'}${data.spawnIndex + 1} (${data.totalPlayers} ${isFr ? 'aventurier(s)' : 'adventurer(s)'})</div>
     `;
     document.body.appendChild(toast);
     setTimeout(() => {
@@ -645,13 +693,17 @@ export class HubUI {
     const skin = SKINS[this.currentSkinIndex];
     if (skin) {
       if (this.avatarImg) this.avatarImg.src = skin.url;
-      if (this.avatarTitle) this.avatarTitle.textContent = skin.title;
-      if (this.skinName) this.skinName.textContent = skin.name;
+      const localizedTitle = I18nService.t(`skin.${skin.id}.title`) || skin.title;
+      const localizedName = I18nService.t(`skin.${skin.id}.name`) || skin.name;
+      if (this.avatarTitle) this.avatarTitle.textContent = localizedTitle;
+      if (this.skinName) this.skinName.textContent = localizedName;
     }
 
     if (!this.player) {
       return;
     }
+
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     // 1. Mini aperçu des objets équipés sous forme d'icônes
     if (this.avatarGearPreview) {
@@ -661,14 +713,16 @@ export class HubUI {
         const item = this.player.inventory.getItem(slot);
         const slotEl = document.createElement('div');
         slotEl.className = `hub-gear-mini-slot ${item ? item.rarity : 'empty'}`;
-        slotEl.title = item ? `${item.name} (${SLOT_LABELS[slot]})` : `${SLOT_LABELS[slot]} (Vide)`;
+        const slotLabel = I18nService.getSlotLabel(slot) || SLOT_LABELS[slot];
+        const itemName = item ? I18nService.getItemTranslation(item).name : (isFr ? 'Vide' : 'Empty');
+        slotEl.title = `${itemName} (${slotLabel})`;
 
         if (item) {
           const iconUrl = ItemSpriteManager.getSpriteUrl(item.slot, item.rarity, item.id);
           if (iconUrl) {
             slotEl.innerHTML = `<img src="${iconUrl}" alt="" class="hub-gear-mini-icon" />`;
           } else {
-            slotEl.textContent = SLOT_LABELS[slot][0];
+            slotEl.textContent = slotLabel[0];
           }
         } else {
           slotEl.innerHTML = `<span class="hub-gear-empty-marker">+</span>`;
@@ -686,27 +740,27 @@ export class HubUI {
 
       this.avatarStats.innerHTML = `
         <div class="hub-stat-row">
-          <span class="hub-stat-label">⭐ PUISSANCE</span>
+          <span class="hub-stat-label">⭐ ${isFr ? 'PUISSANCE' : 'POWER'}</span>
           <span class="hub-stat-val font-yellow font-bold">${this.player.getGearScore()}</span>
         </div>
         <div class="hub-stat-row">
-          <span class="hub-stat-label">❤️ PV MAX</span>
+          <span class="hub-stat-label">❤️ ${isFr ? 'PV MAX' : 'MAX HP'}</span>
           <span class="hub-stat-val font-green">${this.player.maxHealth}</span>
         </div>
         <div class="hub-stat-row">
-          <span class="hub-stat-label">🗡️ DÉGÂTS</span>
+          <span class="hub-stat-label">🗡️ ${isFr ? 'DÉGÂTS' : 'DAMAGE'}</span>
           <span class="hub-stat-val font-red">${FIREBALL_CONFIG.DAMAGE + stats.damage + stats.magicPower}</span>
         </div>
         <div class="hub-stat-row">
-          <span class="hub-stat-label">🛡️ DÉFENSE</span>
+          <span class="hub-stat-label">🛡️ ${isFr ? 'DÉFENSE' : 'DEFENSE'}</span>
           <span class="hub-stat-val font-blue">${stats.defense}</span>
         </div>
         <div class="hub-stat-row">
-          <span class="hub-stat-label">💨 VITESSE</span>
+          <span class="hub-stat-label">💨 ${isFr ? 'VITESSE' : 'SPEED'}</span>
           <span class="hub-stat-val font-yellow">${speedPct >= 0 ? `+${speedPct}%` : `${speedPct}%`}</span>
         </div>
         <div class="hub-stat-row">
-          <span class="hub-stat-label">⚡ INCANTATION</span>
+          <span class="hub-stat-label">⚡ ${isFr ? 'INCANTATION' : 'CAST SPEED'}</span>
           <span class="hub-stat-val font-purple">${castPct >= 0 ? `+${castPct}%` : `${castPct}%`}</span>
         </div>
       `;
@@ -718,6 +772,8 @@ export class HubUI {
   // =========================================================================
   private renderPlayView(): void {
     if (!this.player) return;
+
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     // 1. Équipement arrangé selon le placement sur le corps (Paperdoll à gauche)
     const slots: EquipmentSlot[] = ['hat', 'weapon', 'armor', 'boots', 'offhand'];
@@ -737,20 +793,22 @@ export class HubUI {
       const item = this.player.inventory.getItem(slot);
       const iconUrl = item ? ItemSpriteManager.getSpriteUrl(item.slot, item.rarity, item.id) : null;
       const rarityClass = item ? `rarity-${item.rarity}` : 'empty';
+      const slotLabel = I18nService.getSlotLabel(slot) || SLOT_LABELS[slot];
+      const itemName = item ? I18nService.getItemTranslation(item).name : (isFr ? 'Emplacement libre' : 'Empty Slot');
 
       container.className = `hub-play-body-slot slot-${slot} ${rarityClass}`;
       container.title = '';
       container.innerHTML = `
-        <div class="hub-body-slot-badge">${SLOT_LABELS[slot]}</div>
+        <div class="hub-body-slot-badge">${slotLabel}</div>
         <div class="hub-body-slot-icon-box">
           ${iconUrl ? `<img src="${iconUrl}" class="hub-body-slot-img" alt="" />` : `<span class="hub-body-slot-placeholder">${slotPlaceholders[slot]}</span>`}
         </div>
         <div class="hub-body-slot-info">
           <div class="hub-body-slot-name" style="color: ${item ? RARITY_COLORS[item.rarity] : '#64748b'}">
-            ${item ? item.name : 'Emplacement libre'}
+            ${itemName}
           </div>
           <div class="hub-body-slot-stats">
-            ${item ? this.formatItemStats(item) : 'Aucun bonus direct'}
+            ${item ? this.formatItemStats(item) : (isFr ? 'Aucun bonus direct' : 'No direct bonus')}
           </div>
         </div>
       `;
@@ -771,43 +829,43 @@ export class HubUI {
       const statItems = [
         {
           icon: '⭐',
-          label: 'PUISSANCE TOTALE (GEAR SCORE)',
-          desc: 'Score global d\'équipement & niveau de la citadelle',
+          label: isFr ? 'PUISSANCE TOTALE (GEAR SCORE)' : 'TOTAL POWER (GEAR SCORE)',
+          desc: isFr ? 'Score global d\'équipement & niveau de la citadelle' : 'Overall equipment score & citadel tier',
           value: `${this.player.getGearScore()}`,
           colorClass: 'font-yellow font-bold',
         },
         {
           icon: '❤️',
-          label: 'POINTS DE VIE MAX',
-          desc: 'Endurance vitale face aux périls',
-          value: `${this.player.maxHealth} PV`,
+          label: isFr ? 'POINTS DE VIE MAX' : 'MAX HEALTH POINTS',
+          desc: isFr ? 'Endurance vitale face aux périls' : 'Vital endurance against dungeon hazards',
+          value: `${this.player.maxHealth} ${isFr ? 'PV' : 'HP'}`,
           colorClass: 'font-green',
         },
         {
           icon: '🔮',
-          label: 'DÉGÂTS DES SORTS',
-          desc: 'Puissance offensive brute des arcanes',
+          label: isFr ? 'DÉGÂTS DES SORTS' : 'SPELL DAMAGE',
+          desc: isFr ? 'Puissance offensive brute des arcanes' : 'Raw arcane offensive power',
           value: `${totalDamage}`,
           colorClass: 'font-red',
         },
         {
           icon: '🛡️',
-          label: 'DÉFENSE / ARMURE',
-          desc: 'Réduction directe des dégâts subis',
+          label: isFr ? 'DÉFENSE / ARMURE' : 'DEFENSE / ARMOR',
+          desc: isFr ? 'Réduction directe des dégâts subis' : 'Direct damage reduction against all hits',
           value: `${stats.defense}`,
           colorClass: 'font-blue',
         },
         {
           icon: '💨',
-          label: 'VITESSE DE COURSE',
-          desc: 'Agilité de déplacement et d\'esquive',
+          label: isFr ? 'VITESSE DE COURSE' : 'MOVEMENT SPEED',
+          desc: isFr ? 'Agilité de déplacement et d\'esquive' : 'Walking agility and dodging pace',
           value: speedPct >= 0 ? `+${speedPct}%` : `${speedPct}%`,
           colorClass: 'font-yellow',
         },
         {
           icon: '⚡',
-          label: 'CADENCE D\'INCANTATION',
-          desc: 'Vitesse de récupération magique',
+          label: isFr ? 'CADENCE D\'INCANTATION' : 'CASTING SPEED',
+          desc: isFr ? 'Vitesse de récupération magique' : 'Cooldown recovery and casting swiftness',
           value: castPct >= 0 ? `+${castPct}%` : `${castPct}%`,
           colorClass: 'font-purple',
         },
@@ -835,6 +893,7 @@ export class HubUI {
   // =========================================================================
   private renderEquipmentView(): void {
     if (!this.player) return;
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     // 1. Objets équipés (Paperdoll)
     if (this.equippedSlotsContainer) {
@@ -847,19 +906,21 @@ export class HubUI {
         card.className = `hub-equip-slot-card ${item ? `rarity-${item.rarity}` : 'empty'}`;
 
         const iconUrl = item ? ItemSpriteManager.getSpriteUrl(item.slot, item.rarity, item.id) : null;
+        const slotLabel = I18nService.getSlotLabel(slot) || SLOT_LABELS[slot];
+        const itemName = item ? I18nService.getItemTranslation(item).name : (isFr ? 'Emplacement libre' : 'Empty Slot');
 
         card.innerHTML = `
-          <div class="hub-slot-badge">${SLOT_LABELS[slot]}</div>
+          <div class="hub-slot-badge">${slotLabel}</div>
           <div class="hub-slot-icon-box">
-            ${iconUrl ? `<img src="${iconUrl}" class="hub-slot-img" alt="" />` : `<span class="hub-empty-slot-text">VIDE</span>`}
+            ${iconUrl ? `<img src="${iconUrl}" class="hub-slot-img" alt="" />` : `<span class="hub-empty-slot-text">${isFr ? 'VIDE' : 'EMPTY'}</span>`}
           </div>
           <div class="hub-slot-info">
             <div class="hub-slot-item-name" style="color: ${item ? RARITY_COLORS[item.rarity] : '#64748b'}">
-              ${item ? item.name : 'Emplacement libre'}
+              ${itemName}
             </div>
             ${item ? `<div class="hub-slot-stat-summary">${this.formatItemStats(item)}</div>` : ''}
           </div>
-          ${item ? `<button class="hub-unequip-btn" type="button" title="Déséquiper vers la réserve">RETIRER</button>` : ''}
+          ${item ? `<button class="hub-unequip-btn" type="button" title="${isFr ? 'Déséquiper vers la réserve' : 'Unequip to stash'}">${isFr ? 'RETIRER' : 'UNEQUIP'}</button>` : ''}
         `;
 
         if (item) {
@@ -891,8 +952,8 @@ export class HubUI {
       if (stash.length === 0) {
         this.stashListContainer.innerHTML = `
           <div class="hub-stash-empty">
-            <p>Votre réserve est vide.</p>
-            <p class="hub-stash-empty-hint">Sécurisez des objets lors de vos expéditions ou visitez la Boutique pour en acheter !</p>
+            <p>${isFr ? 'Votre réserve est vide.' : 'Your stash is empty.'}</p>
+            <p class="hub-stash-empty-hint">${isFr ? 'Sécurisez des objets lors de vos expéditions ou visitez la Boutique pour en acheter !' : 'Secure items during your expeditions or visit the Shop to buy some!'}</p>
           </div>
         `;
       } else {
@@ -900,17 +961,20 @@ export class HubUI {
           const itemCard = document.createElement('div');
           itemCard.className = `hub-stash-card rarity-${item.rarity}`;
           const iconUrl = ItemSpriteManager.getSpriteUrl(item.slot, item.rarity, item.id);
+          const translatedItem = I18nService.getItemTranslation(item);
+          const slotLabel = I18nService.getSlotLabel(item.slot) || SLOT_LABELS[item.slot];
+          const rarityLabel = I18nService.getRarityLabel(item.rarity) || item.rarity;
 
           itemCard.innerHTML = `
             <div class="hub-stash-card-icon">
               ${iconUrl ? `<img src="${iconUrl}" class="hub-stash-img" alt="" />` : ''}
             </div>
             <div class="hub-stash-card-content">
-              <div class="hub-stash-item-name" style="color: ${RARITY_COLORS[item.rarity]}">${item.name}</div>
-              <div class="hub-stash-item-type">${SLOT_LABELS[item.slot]} • ${item.rarity.toUpperCase()}</div>
+              <div class="hub-stash-item-name" style="color: ${RARITY_COLORS[item.rarity]}">${translatedItem.name}</div>
+              <div class="hub-stash-item-type">${slotLabel} • ${rarityLabel.toUpperCase()}</div>
               <div class="hub-stash-stats">${this.formatItemStats(item)}</div>
             </div>
-            <button class="hub-equip-btn" type="button">ÉQUIPER</button>
+            <button class="hub-equip-btn" type="button">${isFr ? 'ÉQUIPER' : 'EQUIP'}</button>
           `;
 
           ItemTooltip.getInstance().attach(
@@ -949,49 +1013,49 @@ export class HubUI {
       this.fullStatsContainer.innerHTML = `
         <div class="hub-stats-table">
           <div class="hub-stats-table-row header">
-            <span>STATISTIQUE</span>
-            <span>BASE</span>
-            <span>OBJETS</span>
-            <span>TALENTS</span>
+            <span>${isFr ? 'STATISTIQUE' : 'STATISTIC'}</span>
+            <span>${isFr ? 'BASE' : 'BASE'}</span>
+            <span>${isFr ? 'OBJETS' : 'ITEMS'}</span>
+            <span>${isFr ? 'TALENTS' : 'TALENTS'}</span>
             <span>TOTAL</span>
           </div>
           <div class="hub-stats-table-row">
-            <span>Points de Vie (PV)</span>
+            <span>${isFr ? 'Points de Vie (PV)' : 'Health Points (HP)'}</span>
             <span>100</span>
             <span class="font-green">+${gear.maxHealth}</span>
             <span class="font-green">+${upg.maxHealth}</span>
             <span class="font-green font-bold">${100 + total.maxHealth}</span>
           </div>
           <div class="hub-stats-table-row">
-            <span>Dégâts Magiques</span>
+            <span>${isFr ? 'Dégâts Magiques' : 'Magic Damage'}</span>
             <span>${FIREBALL_CONFIG.DAMAGE}</span>
             <span class="font-red">+${gear.damage}</span>
             <span class="font-red">+${upg.damage}</span>
             <span class="font-red font-bold">${FIREBALL_CONFIG.DAMAGE + total.damage}</span>
           </div>
           <div class="hub-stats-table-row">
-            <span>Armure / Défense</span>
+            <span>${isFr ? 'Armure / Défense' : 'Armor / Defense'}</span>
             <span>0</span>
             <span class="font-blue">+${gear.defense}</span>
             <span class="font-blue">+${upg.defense}</span>
             <span class="font-blue font-bold">${total.defense}</span>
           </div>
           <div class="hub-stats-table-row">
-            <span>Vitesse de Déplacement</span>
+            <span>${isFr ? 'Vitesse de Déplacement' : 'Movement Speed'}</span>
             <span>100%</span>
             <span class="font-yellow">+${Math.round(gear.moveSpeed * 100)}%</span>
             <span class="font-yellow">+${Math.round(upg.moveSpeed * 100)}%</span>
             <span class="font-yellow font-bold">${100 + Math.round(total.moveSpeed * 100)}%</span>
           </div>
           <div class="hub-stats-table-row">
-            <span>Vitesse d'Incantation</span>
+            <span>${isFr ? 'Vitesse d\'Incantation' : 'Casting Speed'}</span>
             <span>100%</span>
             <span class="font-purple">+${Math.round(gear.castSpeed * 100)}%</span>
             <span class="font-purple">+${Math.round(upg.castSpeed * 100)}%</span>
             <span class="font-purple font-bold">${100 + Math.round(total.castSpeed * 100)}%</span>
           </div>
           <div class="hub-stats-table-row">
-            <span>Puissance Mystique</span>
+            <span>${isFr ? 'Puissance Mystique' : 'Mystic Power'}</span>
             <span>0</span>
             <span class="font-purple">+${gear.magicPower}</span>
             <span class="font-purple">+${upg.magicPower}</span>
@@ -1007,6 +1071,7 @@ export class HubUI {
   // =========================================================================
   private renderShopView(): void {
     const currentCoins = WalletManager.getCoins();
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     // 1. Améliorations permanentes
     if (this.upgradesListContainer) {
@@ -1015,6 +1080,7 @@ export class HubUI {
 
       for (const id of upgradeIds) {
         const def = UPGRADE_DEFINITIONS[id];
+        const localized = UpgradeManager.getUpgradeLocalized(id);
         const level = UpgradeManager.getLevel(id);
         const cost = UpgradeManager.getCost(id);
         const isMaxed = level >= def.maxLevel;
@@ -1033,18 +1099,18 @@ export class HubUI {
           <div class="hub-upgrade-icon">${def.icon}</div>
           <div class="hub-upgrade-details">
             <div class="hub-upgrade-title-row">
-              <span class="hub-upgrade-name">${def.name}</span>
-              <span class="hub-upgrade-level ${isMaxed ? 'font-yellow' : ''}">${stars} Rang ${level}/${def.maxLevel}</span>
+              <span class="hub-upgrade-name">${localized.name}</span>
+              <span class="hub-upgrade-level ${isMaxed ? 'font-yellow' : ''}">${stars} ${isFr ? 'Rang' : 'Rank'} ${level}/${def.maxLevel}</span>
             </div>
-            <p class="hub-upgrade-desc">${def.description}</p>
-            <div class="hub-upgrade-effect font-green">✦ ${def.statEffect}</div>
+            <p class="hub-upgrade-desc">${localized.description}</p>
+            <div class="hub-upgrade-effect font-green">✦ ${localized.statEffect}</div>
           </div>
           <div class="hub-upgrade-action">
             ${
               isMaxed
-                ? `<span class="hub-badge-maxed">MAXIMISÉ</span>`
+                ? `<span class="hub-badge-maxed">${isFr ? 'MAXIMISÉ' : 'MAXED'}</span>`
                 : `<button class="hub-buy-btn ${canAfford ? '' : 'disabled'}" type="button">
-                    AMÉLIORER<br><span class="hub-cost-tag">${cost} 🪙</span>
+                    ${isFr ? 'AMÉLIORER' : 'UPGRADE'}<br><span class="hub-cost-tag">${cost} 🪙</span>
                    </button>`
             }
           </div>
@@ -1093,6 +1159,9 @@ export class HubUI {
         const price = priceMap[item.rarity] ?? 50;
         const canAfford = currentCoins >= price;
         const iconUrl = ItemSpriteManager.getSpriteUrl(item.slot, item.rarity, item.id);
+        const translatedItem = I18nService.getItemTranslation(item);
+        const slotLabel = I18nService.getSlotLabel(item.slot) || SLOT_LABELS[item.slot];
+        const rarityLabel = I18nService.getRarityLabel(item.rarity) || item.rarity;
 
         const card = document.createElement('div');
         card.className = `hub-shop-item-card rarity-${item.rarity}`;
@@ -1102,14 +1171,14 @@ export class HubUI {
             ${iconUrl ? `<img src="${iconUrl}" class="hub-shop-item-img" alt="" />` : ''}
           </div>
           <div class="hub-shop-item-info">
-            <div class="hub-shop-item-name" style="color: ${RARITY_COLORS[item.rarity]}">${item.name}</div>
-            <div class="hub-shop-item-type">${SLOT_LABELS[item.slot]} • ${item.rarity.toUpperCase()}</div>
+            <div class="hub-shop-item-name" style="color: ${RARITY_COLORS[item.rarity]}">${translatedItem.name}</div>
+            <div class="hub-shop-item-type">${slotLabel} • ${rarityLabel.toUpperCase()}</div>
             <div class="hub-shop-item-stats">${this.formatItemStats(item)}</div>
-            ${item.effect ? `<div class="hub-shop-item-effect">« ${item.effect} »</div>` : ''}
+            ${translatedItem.effect ? `<div class="hub-shop-item-effect">« ${translatedItem.effect} »</div>` : ''}
           </div>
           <div class="hub-shop-item-action">
             <button class="hub-buy-item-btn ${canAfford ? '' : 'disabled'}" type="button">
-              ACHETER<br><span class="hub-cost-tag">${price} 🪙</span>
+              ${isFr ? 'ACHETER' : 'BUY'}<br><span class="hub-cost-tag">${price} 🪙</span>
             </button>
           </div>
         `;
@@ -1136,10 +1205,12 @@ export class HubUI {
 
     this.questsListContainer.innerHTML = '';
     const quests = QuestManager.getQuests();
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     for (const q of quests) {
       const card = document.createElement('div');
       card.className = `hub-quest-card ${q.completed ? 'completed' : ''} ${q.claimed ? 'claimed' : ''}`;
+      const localized = QuestManager.getQuestLocalized(q);
 
       const progressPct = Math.min(100, Math.round((q.current / q.target) * 100));
 
@@ -1147,10 +1218,10 @@ export class HubUI {
         <div class="hub-quest-icon">${q.icon}</div>
         <div class="hub-quest-details">
           <div class="hub-quest-title-row">
-            <span class="hub-quest-title">${q.title}</span>
+            <span class="hub-quest-title">${localized.title}</span>
             <span class="hub-quest-progress-text">${q.current} / ${q.target}</span>
           </div>
-          <p class="hub-quest-desc">${q.description}</p>
+          <p class="hub-quest-desc">${localized.description}</p>
           <div class="hub-quest-bar-track">
             <div class="hub-quest-bar-fill" style="width: ${progressPct}%"></div>
           </div>
@@ -1159,10 +1230,10 @@ export class HubUI {
           <div class="hub-quest-reward font-yellow">+${q.rewardCoins} 🪙</div>
           ${
             q.claimed
-              ? `<span class="hub-quest-status claimed">ACCOMPLIE</span>`
+              ? `<span class="hub-quest-status claimed">${isFr ? 'ACCOMPLIE' : 'CLAIMED'}</span>`
               : q.completed
-              ? `<button class="hub-claim-btn" type="button">RÉCLAMER !</button>`
-              : `<span class="hub-quest-status pending">EN COURS</span>`
+              ? `<button class="hub-claim-btn" type="button">${isFr ? 'RÉCLAMER !' : 'CLAIM!'}</button>`
+              : `<span class="hub-quest-status pending">${isFr ? 'EN COURS' : 'IN PROGRESS'}</span>`
           }
         </div>
       `;
@@ -1193,6 +1264,7 @@ export class HubUI {
 
     if (this.isLadderLoading) return;
     this.isLadderLoading = true;
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
 
     // Animation du bouton refresh si présent
     const refreshIcon = this.ladderRefreshBtn?.querySelector('.refresh-icon');
@@ -1203,7 +1275,7 @@ export class HubUI {
         <td colspan="6">
           <div class="ladder-loading-box">
             <span class="ladder-loading-spinner">✦</span>
-            <span>Consultation des archives du Panthéon de la Citadelle...</span>
+            <span>${isFr ? 'Consultation des archives du Panthéon de la Citadelle...' : 'Consulting Citadel Hall of Fame archives...'}</span>
           </div>
         </td>
       </tr>
@@ -1221,8 +1293,8 @@ export class HubUI {
             <td colspan="6">
               <div class="ladder-empty-box">
                 <span class="ladder-empty-icon">📜</span>
-                <span class="ladder-empty-title">Le Panthéon sommeille</span>
-                <span class="ladder-empty-desc">La base de données PostgreSQL est actuellement hors-ligne. Démarrez le conteneur Docker ('docker compose up -d postgres') pour consulter le classement en direct.</span>
+                <span class="ladder-empty-title">${isFr ? 'Le Panthéon sommeille' : 'The Hall of Fame is sleeping'}</span>
+                <span class="ladder-empty-desc">${isFr ? "La base de données PostgreSQL est actuellement hors-ligne. Démarrez le conteneur Docker ('docker compose up -d postgres') pour consulter le classement en direct." : "The PostgreSQL database is currently offline. Start the Docker container ('docker compose up -d postgres') to view live rankings."}</span>
               </div>
             </td>
           </tr>
@@ -1233,8 +1305,8 @@ export class HubUI {
             <td colspan="6">
               <div class="ladder-empty-box">
                 <span class="ladder-empty-icon">🛡️</span>
-                <span class="ladder-empty-title">Aucun explorateur classé pour le moment</span>
-                <span class="ladder-empty-desc">Soyez le premier aventurier à équiper du butin et à inscrire votre légende !</span>
+                <span class="ladder-empty-title">${isFr ? 'Aucun explorateur classé pour le moment' : 'No ranked explorers yet'}</span>
+                <span class="ladder-empty-desc">${isFr ? 'Soyez le premier aventurier à équiper du butin et à inscrire votre légende !' : 'Be the first adventurer to equip loot and inscribe your legend!'}</span>
               </div>
             </td>
           </tr>
@@ -1261,7 +1333,7 @@ export class HubUI {
             <td class="td-adventurer">
               <div class="ladder-adventurer-cell">
                 <span class="ladder-adventurer-name">${entry.username}</span>
-                ${isCurrentUser ? '<span class="ladder-you-badge">VOUS</span>' : ''}
+                ${isCurrentUser ? `<span class="ladder-you-badge">${isFr ? 'VOUS' : 'YOU'}</span>` : ''}
               </div>
             </td>
             <td class="td-gearscore">
@@ -1292,26 +1364,26 @@ export class HubUI {
           const userEntry = ladder.find((e) => e.username.toLowerCase() === currentUser.username.toLowerCase());
           const maxGs = userEntry ? userEntry.maxGearScore : Math.max(0, currentGearScore);
           const tier = this.getGearScoreTier(maxGs);
-          const rankText = userEntry ? `#${userEntry.rank}` : 'Non classé';
+          const rankText = userEntry ? `#${userEntry.rank}` : (isFr ? 'Non classé' : 'Unranked');
 
           this.ladderCurrentUserCard.innerHTML = `
             <div class="ladder-user-card-content">
               <div class="ladder-user-card-avatar">🛡️</div>
               <div class="ladder-user-card-meta">
-                <span class="ladder-user-card-tag">VOTRE RECORD PERSONNEL</span>
+                <span class="ladder-user-card-tag">${isFr ? 'VOTRE RECORD PERSONNEL' : 'YOUR PERSONAL RECORD'}</span>
                 <span class="ladder-user-card-username">${currentUser.username}</span>
               </div>
               <div class="ladder-user-card-stats">
                 <div class="ladder-user-stat-block">
-                  <span class="stat-lbl">RANG :</span>
+                  <span class="stat-lbl">${isFr ? 'RANG :' : 'RANK:'}</span>
                   <span class="stat-val rank-val">${rankText}</span>
                 </div>
                 <div class="ladder-user-stat-block">
-                  <span class="stat-lbl">GEAR SCORE MAX :</span>
+                  <span class="stat-lbl">${isFr ? 'GEAR SCORE MAX :' : 'MAX GEAR SCORE:'}</span>
                   <span class="stat-val gs-val" style="color: ${tier.color};">⚔️ ${maxGs}</span>
                 </div>
                 <div class="ladder-user-stat-block">
-                  <span class="stat-lbl">TITRE :</span>
+                  <span class="stat-lbl">${isFr ? 'TITRE :' : 'TITLE:'}</span>
                   <span class="stat-val tier-val" style="color: ${tier.color};">${tier.label}</span>
                 </div>
               </div>
@@ -1322,10 +1394,10 @@ export class HubUI {
             <div class="ladder-user-card-guest">
               <span class="guest-warning-icon">⚠️</span>
               <div class="guest-warning-text">
-                <strong>Mode Invité actif</strong> : Votre score actuel (${currentGearScore} GS) n'est pas sauvegardé sur la base de données.
+                <strong>${isFr ? 'Mode Invité actif' : 'Guest Mode active'}</strong> : ${isFr ? 'Votre score actuel' : 'Your current score'} (${currentGearScore} GS) ${isFr ? "n'est pas sauvegardé sur la base de données." : "is not saved to the database."}
               </div>
               <button id="hub-ladder-login-btn" class="main-menu-btn main-menu-btn-primary ladder-login-btn" type="button">
-                SE CONNECTER
+                ${isFr ? 'SE CONNECTER' : 'LOG IN'}
               </button>
             </div>
           `;
@@ -1345,7 +1417,7 @@ export class HubUI {
             <td colspan="6">
               <div class="ladder-empty-box">
                 <span class="ladder-empty-icon">❌</span>
-                <span class="ladder-empty-title">Erreur lors de la récupération</span>
+                <span class="ladder-empty-title">${isFr ? 'Erreur lors de la récupération' : 'Error retrieving rankings'}</span>
                 <span class="ladder-empty-desc">${err.message}</span>
               </div>
             </td>
@@ -1362,12 +1434,13 @@ export class HubUI {
     const parts: string[] = [];
     const gs = item.gearScore ?? GearScoreService.calculateItemGearScore(item);
     parts.push(`⭐ ${gs}`);
-    if (item.stats.maxHealth) parts.push(`+${item.stats.maxHealth} PV`);
-    if (item.stats.damage) parts.push(`+${item.stats.damage} Dégâts`);
-    if (item.stats.defense) parts.push(`+${item.stats.defense} Déf`);
-    if (item.stats.magicPower) parts.push(`+${item.stats.magicPower} Magie`);
-    if (item.stats.moveSpeed) parts.push(`+${Math.round(item.stats.moveSpeed * 100)}% Vit`);
-    if (item.stats.castSpeed) parts.push(`+${Math.round(item.stats.castSpeed * 100)}% Incant`);
-    return parts.length > 0 ? parts.join(' • ') : 'Aucun bonus direct';
+    const isFr = I18nService.getCurrentLanguage() === 'fr';
+    if (item.stats.maxHealth) parts.push(`+${item.stats.maxHealth} ${isFr ? 'PV' : 'HP'}`);
+    if (item.stats.damage) parts.push(`+${item.stats.damage} ${isFr ? 'Dégâts' : 'Dmg'}`);
+    if (item.stats.defense) parts.push(`+${item.stats.defense} ${isFr ? 'Déf' : 'Def'}`);
+    if (item.stats.magicPower) parts.push(`+${item.stats.magicPower} ${isFr ? 'Magie' : 'Magic'}`);
+    if (item.stats.moveSpeed) parts.push(`+${Math.round(item.stats.moveSpeed * 100)}% ${isFr ? 'Vit' : 'Spd'}`);
+    if (item.stats.castSpeed) parts.push(`+${Math.round(item.stats.castSpeed * 100)}% ${isFr ? 'Incant' : 'Cast'}`);
+    return parts.length > 0 ? parts.join(' • ') : (isFr ? 'Aucun bonus direct' : 'No direct bonus');
   }
 }

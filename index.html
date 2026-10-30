@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" prefix="og: https://ogp.me/ns#">
+<html lang="en" prefix="og: https://ogp.me/ns#">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -55,12 +55,12 @@
       <div class="loading-container">
         <div class="loading-header">
           <img src="/src/assets/textures/logo.png" class="loading-logo" alt="The Old Citadel" />
-          <div class="loading-tagline">DUNGEON EXTRACTION RPG • PVPVE</div>
+          <div class="loading-tagline" data-i18n="app.tagline">DUNGEON EXTRACTION RPG • PVPVE</div>
         </div>
 
         <div class="loading-box">
           <div class="loading-status-bar">
-            <span id="loading-status" class="loading-status">Initialisation des arcanes de la Citadelle...</span>
+            <span id="loading-status" class="loading-status" data-i18n="app.loading">Initialisation des arcanes de la Citadelle...</span>
             <span id="loading-percent" class="loading-percent">0%</span>
           </div>
 
@@ -70,13 +70,13 @@
 
           <div class="loading-hint-card">
             <span class="loading-hint-icon">💡</span>
-            <span id="loading-hint" class="loading-hint">Conseil : Écoutez attentivement vos pas et ceux des autres pillards grâce au son 3D spatialisé.</span>
+            <span id="loading-hint" class="loading-hint">Listen closely: 3D spatialized audio helps you track nearby monsters and rivals.</span>
           </div>
         </div>
 
         <div class="loading-footer">
           <span class="loading-spinner-rune">✦</span>
-          <span class="loading-footer-text">CHARGEMENT DE LA CITADELLE EN COURS</span>
+          <span class="loading-footer-text" data-i18n="app.loading_footer">LOADING CITADEL ASSETS...</span>
           <span class="loading-spinner-rune">✦</span>
         </div>
       </div>
@@ -98,23 +98,23 @@
         <div class="hud-health-track">
           <div id="hud-health-fill" class="hud-health-fill"></div>
         </div>
-        <div id="hud-health-text" class="hud-health-text">PV 100 / 100</div>
+        <div id="hud-health-text" class="hud-health-text">HP 100 / 100</div>
       </div>
       <div id="hud-spell-panel" class="hud-spell-panel">
-        <div id="hud-spell-primary" class="hud-spell-slot" title="Sort Primaire : Boule de Feu [Clic G / Espace]">
+        <div id="hud-spell-primary" class="hud-spell-slot" data-i18n-title="hud.spell_primary_title" title="Primary Spell: Fireball [Left Click / Space]">
           <div class="hud-spell-badge fire-glow">🔥</div>
           <div id="hud-spell-primary-overlay" class="hud-spell-cooldown-overlay hidden"></div>
-          <span class="hud-spell-key">CLIC G</span>
+          <span id="hud-spell-primary-key" class="hud-spell-key" data-i18n="hud.key_left_click">L-CLICK</span>
         </div>
-        <div id="hud-spell-secondary" class="hud-spell-slot" title="Sort Secondaire : Orbe Rebondissant [Clic Droit] — +50% de dégâts par rebond !">
+        <div id="hud-spell-secondary" class="hud-spell-slot" data-i18n-title="hud.spell_secondary_title" title="Secondary Spell: Bouncing Purple Orb [Right Click] — +50% damage per bounce!">
           <div class="hud-spell-badge purple-glow">🔮</div>
           <div id="hud-spell-cooldown-overlay" class="hud-spell-cooldown-overlay hidden"></div>
           <span id="hud-spell-cooldown-text" class="hud-spell-cooldown-text"></span>
-          <span class="hud-spell-key">CLIC D</span>
+          <span id="hud-spell-secondary-key" class="hud-spell-key" data-i18n="hud.key_right_click">R-CLICK</span>
         </div>
       </div>
       <div id="hud-zone-panel" class="hud-zone-panel">
-        <div id="hud-zone-title" class="hud-zone-title">ZONE 1 - QUARTIER DE DÉPART</div>
+        <div id="hud-zone-title" class="hud-zone-title" data-i18n="hud.zone_default">ZONE 1 - STARTING DISTRICT</div>
         <div id="hud-raid-timer" class="hud-raid-timer">00:00</div>
       </div>
       <div id="hud-coin-panel" class="hud-coin-panel">
@@ -127,24 +127,24 @@
 
     <div id="extraction-screen" class="pause-menu hidden">
       <div class="pause-box extraction-box">
-        <h1 class="pause-title extraction-title">EXTRACTION REUSSIE !</h1>
-        <p class="extraction-subtitle">Vous avez survécu et sécurisé votre butin.</p>
+        <h1 class="pause-title extraction-title" data-i18n="extraction.title">EXTRACTION SUCCESSFUL!</h1>
+        <p class="extraction-subtitle" data-i18n="extraction.subtitle">You survived and secured your loot.</p>
         <div id="extraction-stats" class="extraction-stats"></div>
         <div id="extraction-squad-section" class="extraction-squad-section hidden"></div>
-        <div class="extraction-loot-title">--- BUTIN EXTRAIT DU DONJON ---</div>
+        <div class="extraction-loot-title" data-i18n="extraction.loot_title">--- EXTRACTED DUNGEON LOOT ---</div>
         <div id="extraction-loot-list" class="extraction-loot-list"></div>
-        <button id="extraction-restart-btn" class="pause-btn extraction-restart-btn" type="button">RETOURNER AU CAMPEMENT [R]</button>
+        <button id="extraction-restart-btn" class="pause-btn extraction-restart-btn" type="button" data-i18n="btn.return_camp">RETURN TO CAMP [R]</button>
       </div>
     </div>
 
     <div id="death-screen" class="pause-menu hidden">
       <div class="pause-box death-box">
-        <h1 class="pause-title death-title">VOUS ÊTES MORT</h1>
-        <p class="death-subtitle">La Citadelle a réclamé votre âme...</p>
+        <h1 class="pause-title death-title" data-i18n="death.title">YOU DIED</h1>
+        <p class="death-subtitle" data-i18n="death.subtitle">The Citadel claimed your soul...</p>
         <div id="death-squad-section" class="extraction-squad-section hidden"></div>
         <div class="death-buttons-row" style="display: flex; gap: 10px; width: 100%;">
-          <button id="death-spectate-btn" class="pause-btn death-spectate-btn hidden" type="button" style="background: #4338ca; border-color: #818cf8;">👁️ REGARDER L'ESCOUADE [V]</button>
-          <button id="death-respawn-btn" class="pause-btn death-respawn-btn" type="button">RETOURNER AU CAMPEMENT [R]</button>
+          <button id="death-spectate-btn" class="pause-btn death-spectate-btn hidden" type="button" style="background: #4338ca; border-color: #818cf8;" data-i18n="btn.spectate">👁️ SPECTATE SQUAD [V]</button>
+          <button id="death-respawn-btn" class="pause-btn death-respawn-btn" type="button" data-i18n="btn.return_camp">RETURN TO CAMP [R]</button>
         </div>
       </div>
     </div>
@@ -152,9 +152,9 @@
     <!-- Bannière Mode Spectateur -->
     <div id="spectator-banner" class="spectator-banner hidden">
       <div class="spectator-banner-content">
-        <span class="spectator-title">MODE SPECTATEUR :</span>
-        <span id="spectator-target-name" class="spectator-target-name">Aventurier</span>
-        <span class="spectator-help">([Clics G/D] ou Flèches [◀] / [▶] pour changer d'équipier | [R] Retour au campement)</span>
+        <span class="spectator-title" data-i18n="spectator.mode">SPECTATOR MODE:</span>
+        <span id="spectator-target-name" class="spectator-target-name" data-i18n="spectator.adventurer">Adventurer</span>
+        <span class="spectator-help" data-i18n="spectator.help">([Left/Right Click] or Arrows [◀] / [▶] to switch teammate | [R] Return to camp)</span>
       </div>
     </div>
 
@@ -163,16 +163,16 @@
       <div class="pause-box merchant-box">
         <div class="merchant-header">
           <div class="merchant-title-group">
-            <h1 class="pause-title merchant-title">L'ÉTRANGE MARCHAND DES CRYPTES</h1>
-            <p class="merchant-subtitle">« Les cartes du destin s'ouvrent à vous... Choisissez-en une seule avec sagesse. »</p>
+            <h1 class="pause-title merchant-title" data-i18n="merchant.title">THE STRANGE CRYPT MERCHANT</h1>
+            <p class="merchant-subtitle" data-i18n="merchant.subtitle">« The cards of destiny open before you... Choose only one wisely. »</p>
           </div>
-          <button id="merchant-close-btn" class="merchant-close-btn" type="button" title="Fermer [Échap]">✕</button>
+          <button id="merchant-close-btn" class="merchant-close-btn" type="button" title="Close [Esc]">✕</button>
         </div>
 
         <div id="merchant-cards-container" class="merchant-cards-container"></div>
 
-        <div id="merchant-footer-message" class="merchant-footer-message">
-          ✦ Choisissez UNE seule carte mystère à retourner (les autres seront scellées) ✦
+        <div id="merchant-footer-message" class="merchant-footer-message" data-i18n="merchant.footer">
+          ✦ Pick ONE mystery card to reveal (others will be sealed) ✦
         </div>
       </div>
     </div>
@@ -182,39 +182,39 @@
         <div id="pause-main-view" class="pause-view">
           <h1 class="pause-title">PAUSE</h1>
           <div class="pause-btn-group">
-            <button id="resume-btn" class="pause-btn" type="button">REPRENDRE</button>
-            <button id="settings-btn" class="pause-btn pause-btn-secondary" type="button">PARAMETRES</button>
-            <button id="pause-abandon-btn" class="pause-btn pause-btn-danger" type="button" title="Abandonner l'expédition : vous succombez immédiatement et perdez tous vos équipements">ABANDONNER L'EXPÉDITION (MORT)</button>
-            <button id="pause-main-menu-btn" class="pause-btn pause-btn-tertiary" type="button" title="Quitter vers le menu principal : entraîne la mort immédiate et la perte définitive de vos équipements">MENU PRINCIPAL (MORT)</button>
+            <button id="resume-btn" class="pause-btn" type="button" data-i18n="btn.resume">RESUME</button>
+            <button id="settings-btn" class="pause-btn pause-btn-secondary" type="button" data-i18n="btn.settings">SETTINGS</button>
+            <button id="pause-abandon-btn" class="pause-btn pause-btn-danger" type="button" data-i18n="btn.abandon" title="Abandon expedition: you immediately perish and lose all equipment">ABANDON EXPEDITION (DEATH)</button>
+            <button id="pause-main-menu-btn" class="pause-btn pause-btn-tertiary" type="button" data-i18n="btn.main_menu" title="Quit to main menu: causes immediate death and definitive loss of equipment">MAIN MENU (DEATH)</button>
           </div>
 
           <!-- Contrôles Audio (Musique et Effets sonores) -->
           <div class="pause-audio-btn-group">
-            <button id="pause-music-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer la musique">
+            <button id="pause-music-btn" class="pause-btn pause-btn-audio" type="button" title="Toggle music">
               <span id="pause-music-icon" class="audio-btn-icon">🎵</span>
-              <span id="pause-music-text" class="audio-btn-text">MUSIQUE : ON</span>
+              <span id="pause-music-text" class="audio-btn-text" data-i18n="settings.music_on">MUSIC : ON</span>
             </button>
-            <button id="pause-sfx-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer les effets sonores">
+            <button id="pause-sfx-btn" class="pause-btn pause-btn-audio" type="button" title="Toggle sound effects">
               <span id="pause-sfx-icon" class="audio-btn-icon">🔊</span>
-              <span id="pause-sfx-text" class="audio-btn-text">EFFETS : ON</span>
+              <span id="pause-sfx-text" class="audio-btn-text" data-i18n="settings.sfx_on">SFX : ON</span>
             </button>
           </div>
           <div class="pause-controls">
-            <p id="pause-ctrl-move">W / S : AVANCER / RECULER</p>
-            <p id="pause-ctrl-strafe">A / D : GAUCHE / DROITE</p>
-            <p>SOURIS : ORIENTER LA VUE</p>
-            <p>CLIC G / ESPACE : BOULE DE FEU</p>
-            <p>CLIC DROIT : ORBE VIOLET REBONDISSANT</p>
-            <p>F : INTERAGIR</p>
-            <p>ECHAP : MENU PAUSE</p>
+            <p id="pause-ctrl-move">W / S : MOVE FORWARD / BACKWARD</p>
+            <p id="pause-ctrl-strafe">A / D : STRAFE LEFT / RIGHT</p>
+            <p data-i18n="settings.ctrl_mouse_full">MOUSE : LOOK AROUND</p>
+            <p data-i18n="settings.ctrl_fireball_full">LEFT CLICK / SPACE : FIREBALL</p>
+            <p data-i18n="settings.ctrl_orb_full">RIGHT CLICK : BOUNCING PURPLE ORB</p>
+            <p data-i18n="settings.ctrl_interact_full">F : INTERACT</p>
+            <p data-i18n="settings.ctrl_pause_full">ESC : PAUSE MENU</p>
           </div>
         </div>
 
         <div id="pause-settings-view" class="pause-view hidden">
-          <h1 class="pause-title">PARAMETRES</h1>
+          <h1 class="pause-title" data-i18n="settings.title">SETTINGS</h1>
           <div class="settings-group">
             <div class="setting-row">
-              <span class="setting-title">CHAMP DE VISION (FOV)</span>
+              <span class="setting-title" data-i18n="settings.fov">FIELD OF VIEW (FOV)</span>
               <span id="fov-value" class="setting-value">75°</span>
             </div>
             <input
@@ -227,24 +227,56 @@
               value="75"
             />
             <div class="setting-scale-labels">
-              <span>60° (ZOOM)</span>
-              <span>110° (LARGE)</span>
+              <span data-i18n="settings.fov_zoom">60° (ZOOM)</span>
+              <span data-i18n="settings.fov_wide">110° (WIDE)</span>
+            </div>
+          </div>
+
+          <!-- Choix de la Langue (Switch EN / FR) -->
+          <div class="settings-group setting-keyboard-box">
+            <div class="setting-row">
+              <span class="setting-title" data-i18n="settings.language">LANGUAGE</span>
+              <span id="pause-lang-indicator" class="setting-value layout-indicator">ENGLISH</span>
+            </div>
+            <div class="keyboard-segmented-switch" id="pause-language-switch" role="group" aria-label="Language selection">
+              <button
+                id="pause-lang-en-btn"
+                class="keyboard-switch-btn active"
+                type="button"
+                data-lang="en"
+                title="Switch to English"
+              >
+                <span class="layout-btn-tag">EN</span>
+                <span class="layout-btn-name">ENGLISH</span>
+                <span class="layout-btn-keys">(Default)</span>
+              </button>
+              <button
+                id="pause-lang-fr-btn"
+                class="keyboard-switch-btn"
+                type="button"
+                data-lang="fr"
+                title="Passer en Français"
+              >
+                <span class="layout-btn-tag">FR</span>
+                <span class="layout-btn-name">FRANÇAIS</span>
+                <span class="layout-btn-keys">(Traduction)</span>
+              </button>
             </div>
           </div>
 
           <!-- Disposition du Clavier (Switch QWERTY / AZERTY) -->
           <div class="settings-group setting-keyboard-box">
             <div class="setting-row">
-              <span class="setting-title">DISPOSITION DU CLAVIER</span>
+              <span class="setting-title" data-i18n="settings.keyboard">KEYBOARD LAYOUT</span>
               <span id="pause-layout-indicator" class="setting-value layout-indicator">QWERTY</span>
             </div>
-            <div class="keyboard-segmented-switch" id="pause-keyboard-switch" role="group" aria-label="Disposition des touches">
+            <div class="keyboard-segmented-switch" id="pause-keyboard-switch" role="group" aria-label="Keyboard Layout">
               <button
                 id="pause-layout-qwerty-btn"
                 class="keyboard-switch-btn active"
                 type="button"
                 data-layout="qwerty"
-                title="Touches W, A, S, D (Clavier standard QWERTY)"
+                title="Keys W, A, S, D (Standard QWERTY layout)"
               >
                 <span class="layout-btn-tag">US</span>
                 <span class="layout-btn-name">QWERTY</span>
@@ -255,7 +287,7 @@
                 class="keyboard-switch-btn"
                 type="button"
                 data-layout="azerty"
-                title="Touches Z, Q, S, D (Clavier français AZERTY)"
+                title="Keys Z, Q, S, D (French AZERTY layout)"
               >
                 <span class="layout-btn-tag">FR</span>
                 <span class="layout-btn-name">AZERTY</span>
@@ -267,23 +299,23 @@
           <!-- Réglages Audio (Musique et Effets sonores) -->
           <div class="settings-group setting-audio-box">
             <div class="setting-row">
-              <span class="setting-title">RÉGLAGES AUDIO</span>
-              <span id="pause-audio-indicator" class="setting-value layout-indicator">SON ACTIF</span>
+              <span class="setting-title" data-i18n="settings.audio">AUDIO SETTINGS</span>
+              <span id="pause-audio-indicator" class="setting-value layout-indicator" data-i18n="settings.sound_active">SOUND ACTIVE</span>
             </div>
             <div class="setting-audio-group">
-              <button id="settings-music-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer la musique">
+              <button id="settings-music-btn" class="pause-btn pause-btn-audio" type="button" title="Toggle music">
                 <span id="settings-music-icon" class="audio-btn-icon">🎵</span>
-                <span id="settings-music-text" class="audio-btn-text">MUSIQUE : ON</span>
+                <span id="settings-music-text" class="audio-btn-text" data-i18n="settings.music_on">MUSIC : ON</span>
               </button>
-              <button id="settings-sfx-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer les effets sonores">
+              <button id="settings-sfx-btn" class="pause-btn pause-btn-audio" type="button" title="Toggle sound effects">
                 <span id="settings-sfx-icon" class="audio-btn-icon">🔊</span>
-                <span id="settings-sfx-text" class="audio-btn-text">EFFETS : ON</span>
+                <span id="settings-sfx-text" class="audio-btn-text" data-i18n="settings.sfx_on">SFX : ON</span>
               </button>
             </div>
           </div>
           <div class="pause-btn-group">
-            <button id="settings-back-btn" class="pause-btn pause-btn-secondary" type="button">RETOUR</button>
-            <button id="settings-resume-btn" class="pause-btn" type="button">REPRENDRE</button>
+            <button id="settings-back-btn" class="pause-btn pause-btn-secondary" type="button" data-i18n="btn.back">BACK</button>
+            <button id="settings-resume-btn" class="pause-btn" type="button" data-i18n="btn.resume">RESUME</button>
           </div>
         </div>
       </div>
@@ -324,21 +356,21 @@
         <!-- Vue principale (Jouer / Paramètres) -->
         <div id="main-menu-main-view" class="main-menu-view">
           <div class="main-menu-btn-group">
-            <button id="main-play-btn" class="main-menu-btn main-menu-btn-primary" type="button">
-              JOUER
+            <button id="main-play-btn" class="main-menu-btn main-menu-btn-primary" type="button" data-i18n="btn.play">
+              PLAY
             </button>
-            <button id="main-auth-btn" class="main-menu-btn main-menu-btn-secondary main-menu-btn-auth" type="button">
-              SE CONNECTER / S'INSCRIRE
+            <button id="main-auth-btn" class="main-menu-btn main-menu-btn-secondary main-menu-btn-auth" type="button" data-i18n="menu.login_register">
+              LOG IN / REGISTER
             </button>
-            <button id="main-ladder-btn" class="main-menu-btn main-menu-btn-secondary main-menu-btn-ladder" type="button">
-              CLASSEMENT (LADDER)
+            <button id="main-ladder-btn" class="main-menu-btn main-menu-btn-secondary main-menu-btn-ladder" type="button" data-i18n="menu.ladder">
+              RANKINGS (LADDER)
             </button>
-            <button id="main-settings-btn" class="main-menu-btn main-menu-btn-secondary" type="button">
-              PARAMÈTRES
+            <button id="main-settings-btn" class="main-menu-btn main-menu-btn-secondary" type="button" data-i18n="menu.settings">
+              SETTINGS
             </button>
           </div>
           <div id="main-menu-account-status" class="main-menu-account-status">
-            <span id="main-menu-account-badge" class="account-badge guest">Mode Invité (sauvegarde inactive)</span>
+            <span id="main-menu-account-badge" class="account-badge guest" data-i18n="menu.guest_badge">Guest Mode (saving inactive)</span>
           </div>
           <div id="main-menu-wallet" class="main-menu-wallet">
             <img id="main-menu-coin-icon" class="main-menu-coin-icon" alt="" />
@@ -349,11 +381,11 @@
         <!-- Vue Paramètres du Menu Principal -->
         <div id="main-menu-settings-view" class="main-menu-view hidden">
           <div class="main-menu-settings-card">
-            <h2 class="main-menu-settings-title">PARAMÈTRES</h2>
+            <h2 class="main-menu-settings-title" data-i18n="settings.title">SETTINGS</h2>
 
             <div class="settings-group">
               <div class="setting-row">
-                <span class="setting-title">CHAMP DE VISION (FOV)</span>
+                <span class="setting-title" data-i18n="settings.fov">FIELD OF VIEW (FOV)</span>
                 <span id="main-fov-value" class="setting-value">75°</span>
               </div>
               <input
@@ -366,24 +398,56 @@
                 value="75"
               />
               <div class="setting-scale-labels">
-                <span>60° (ZOOM)</span>
-                <span>110° (LARGE)</span>
+                <span data-i18n="settings.fov_zoom">60° (ZOOM)</span>
+                <span data-i18n="settings.fov_wide">110° (WIDE)</span>
+              </div>
+            </div>
+
+            <!-- Choix de la Langue (Switch EN / FR) -->
+            <div class="settings-group setting-keyboard-box">
+              <div class="setting-row">
+                <span class="setting-title" data-i18n="settings.language">LANGUAGE</span>
+                <span id="main-lang-indicator" class="setting-value layout-indicator">ENGLISH</span>
+              </div>
+              <div class="keyboard-segmented-switch" id="main-language-switch" role="group" aria-label="Language selection">
+                <button
+                  id="main-lang-en-btn"
+                  class="keyboard-switch-btn active"
+                  type="button"
+                  data-lang="en"
+                  title="Switch to English"
+                >
+                  <span class="layout-btn-tag">EN</span>
+                  <span class="layout-btn-name">ENGLISH</span>
+                  <span class="layout-btn-keys">(Default)</span>
+                </button>
+                <button
+                  id="main-lang-fr-btn"
+                  class="keyboard-switch-btn"
+                  type="button"
+                  data-lang="fr"
+                  title="Passer en Français"
+                >
+                  <span class="layout-btn-tag">FR</span>
+                  <span class="layout-btn-name">FRANÇAIS</span>
+                  <span class="layout-btn-keys">(Traduction)</span>
+                </button>
               </div>
             </div>
 
             <!-- Disposition du Clavier (Switch QWERTY / AZERTY) -->
             <div class="settings-group setting-keyboard-box">
               <div class="setting-row">
-                <span class="setting-title">DISPOSITION DU CLAVIER</span>
+                <span class="setting-title" data-i18n="settings.keyboard">KEYBOARD LAYOUT</span>
                 <span id="main-layout-indicator" class="setting-value layout-indicator">QWERTY</span>
               </div>
-              <div class="keyboard-segmented-switch" id="main-keyboard-switch" role="group" aria-label="Disposition des touches">
+              <div class="keyboard-segmented-switch" id="main-keyboard-switch" role="group" aria-label="Keyboard Layout">
                 <button
                   id="main-layout-qwerty-btn"
                   class="keyboard-switch-btn active"
                   type="button"
                   data-layout="qwerty"
-                  title="Touches W, A, S, D (Clavier standard QWERTY)"
+                  title="Keys W, A, S, D (Standard QWERTY layout)"
                 >
                   <span class="layout-btn-tag">US</span>
                   <span class="layout-btn-name">QWERTY</span>
@@ -394,7 +458,7 @@
                   class="keyboard-switch-btn"
                   type="button"
                   data-layout="azerty"
-                  title="Touches Z, Q, S, D (Clavier français AZERTY)"
+                  title="Keys Z, Q, S, D (French AZERTY layout)"
                 >
                   <span class="layout-btn-tag">FR</span>
                   <span class="layout-btn-name">AZERTY</span>
@@ -406,47 +470,47 @@
             <!-- Réglages Audio (Musique et Effets sonores) -->
             <div class="settings-group setting-audio-box">
               <div class="setting-row">
-                <span class="setting-title">RÉGLAGES AUDIO</span>
-                <span id="main-audio-indicator" class="setting-value layout-indicator">SON ACTIF</span>
+                <span class="setting-title" data-i18n="settings.audio">AUDIO SETTINGS</span>
+                <span id="main-audio-indicator" class="setting-value layout-indicator" data-i18n="settings.sound_active">SOUND ACTIVE</span>
               </div>
               <div class="setting-audio-group">
                 <button
                   id="main-settings-music-btn"
                   class="pause-btn pause-btn-audio"
                   type="button"
-                  title="Couper / Activer la musique"
+                  title="Toggle music"
                 >
                   <span id="main-settings-music-icon" class="audio-btn-icon">🎵</span>
-                  <span id="main-settings-music-text" class="audio-btn-text">MUSIQUE : ON</span>
+                  <span id="main-settings-music-text" class="audio-btn-text" data-i18n="settings.music_on">MUSIC : ON</span>
                 </button>
                 <button
                   id="main-settings-sfx-btn"
                   class="pause-btn pause-btn-audio"
                   type="button"
-                  title="Couper / Activer les effets sonores"
+                  title="Toggle sound effects"
                 >
                   <span id="main-settings-sfx-icon" class="audio-btn-icon">🔊</span>
-                  <span id="main-settings-sfx-text" class="audio-btn-text">EFFETS : ON</span>
+                  <span id="main-settings-sfx-text" class="audio-btn-text" data-i18n="settings.sfx_on">SFX : ON</span>
                 </button>
               </div>
             </div>
 
             <div class="main-menu-controls-guide">
-              <div class="controls-guide-title">✦ COMMANDES DU JEU ✦</div>
+              <div class="controls-guide-title" data-i18n="settings.controls_title">✦ GAME CONTROLS ✦</div>
               <div class="controls-grid">
-                <div class="control-item"><span id="main-ctrl-move" class="control-key">W / S</span><span>Avancer / Reculer</span></div>
-                <div class="control-item"><span id="main-ctrl-strafe" class="control-key">A / D</span><span>Strafe Gauche / Droite</span></div>
-                <div class="control-item"><span class="control-key">SOURIS</span><span>Orienter la vue</span></div>
-                <div class="control-item"><span class="control-key">CLIC G / ESPACE</span><span>Boule de Feu</span></div>
-                <div class="control-item"><span class="control-key">CLIC D</span><span>Orbe Violet Rebondissant</span></div>
-                <div class="control-item"><span class="control-key">F</span><span>Interagir (Coffres, Portes, Marchand)</span></div>
-                <div class="control-item"><span class="control-key">ÉCHAP</span><span>Menu Pause en jeu</span></div>
+                <div class="control-item"><span id="main-ctrl-move" class="control-key">W / S</span><span data-i18n="settings.ctrl_move">Forward / Backward</span></div>
+                <div class="control-item"><span id="main-ctrl-strafe" class="control-key">A / D</span><span data-i18n="settings.ctrl_strafe">Strafe Left / Right</span></div>
+                <div class="control-item"><span class="control-key">MOUSE</span><span data-i18n="settings.ctrl_mouse">Look Around</span></div>
+                <div class="control-item"><span class="control-key">LEFT CLICK / SPACE</span><span data-i18n="settings.ctrl_fireball">Fireball</span></div>
+                <div class="control-item"><span class="control-key">RIGHT CLICK</span><span data-i18n="settings.ctrl_orb">Bouncing Purple Orb</span></div>
+                <div class="control-item"><span class="control-key">F</span><span data-i18n="settings.ctrl_interact">Interact (Chests, Doors, Merchant)</span></div>
+                <div class="control-item"><span class="control-key">ESC</span><span data-i18n="settings.ctrl_pause">In-game Pause Menu</span></div>
               </div>
             </div>
 
             <div class="main-menu-btn-group">
-              <button id="main-settings-back-btn" class="main-menu-btn main-menu-btn-secondary" type="button">
-                RETOUR
+              <button id="main-settings-back-btn" class="main-menu-btn main-menu-btn-secondary" type="button" data-i18n="btn.back">
+                BACK
               </button>
             </div>
           </div>
@@ -464,34 +528,37 @@
       <div id="hub-stage" class="hub-stage">
         <!-- Barre de navigation supérieure -->
         <nav class="hub-navbar">
-          <button id="hub-btn-menu" class="hub-nav-btn hub-nav-btn-back" type="button" title="Retour au menu titre">
+          <button id="hub-btn-menu" class="hub-nav-btn hub-nav-btn-back" type="button" title="Back to title menu" data-i18n="btn.menu">
             MENU
           </button>
           <div class="hub-nav-tabs">
-            <button id="hub-tab-play" class="hub-nav-tab active" type="button" data-tab="play">
-              JOUER
+            <button id="hub-tab-play" class="hub-nav-tab active" type="button" data-tab="play" data-i18n="hub.tab_play">
+              PLAY
             </button>
-            <button id="hub-tab-equipment" class="hub-nav-tab" type="button" data-tab="equipment">
-              ÉQUIPEMENT
+            <button id="hub-tab-equipment" class="hub-nav-tab" type="button" data-tab="equipment" data-i18n="hub.tab_equipment">
+              EQUIPMENT
             </button>
-            <button id="hub-tab-ladder" class="hub-nav-tab" type="button" data-tab="ladder">
-              CLASSEMENT
+            <button id="hub-tab-ladder" class="hub-nav-tab" type="button" data-tab="ladder" data-i18n="hub.tab_ladder">
+              RANKINGS
             </button>
-            <button id="hub-tab-shop" class="hub-nav-tab hub-nav-tab-disabled" type="button" data-tab="shop" disabled title="Bientôt disponible dans une prochaine version">
-              <span>BOUTIQUE</span>
-              <span class="hub-tab-soon-badge">SOON</span>
+            <button id="hub-tab-shop" class="hub-nav-tab hub-nav-tab-disabled" type="button" data-tab="shop" disabled title="Coming soon in a future update">
+              <span data-i18n="hub.tab_shop">SHOP</span>
+              <span class="hub-tab-soon-badge" data-i18n="hub.soon">SOON</span>
             </button>
-            <button id="hub-tab-quests" class="hub-nav-tab hub-nav-tab-disabled" type="button" data-tab="quests" disabled title="Bientôt disponible dans une prochaine version">
-              <span>QUÊTES</span>
-              <span class="hub-tab-soon-badge">SOON</span>
+            <button id="hub-tab-quests" class="hub-nav-tab hub-nav-tab-disabled" type="button" data-tab="quests" disabled title="Coming soon in a future update">
+              <span data-i18n="hub.tab_quests">QUESTS</span>
+              <span class="hub-tab-soon-badge" data-i18n="hub.soon">SOON</span>
             </button>
           </div>
           <div class="hub-nav-right">
+            <button id="hub-lang-btn" class="hub-nav-audio-btn" type="button" title="Switch Language (EN / FR)" style="font-family: var(--font-medieval); font-weight: bold; width: auto; padding: 0 8px;">
+              🌐 <span id="hub-lang-badge">EN</span>
+            </button>
             <div class="hub-nav-audio-group">
-              <button id="hub-music-btn" class="hub-nav-audio-btn" type="button" title="Couper / Activer la musique">
+              <button id="hub-music-btn" class="hub-nav-audio-btn" type="button" title="Toggle music">
                 <span id="hub-music-icon" class="audio-btn-icon">🎵</span>
               </button>
-              <button id="hub-sfx-btn" class="hub-nav-audio-btn" type="button" title="Couper / Activer les effets sonores">
+              <button id="hub-sfx-btn" class="hub-nav-audio-btn" type="button" title="Toggle sound effects">
                 <span id="hub-sfx-icon" class="audio-btn-icon">🔊</span>
               </button>
             </div>
@@ -499,8 +566,8 @@
               <img id="hub-coin-icon" class="hub-coin-icon" alt="" />
               <span id="hub-coin-text" class="hub-coin-text">0</span>
             </div>
-            <button id="hub-btn-settings" class="hub-nav-btn hub-nav-btn-settings" type="button" title="Paramètres (Audio, FOV, Clavier)">
-              ⚙ PARAMÈTRES
+            <button id="hub-btn-settings" class="hub-nav-btn hub-nav-btn-settings" type="button" title="Settings (Audio, FOV, Keyboard, Language)" data-i18n="btn.settings">
+              ⚙ SETTINGS
             </button>
           </div>
         </nav>
@@ -516,12 +583,12 @@
 
             <!-- Sélecteur de skin flottant -->
             <div class="hub-skin-selector">
-              <button id="hub-skin-prev" class="hub-skin-btn" type="button" title="Skin précédent">◄</button>
+              <button id="hub-skin-prev" class="hub-skin-btn" type="button" title="Previous skin">◄</button>
               <div class="hub-skin-meta">
-                <span id="hub-skin-name" class="hub-skin-name">Lord Énigmatique</span>
-                <span id="hub-avatar-title" class="hub-avatar-title">SEIGNEUR DES ARCANES</span>
+                <span id="hub-skin-name" class="hub-skin-name">Lord Enigmatic</span>
+                <span id="hub-avatar-title" class="hub-avatar-title">LORD OF THE ARCANES</span>
               </div>
-              <button id="hub-skin-next" class="hub-skin-btn" type="button" title="Skin suivant">►</button>
+              <button id="hub-skin-next" class="hub-skin-btn" type="button" title="Next skin">►</button>
             </div>
           </div>
 
@@ -531,14 +598,14 @@
             <section id="hub-view-play" class="hub-view active">
               <div class="hub-play-stage">
                 <div class="hub-play-header">
-                  <h1 class="hub-view-title">PRÉPARATION DU HÉROS</h1>
-                  <p class="hub-view-subtitle">Vérifiez vos équipements anatomiques et vos attributs avant d'entrer dans la Citadelle.</p>
+                  <h1 class="hub-view-title" data-i18n="hub.play_title">HERO PREPARATION</h1>
+                  <p class="hub-view-subtitle" data-i18n="hub.play_subtitle">Check your equipped gear and attributes before entering the Citadel.</p>
                 </div>
 
                 <div class="hub-play-split">
                   <!-- Partie gauche du menu Jouer : Équipement arrangé selon le placement sur le corps (Paperdoll) -->
                   <div class="hub-play-left-col">
-                    <h3 class="hub-sub-title">ÉQUIPEMENT DU CORPS</h3>
+                    <h3 class="hub-sub-title" data-i18n="hub.body_gear">BODY EQUIPMENT</h3>
                     <div class="hub-play-paperdoll">
                       <!-- Ligne 1 : Chapeau (Tête) -->
                       <div class="hub-paperdoll-row top">
@@ -559,12 +626,12 @@
 
                   <!-- Partie droite du menu Jouer : Stats en liste verticale + Bouton Citadelle -->
                   <div class="hub-play-right-col">
-                    <h3 class="hub-sub-title">ATTRIBUTS & STATISTIQUES</h3>
+                    <h3 class="hub-sub-title" data-i18n="hub.attributes">ATTRIBUTES & STATS</h3>
                     <div id="hub-play-stats-list" class="hub-play-stats-vlist"></div>
 
                     <div class="hub-play-action">
-                      <button id="hub-launch-game-btn" class="hub-launch-btn" type="button">
-                        LANCER LA PARTIE
+                      <button id="hub-launch-game-btn" class="hub-launch-btn" type="button" data-i18n="btn.launch">
+                        LAUNCH GAME
                       </button>
                     </div>
                   </div>
@@ -576,17 +643,17 @@
             <section id="hub-view-equipment" class="hub-view hidden">
               <div class="hub-equipment-container">
                 <div class="hub-equipment-column">
-                  <h3 class="hub-sub-title">OBJETS ÉQUIPÉS</h3>
+                  <h3 class="hub-sub-title" data-i18n="hub.equipped_title">EQUIPPED ITEMS</h3>
                   <div id="hub-equipped-slots" class="hub-equipped-slots"></div>
                 </div>
 
                 <div class="hub-stash-column">
-                  <h3 class="hub-sub-title">RÉSERVE D'ÉQUIPEMENT (STASH)</h3>
+                  <h3 class="hub-sub-title" data-i18n="hub.stash_title">ITEM STASH</h3>
                   <div id="hub-stash-list" class="hub-stash-list"></div>
                 </div>
 
                 <div class="hub-stats-column">
-                  <h3 class="hub-sub-title">STATISTIQUES DU HÉROS</h3>
+                  <h3 class="hub-sub-title" data-i18n="hub.hero_stats_title">HERO ATTRIBUTES</h3>
                   <div id="hub-full-stats" class="hub-full-stats"></div>
                 </div>
               </div>
@@ -597,11 +664,11 @@
               <div class="hub-ladder-container">
                 <div class="hub-ladder-header">
                   <div class="hub-ladder-title-group">
-                    <h2 class="hub-view-title">PANTHÉON DES AVENTURIERS (LADDER)</h2>
-                    <p class="hub-view-subtitle">Classement officiel de la Citadelle selon le Gear Score maximum atteint par chaque explorateur.</p>
+                    <h2 class="hub-view-title" data-i18n="hub.ladder_title">ADVENTURERS HALL OF FAME (LADDER)</h2>
+                    <p class="hub-view-subtitle" data-i18n="hub.ladder_subtitle">Official Citadel rankings sorted by maximum Gear Score reached by each explorer.</p>
                   </div>
-                  <button id="hub-ladder-refresh-btn" class="hub-ladder-refresh-btn" type="button" title="Actualiser le classement">
-                    <span class="refresh-icon">🔄</span> ACTUALISER
+                  <button id="hub-ladder-refresh-btn" class="hub-ladder-refresh-btn" type="button" title="Refresh leaderboard">
+                    <span class="refresh-icon">🔄</span> <span data-i18n="btn.refresh">REFRESH</span>
                   </button>
                 </div>
 
@@ -610,12 +677,12 @@
                   <table class="hub-ladder-table">
                     <thead>
                       <tr>
-                        <th class="th-rank">RANG</th>
-                        <th class="th-adventurer">AVENTURIER</th>
-                        <th class="th-gearscore">GEAR SCORE MAX</th>
-                        <th class="th-tier">RANG DE PUISSANCE</th>
-                        <th class="th-extractions">EXTRACTIONS</th>
-                        <th class="th-slain">MONSTRES</th>
+                        <th class="th-rank" data-i18n="hub.ladder_rank">RANK</th>
+                        <th class="th-adventurer" data-i18n="hub.ladder_adventurer">ADVENTURER</th>
+                        <th class="th-gearscore" data-i18n="hub.ladder_max_gs">MAX GEAR SCORE</th>
+                        <th class="th-tier" data-i18n="hub.ladder_tier">POWER TIER</th>
+                        <th class="th-extractions" data-i18n="hub.ladder_extractions">EXTRACTIONS</th>
+                        <th class="th-slain" data-i18n="hub.ladder_monsters">MONSTERS</th>
                       </tr>
                     </thead>
                     <tbody id="hub-ladder-tbody">
@@ -633,12 +700,12 @@
             <section id="hub-view-shop" class="hub-view hidden">
               <div class="hub-shop-container">
                 <div class="hub-shop-section">
-                  <h3 class="hub-sub-title">AMÉLIORATIONS PERMANENTES (ARBRE DE TALENTS)</h3>
+                  <h3 class="hub-sub-title" data-i18n="hub.upgrades_title">PERMANENT UPGRADES (TALENT TREE)</h3>
                   <div id="hub-upgrades-list" class="hub-upgrades-list"></div>
                 </div>
 
                 <div class="hub-shop-section">
-                  <h3 class="hub-sub-title">ARSENAL DE LA BOUTIQUE</h3>
+                  <h3 class="hub-sub-title" data-i18n="hub.shop_items_title">SHOP ARSENAL</h3>
                   <div id="hub-shop-items-list" class="hub-shop-items-list"></div>
                 </div>
               </div>
@@ -648,8 +715,8 @@
             <section id="hub-view-quests" class="hub-view hidden">
               <div class="hub-quests-container">
                 <div class="hub-quests-header">
-                  <h2 class="hub-view-title">REGISTRE DES CONTRATS & QUÊTES</h2>
-                  <p class="hub-view-subtitle">Accomplissez des exploits lors de vos expéditions pour décrocher des récompenses en pièces d'or.</p>
+                  <h2 class="hub-view-title" data-i18n="hub.quests_title">CONTRACTS & QUESTS REGISTRY</h2>
+                  <p class="hub-view-subtitle" data-i18n="hub.quests_subtitle">Complete feats during your expeditions to earn gold coin rewards.</p>
                 </div>
                 <div id="hub-quests-list" class="hub-quests-list"></div>
               </div>
@@ -661,10 +728,10 @@
         <div id="hub-queue-overlay" class="hub-queue-overlay hidden">
           <div class="hub-queue-box">
             <div class="hub-queue-header">
-              <div class="hub-queue-tag">CITADELLE</div>
-              <h2 class="hub-queue-title">PRÉPARATION</h2>
-              <p class="hub-queue-subtitle">
-                L'expedition vers la Citadelle part toutes les minutes. Tous les aventuriers en attente seront téléportés ensemble dans la même session.
+              <div class="hub-queue-tag" data-i18n="queue.tag">CITADEL</div>
+              <h2 class="hub-queue-title" data-i18n="queue.title">PREPARATION</h2>
+              <p class="hub-queue-subtitle" data-i18n="queue.subtitle">
+                Expeditions to the Citadel depart every minute. All waiting adventurers will be teleported together into the same session.
               </p>
             </div>
 
@@ -675,9 +742,9 @@
                 <span id="hub-queue-timer-text" class="hub-queue-timer-val">60s</span>
               </div>
               <div class="hub-queue-countdown-info">
-                <div id="hub-queue-status-text" class="hub-queue-status-text">RECHERCHE D'AVENTURIERS EN COURS...</div>
-                <div class="hub-queue-countdown-sub">
-                  Départ garanti dès l'expiration du chrono.
+                <div id="hub-queue-status-text" class="hub-queue-status-text" data-i18n="queue.searching">SEARCHING FOR ADVENTURERS...</div>
+                <div class="hub-queue-countdown-sub" data-i18n="queue.departure">
+                  Departure guaranteed when timer expires.
                 </div>
               </div>
             </div>
@@ -685,8 +752,8 @@
             <!-- Roster de l'escouade en file -->
             <div class="hub-queue-roster-wrap">
               <div class="hub-queue-roster-top">
-                <span class="hub-queue-roster-title">AVENTURIERS DANS LE CONVOI</span>
-                <span id="hub-queue-roster-count" class="hub-queue-roster-count">1 / 4 PRÊTS</span>
+                <span class="hub-queue-roster-title" data-i18n="queue.convoy_title">ADVENTURERS IN CONVOY</span>
+                <span id="hub-queue-roster-count" class="hub-queue-roster-count">1 / 4 READY</span>
               </div>
               <div id="hub-queue-slots-list" class="hub-queue-slots-grid">
                 <!-- 4 cartes générées dynamiquement -->
@@ -695,8 +762,8 @@
 
             <!-- Bouton d'annulation / retour au campement -->
             <div class="hub-queue-action-row">
-              <button id="hub-queue-cancel-btn" class="hub-queue-cancel-btn" type="button">
-                ✕ ANNULER ET RETOURNER AU CAMPEMENT [ÉCHAP]
+              <button id="hub-queue-cancel-btn" class="hub-queue-cancel-btn" type="button" data-i18n="btn.cancel_queue">
+                ✕ CANCEL AND RETURN TO CAMP [ESC]
               </button>
             </div>
           </div>
@@ -709,44 +776,46 @@
       <div class="pause-box auth-box">
         <div class="auth-header">
           <div class="auth-title-group">
-            <h1 id="auth-modal-title" class="pause-title auth-title">CONNEXION À LA CITADELLE</h1>
-            <p class="auth-subtitle">Sauvegardez vos objets, pièces d'or et statistiques sur la base de données</p>
+            <h1 id="auth-modal-title" class="pause-title auth-title" data-i18n="auth.title_login">CONNECT TO THE CITADEL</h1>
+            <p class="auth-subtitle" data-i18n="auth.subtitle">Save your items, gold coins and stats to the database</p>
           </div>
-          <button id="auth-close-btn" class="merchant-close-btn" type="button" title="Fermer [Échap]">✕</button>
+          <button id="auth-close-btn" class="merchant-close-btn" type="button" title="Close [Esc]">✕</button>
         </div>
 
         <!-- Vue Formulaire (Non connecté) -->
         <div id="auth-view-form" class="auth-view">
           <!-- Onglets Connexion / Inscription -->
           <div class="auth-tabs">
-            <button id="auth-tab-login" class="auth-tab-btn active" type="button">SE CONNECTER</button>
-            <button id="auth-tab-register" class="auth-tab-btn" type="button">S'INSCRIRE</button>
+            <button id="auth-tab-login" class="auth-tab-btn active" type="button" data-i18n="auth.tab_login">LOG IN</button>
+            <button id="auth-tab-register" class="auth-tab-btn" type="button" data-i18n="auth.tab_register">REGISTER</button>
           </div>
 
           <!-- Formulaire -->
           <form id="auth-form" class="auth-form" onsubmit="return false;">
             <div class="auth-field">
-              <label for="auth-input-username" class="auth-label">NOM D'AVENTURIER</label>
+              <label for="auth-input-username" class="auth-label" data-i18n="auth.username_label">ADVENTURER NAME</label>
               <input
                 id="auth-input-username"
                 class="chat-input auth-input"
                 type="text"
                 autocomplete="username"
                 maxlength="30"
-                placeholder="Ex: ShadowHunter"
+                placeholder="e.g. ShadowHunter"
+                data-i18n-placeholder="auth.username_placeholder"
                 required
               />
             </div>
 
             <div class="auth-field">
-              <label for="auth-input-password" class="auth-label">MOT DE PASSE</label>
+              <label for="auth-input-password" class="auth-label" data-i18n="auth.password_label">PASSWORD</label>
               <input
                 id="auth-input-password"
                 class="chat-input auth-input"
                 type="password"
                 autocomplete="current-password"
                 minlength="6"
-                placeholder="Au moins 6 caractères"
+                placeholder="At least 6 characters"
+                data-i18n-placeholder="auth.password_placeholder"
                 required
               />
             </div>
@@ -754,17 +823,17 @@
             <div id="auth-feedback" class="auth-feedback hidden"></div>
 
             <div class="auth-buttons-group">
-              <button id="auth-submit-btn" class="main-menu-btn main-menu-btn-primary auth-submit-btn" type="submit">
-                SE CONNECTER
+              <button id="auth-submit-btn" class="main-menu-btn main-menu-btn-primary auth-submit-btn" type="submit" data-i18n="btn.login">
+                LOG IN
               </button>
-              <button id="auth-guest-btn" class="main-menu-btn main-menu-btn-secondary auth-guest-btn" type="button">
-                JOUER EN MODE INVITÉ
+              <button id="auth-guest-btn" class="main-menu-btn main-menu-btn-secondary auth-guest-btn" type="button" data-i18n="btn.guest">
+                PLAY AS GUEST
               </button>
             </div>
           </form>
 
-          <p class="auth-disclaimer">
-            ⚠️ <em>En Mode Invité, vous pouvez jouer sans compte, mais vos objets et vos pièces ne seront pas conservés si vous quittez la session.</em>
+          <p class="auth-disclaimer" data-i18n="auth.disclaimer">
+            ⚠️ <em>In Guest Mode, you can play without an account, but your items and coins will not be preserved when you leave.</em>
           </p>
         </div>
 
@@ -773,18 +842,18 @@
           <div class="auth-account-card">
             <div class="auth-account-avatar">🛡️</div>
             <div class="auth-account-details">
-              <span class="auth-account-tag">AVENTURIER CONNECTÉ</span>
-              <span id="auth-account-username" class="auth-account-username">Joueur</span>
-              <span class="auth-account-sync-status">Sauvegarde active</span>
+              <span class="auth-account-tag" data-i18n="auth.connected_tag">CONNECTED ADVENTURER</span>
+              <span id="auth-account-username" class="auth-account-username">Player</span>
+              <span class="auth-account-sync-status" data-i18n="auth.sync_status">Cloud Save active</span>
             </div>
           </div>
 
           <div class="auth-buttons-group">
-            <button id="auth-logout-btn" class="main-menu-btn main-menu-btn-secondary auth-logout-btn" type="button">
-              SE DÉCONNECTER
+            <button id="auth-logout-btn" class="main-menu-btn main-menu-btn-secondary auth-logout-btn" type="button" data-i18n="btn.logout">
+              LOG OUT
             </button>
-            <button id="auth-account-close-btn" class="main-menu-btn main-menu-btn-primary auth-continue-btn" type="button">
-              CONTINUER
+            <button id="auth-account-close-btn" class="main-menu-btn main-menu-btn-primary auth-continue-btn" type="button" data-i18n="btn.continue">
+              CONTINUE
             </button>
           </div>
         </div>

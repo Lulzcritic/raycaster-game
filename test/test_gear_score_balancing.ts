@@ -101,6 +101,50 @@ assert.ok(
 console.log(`   Score final après 10 extractions: ${currentTotalGS} GS (Plafond respecté <= 2350 GS)`);
 console.log('   ✅ Progression saine et équilibrée sans emballement exponentiel.');
 
+// 4. Test des paliers de rangs réalistes (getGearScoreTier)
+console.log('4. Test des paliers de rangs et correction du rang Champion prématuré...');
+assert.strictEqual(
+  GearScoreService.getGearScoreTier(0).label,
+  'Débutant',
+  '0 GS doit être Débutant'
+);
+assert.strictEqual(
+  GearScoreService.getGearScoreTier(200).label,
+  'Novice',
+  '200 GS (set commun) doit être Novice'
+);
+assert.strictEqual(
+  GearScoreService.getGearScoreTier(350).label,
+  'Initié',
+  '350 GS (set peu commun) doit être Initié'
+);
+assert.strictEqual(
+  GearScoreService.getGearScoreTier(582).label,
+  'Aventurier',
+  '582 GS (set rare / début épique) doit être Aventurier et SURTOUT PAS Champion'
+);
+assert.strictEqual(
+  GearScoreService.getGearScoreTier(850).label,
+  'Vétéran',
+  '850 GS (set épique) doit être Vétéran'
+);
+assert.strictEqual(
+  GearScoreService.getGearScoreTier(1150).label,
+  'Champion',
+  '1150 GS (full épique / premières pièces légendaires) doit être Champion'
+);
+assert.strictEqual(
+  GearScoreService.getGearScoreTier(1550).label,
+  'Maître',
+  '1550 GS (full légendaire) doit être Maître'
+);
+assert.strictEqual(
+  GearScoreService.getGearScoreTier(2000).label,
+  'Légende',
+  '2000 GS (artéfacts) doit être Légende'
+);
+console.log('   ✅ Rangs calibrés avec succès : 582 GS est désormais un Aventurier, le rang Champion requiert >= 1050 GS.');
+
 console.log('\n======================================================');
 console.log('🎉 TOUS LES TESTS DE RÉÉQUILIBRAGE DU GEAR SCORE ONT RÉUSSI !');
 console.log('======================================================\n');

@@ -23,97 +23,97 @@ const RARITY_BASE_SCORE: Record<ItemRarity, number> = {
 export const GEAR_SCORE_RARITY_TABLE: readonly GearScoreDropTier[] = [
   {
     minScore: 0,
-    maxScore: 49,
+    maxScore: 149,
     label: 'Débutant',
     rates: {
-      common: 85.0,
-      uncommon: 14.0,
-      rare: 0.95,
-      epic: 0.04,
-      legendary: 0.01,
+      common: 92.0,
+      uncommon: 7.5,
+      rare: 0.5,
+      epic: 0.0,
+      legendary: 0.0,
       artifact: 0.0,
     },
   },
   {
-    minScore: 50,
-    maxScore: 99,
+    minScore: 150,
+    maxScore: 299,
     label: 'Novice',
     rates: {
-      common: 65.0,
-      uncommon: 28.0,
-      rare: 6.0,
+      common: 70.0,
+      uncommon: 27.0,
+      rare: 2.8,
+      epic: 0.2,
+      legendary: 0.0,
+      artifact: 0.0,
+    },
+  },
+  {
+    minScore: 300,
+    maxScore: 499,
+    label: 'Initié',
+    rates: {
+      common: 44.0,
+      uncommon: 45.0,
+      rare: 10.0,
       epic: 0.9,
       legendary: 0.1,
       artifact: 0.0,
     },
   },
   {
-    minScore: 100,
-    maxScore: 199,
-    label: 'Initié',
+    minScore: 500,
+    maxScore: 749,
+    label: 'Aventurier',
     rates: {
-      common: 40.0,
-      uncommon: 42.0,
-      rare: 15.0,
-      epic: 2.7,
-      legendary: 0.29,
+      common: 22.0,
+      uncommon: 46.0,
+      rare: 26.0,
+      epic: 5.4,
+      legendary: 0.59,
       artifact: 0.01,
     },
   },
   {
-    minScore: 200,
-    maxScore: 349,
-    label: 'Aventurier',
+    minScore: 750,
+    maxScore: 1049,
+    label: 'Vétéran',
     rates: {
-      common: 20.0,
-      uncommon: 45.0,
-      rare: 26.0,
-      epic: 7.5,
-      legendary: 1.4,
+      common: 10.0,
+      uncommon: 32.0,
+      rare: 40.0,
+      epic: 16.0,
+      legendary: 1.9,
       artifact: 0.1,
     },
   },
   {
-    minScore: 350,
-    maxScore: 549,
-    label: 'Vétéran',
-    rates: {
-      common: 8.0,
-      uncommon: 30.0,
-      rare: 42.0,
-      epic: 16.0,
-      legendary: 3.6,
-      artifact: 0.4,
-    },
-  },
-  {
-    minScore: 550,
-    maxScore: 799,
+    minScore: 1050,
+    maxScore: 1449,
     label: 'Champion',
     rates: {
-      common: 3.0,
-      uncommon: 17.0,
+      common: 4.0,
+      uncommon: 18.0,
       rare: 40.0,
       epic: 28.0,
-      legendary: 10.5,
-      artifact: 1.5,
+      legendary: 9.0,
+      artifact: 1.0,
     },
   },
   {
-    minScore: 800,
-    maxScore: 1199,
+    minScore: 1450,
+    maxScore: 1899,
     label: 'Maître',
     rates: {
-      common: 1.0,
-      uncommon: 9.0,
+      common: 1.5,
+      uncommon: 8.5,
       rare: 30.0,
-      epic: 40.0,
-      legendary: 17.0,
-      artifact: 3.0,
+      epic: 38.0,
+      legendary: 18.0,
+      artifact: 4.0,
     },
   },
   {
-    minScore: 1200,
+    minScore: 1900,
     maxScore: Infinity,
     label: 'Légende (Endgame)',
     rates: {
@@ -121,13 +121,36 @@ export const GEAR_SCORE_RARITY_TABLE: readonly GearScoreDropTier[] = [
       uncommon: 4.5,
       rare: 20.0,
       epic: 42.0,
-      legendary: 27.0,
-      artifact: 6.0,
+      legendary: 26.0,
+      artifact: 7.0,
     },
   },
 ];
 
 export class GearScoreService {
+  /**
+   * Retourne le rang et la couleur associée à un Gear Score donné.
+   * Progression équilibrée basée sur un équipement complet de 4 pièces :
+   * - < 150 : Débutant (aucun ou 1-2 items communs)
+   * - 150 - 299 : Novice (set commun complet)
+   * - 300 - 499 : Initié (set peu commun complet)
+   * - 500 - 749 : Aventurier (set rare complet)
+   * - 750 - 1049 : Vétéran (set rare avancé / début épique)
+   * - 1050 - 1449 : Champion (set épique complet / premières pièces légendaires)
+   * - 1450 - 1899 : Maître (set légendaire complet)
+   * - 1900+ : Légende (artéfacts et endgame optimisé)
+   */
+  public static getGearScoreTier(gs: number): { label: string; color: string } {
+    if (gs >= 1900) return { label: 'Légende', color: '#ef4444' };
+    if (gs >= 1450) return { label: 'Maître', color: '#f59e0b' };
+    if (gs >= 1050) return { label: 'Champion', color: '#a855f7' };
+    if (gs >= 750) return { label: 'Vétéran', color: '#8b5cf6' };
+    if (gs >= 500) return { label: 'Aventurier', color: '#3b82f6' };
+    if (gs >= 300) return { label: 'Initié', color: '#22c55e' };
+    if (gs >= 150) return { label: 'Novice', color: '#94a3b8' };
+    return { label: 'Débutant', color: '#78716c' };
+  }
+
   /**
    * Retourne le tableau de progression Gear Score -> Raretés
    */
@@ -137,7 +160,7 @@ export class GearScoreService {
 
   /**
    * Calcule les pourcentages exacts de chances de drop par rareté pour un Gear Score donné,
-   * avec interpolation continue et scaling infini au-delà de 1200 GS.
+   * avec interpolation continue et scaling infini au-delà de 1900 GS.
    */
   public static getRarityDropRates(
     playerGearScore: number,
@@ -145,11 +168,11 @@ export class GearScoreService {
   ): RarityDropRate {
     const gs = Math.max(0, playerGearScore + bonusScore);
 
-    // Scaling infini au-delà de 1200 GS
-    if (gs >= 1200) {
-      const extra1k = (gs - 1200) / 1000;
-      const artifact = Math.min(15.0, 6.0 + extra1k * 3.0);
-      const legendary = Math.min(35.0, 27.0 + extra1k * 2.5);
+    // Scaling infini au-delà de 1900 GS
+    if (gs >= 1900) {
+      const extra1k = (gs - 1900) / 1000;
+      const artifact = Math.min(18.0, 7.0 + extra1k * 3.5);
+      const legendary = Math.min(35.0, 26.0 + extra1k * 2.5);
       const common = Math.max(0.1, 0.5 - extra1k * 0.1);
       const uncommon = Math.max(0.5, 4.5 - extra1k * 1.0);
       const remainder = 100 - (artifact + legendary + common + uncommon);
@@ -159,14 +182,14 @@ export class GearScoreService {
     }
 
     const anchors = [
-      { gs: 25, rates: GEAR_SCORE_RARITY_TABLE[0].rates },
-      { gs: 75, rates: GEAR_SCORE_RARITY_TABLE[1].rates },
-      { gs: 150, rates: GEAR_SCORE_RARITY_TABLE[2].rates },
-      { gs: 275, rates: GEAR_SCORE_RARITY_TABLE[3].rates },
-      { gs: 450, rates: GEAR_SCORE_RARITY_TABLE[4].rates },
-      { gs: 675, rates: GEAR_SCORE_RARITY_TABLE[5].rates },
-      { gs: 1000, rates: GEAR_SCORE_RARITY_TABLE[6].rates },
-      { gs: 1200, rates: GEAR_SCORE_RARITY_TABLE[7].rates },
+      { gs: 50, rates: GEAR_SCORE_RARITY_TABLE[0].rates },
+      { gs: 225, rates: GEAR_SCORE_RARITY_TABLE[1].rates },
+      { gs: 400, rates: GEAR_SCORE_RARITY_TABLE[2].rates },
+      { gs: 625, rates: GEAR_SCORE_RARITY_TABLE[3].rates },
+      { gs: 900, rates: GEAR_SCORE_RARITY_TABLE[4].rates },
+      { gs: 1250, rates: GEAR_SCORE_RARITY_TABLE[5].rates },
+      { gs: 1675, rates: GEAR_SCORE_RARITY_TABLE[6].rates },
+      { gs: 1900, rates: GEAR_SCORE_RARITY_TABLE[7].rates },
     ];
 
     if (gs <= anchors[0].gs) {
@@ -424,10 +447,10 @@ export class GearScoreService {
     const gs = Math.max(30, playerGearScore);
 
     // Multiplicateurs continus doux
-    // À 120 GS -> ~2.0x HP, à 300 GS -> ~3.2x HP, à 600 GS -> ~4.6x HP
-    const hpMultiplier = Number((1 + Math.pow(gs / 120, 0.85)).toFixed(2));
-    const damageMultiplier = Number((1 + Math.pow(gs / 180, 0.75)).toFixed(2));
-    const goldMultiplier = Number((1 + (gs / 160) * 0.6).toFixed(2));
+    // À 300 GS -> ~2.0x HP, à 600 GS -> ~2.8x HP, à 1200 GS -> ~4.2x HP
+    const hpMultiplier = Number((1 + Math.pow(gs / 260, 0.85)).toFixed(2));
+    const damageMultiplier = Number((1 + Math.pow(gs / 350, 0.75)).toFixed(2));
+    const goldMultiplier = Number((1 + (gs / 300) * 0.6).toFixed(2));
 
     return {
       playerGearScore: gs,

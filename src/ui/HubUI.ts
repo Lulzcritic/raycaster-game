@@ -1182,13 +1182,7 @@ export class HubUI {
   }
 
   private getGearScoreTier(gs: number): { label: string; color: string } {
-    if (gs >= 1200) return { label: 'Légende', color: '#ef4444' };
-    if (gs >= 800) return { label: 'Maître', color: '#eab308' };
-    if (gs >= 450) return { label: 'Champion', color: '#a855f7' };
-    if (gs >= 250) return { label: 'Aventurier', color: '#3b82f6' };
-    if (gs >= 100) return { label: 'Initié', color: '#22c55e' };
-    if (gs >= 50) return { label: 'Novice', color: '#a8a29e' };
-    return { label: 'Débutant', color: '#78716c' };
+    return GearScoreService.getGearScoreTier(gs);
   }
 
   // =========================================================================

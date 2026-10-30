@@ -1087,13 +1087,13 @@ export class MapGenerator {
 
     if (tier === 'starter') {
       count = 1;
-      bonusScore = -20;
+      bonusScore = 0;
     } else if (tier === 'royal') {
       count = 2;
-      bonusScore = 100;
+      bonusScore = 80;
     } else if (tier === 'high') {
       count = 3;
-      bonusScore = 40;
+      bonusScore = 30;
     } else {
       count = 2;
       bonusScore = 0;

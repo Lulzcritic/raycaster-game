@@ -3,6 +3,9 @@ import path from 'path';
 import http from 'http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { Matchmaker } from './Matchmaker';
+import { Database } from './db/Database';
+import { AuthService } from './db/AuthService';
+import { PlayerRepository } from './db/PlayerRepository';
 import type { ClientMessage } from '../../src/types/network';
 
 const PORT = Number(process.env.PORT) || 3001;
@@ -23,27 +26,192 @@ const MIME_TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
 };
 
-const server = http.createServer((req, res) => {
-  // En-têtes CORS pour requêtes HTTP de debug / status
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+function sendJson(res: http.ServerResponse, statusCode: number, data: any): void {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  });
+  res.end(JSON.stringify(data));
+}
 
-  if (req.url === '/health' || req.url === '/status') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(
-      JSON.stringify({
-        status: 'ok',
-        timestamp: Date.now(),
-        matchmaker: matchmaker.getStatus(),
-      })
-    );
+function parseJsonBody<T = any>(req: http.IncomingMessage): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+      if (body.length > 2e6) {
+        req.destroy();
+        reject(new Error('Payload trop volumineux (>2MB)'));
+      }
+    });
+    req.on('end', () => {
+      if (!body.trim()) {
+        resolve({} as T);
+        return;
+      }
+      try {
+        resolve(JSON.parse(body) as T);
+      } catch (err) {
+        reject(new Error('Format JSON invalide'));
+      }
+    });
+    req.on('error', (err) => reject(err));
+  });
+}
+
+function extractToken(req: http.IncomingMessage): string | null {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+  const urlObj = new URL(req.url ?? '/', `http://${req.headers.host || 'localhost'}`);
+  return urlObj.searchParams.get('token');
+}
+
+const server = http.createServer(async (req, res) => {
+  // En-têtes CORS universels pour les requêtes HTTP et requêtes preflight OPTIONS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    });
+    res.end();
     return;
   }
 
-  // Distribution des fichiers statiques du client (si dist/ existe)
+  const rawUrl = req.url ?? '/';
+  const pathName = rawUrl.split('?')[0];
+
+  // 1. Healthcheck système & base de données
+  if (pathName === '/health' || pathName === '/status') {
+    sendJson(res, 200, {
+      status: 'ok',
+      timestamp: Date.now(),
+      database: {
+        connected: Database.isConnected(),
+      },
+      matchmaker: matchmaker.getStatus(),
+    });
+    return;
+  }
+
+  // 2. Healthcheck dédié PostgreSQL
+  if (pathName === '/api/db/health' || pathName === '/api/db/status') {
+    sendJson(res, 200, {
+      connected: Database.isConnected(),
+      message: Database.isConnected()
+        ? 'Base de données PostgreSQL connectée et opérationnelle'
+        : 'PostgreSQL hors-ligne (démarrez avec docker compose up -d postgres)',
+    });
+    return;
+  }
+
+  // 3. API Authentification : Inscription (/api/auth/register)
+  if (pathName === '/api/auth/register' && req.method === 'POST') {
+    if (!Database.isConnected()) {
+      sendJson(res, 503, {
+        success: false,
+        error: 'Base de données PostgreSQL hors ligne. Veuillez démarrer le conteneur Docker.',
+      });
+      return;
+    }
+    try {
+      const body = await parseJsonBody<{ username?: string; password?: string }>(req);
+      const result = await AuthService.register(body.username ?? '', body.password ?? '');
+      sendJson(res, 201, { success: true, ...result });
+    } catch (err: any) {
+      sendJson(res, 400, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  // 4. API Authentification : Connexion (/api/auth/login)
+  if (pathName === '/api/auth/login' && req.method === 'POST') {
+    if (!Database.isConnected()) {
+      sendJson(res, 503, {
+        success: false,
+        error: 'Base de données PostgreSQL hors ligne. Veuillez démarrer le conteneur Docker.',
+      });
+      return;
+    }
+    try {
+      const body = await parseJsonBody<{ username?: string; password?: string }>(req);
+      const result = await AuthService.login(body.username ?? '', body.password ?? '');
+      sendJson(res, 200, { success: true, ...result });
+    } catch (err: any) {
+      sendJson(res, 401, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  // 5. API Authentification : Déconnexion (/api/auth/logout)
+  if (pathName === '/api/auth/logout' && req.method === 'POST') {
+    const token = extractToken(req);
+    if (token) {
+      await AuthService.logout(token);
+    }
+    sendJson(res, 200, { success: true });
+    return;
+  }
+
+  // 6. API Profil & Inventaire : Récupération des données du joueur (/api/auth/me ou /api/player/data)
+  if ((pathName === '/api/auth/me' || pathName === '/api/player/data') && req.method === 'GET') {
+    if (!Database.isConnected()) {
+      sendJson(res, 503, { success: false, error: 'Base de données PostgreSQL hors ligne' });
+      return;
+    }
+    const token = extractToken(req);
+    if (!token) {
+      sendJson(res, 401, { success: false, error: 'Jeton d authentification manquant (Bearer token)' });
+      return;
+    }
+    const user = await AuthService.verifySession(token);
+    if (!user) {
+      sendJson(res, 401, { success: false, error: 'Session expirée ou invalide' });
+      return;
+    }
+    const data = await PlayerRepository.getFullPlayerData(user.id);
+    sendJson(res, 200, { success: true, user, ...data });
+    return;
+  }
+
+  // 7. API Joueur : Synchronisation et sauvegarde d'inventaire, monnaie et quêtes (/api/player/sync)
+  if ((pathName === '/api/player/sync' || pathName === '/api/player/save') && req.method === 'POST') {
+    if (!Database.isConnected()) {
+      sendJson(res, 503, { success: false, error: 'Base de données PostgreSQL hors ligne' });
+      return;
+    }
+    const token = extractToken(req);
+    if (!token) {
+      sendJson(res, 401, { success: false, error: 'Jeton d authentification manquant (Bearer token)' });
+      return;
+    }
+    const user = await AuthService.verifySession(token);
+    if (!user) {
+      sendJson(res, 401, { success: false, error: 'Session expirée ou invalide' });
+      return;
+    }
+    try {
+      const body = await parseJsonBody(req);
+      const result = await PlayerRepository.savePlayerData(user.id, body);
+      sendJson(res, 200, { success: true, user, ...result });
+    } catch (err: any) {
+      sendJson(res, 400, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  // 8. Distribution des fichiers statiques du client (si dist/ existe)
   if (fs.existsSync(DIST_DIR)) {
-    const rawUrl = req.url?.split('?')[0] ?? '/';
-    const cleanUrl = rawUrl === '/' ? '/index.html' : rawUrl;
+    const cleanUrl = pathName === '/' ? '/index.html' : pathName;
     const safePath = path.normalize(cleanUrl).replace(/^(\.\.[/\\])+/, '');
     const filePath = path.join(DIST_DIR, safePath);
 
@@ -64,8 +232,8 @@ const server = http.createServer((req, res) => {
     }
   }
 
-  res.writeHead(404);
-  res.end('Raycaster Multiplayer Gateway (Frontend non compilé dans dist/)');
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Route non trouvée sur la passerelle' }));
 });
 
 const wss = new WebSocketServer({ server });
@@ -100,14 +268,20 @@ wss.on('connection', (ws: WebSocket, req) => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
   console.log(`🏰 RAYCASTER MULTIPLAYER SERVER EN LIGNE`);
-  console.log(`📡 Port: ${PORT} (WebSocket & HTTP Health)`);
+  console.log(`📡 Port: ${PORT} (WebSocket, REST API & HTTP Health)`);
   console.log(`⏱️ Cycle de convoi : toutes les 60 secondes`);
   console.log(`====================================================`);
+
+  // Initialisation non-bloquante du pool PostgreSQL
+  Database.init().catch((err) => {
+    console.warn('[Database] Initialisation échouée:', err.message);
+  });
 });
 
 process.on('SIGINT', () => {
   console.log('\n[Server] Arrêt du serveur...');
   matchmaker.destroy();
+  Database.close().catch(() => {});
   wss.close(() => {
     server.close(() => {
       process.exit(0);

@@ -97,6 +97,7 @@ export class Game {
   private readonly remotePlayers = new Map<string, RemotePlayer>();
   private hasSentDeathNotification = false;
   private hasSentBossDefeated = false;
+  private bossDefeatedAnnounced = false;
   private readonly chatUI: ChatUI;
   private currentSquadSummary: SquadSummaryPayload | null = null;
   private isSpectating = false;
@@ -538,12 +539,15 @@ export class Game {
       SoundManager.stopBossMusic(1500);
 
       for (const ent of this.entities) {
-        if (ent instanceof ExtractionPortal && ent.name.includes('Royal')) {
-          ent.activateNow();
+        if (ent instanceof ExtractionPortal && (ent.requiresBoss || ent.name.includes('Royal'))) {
+          ent.unlockByBoss();
+        }
+        if (ent instanceof BillboardSprite && ent.isLockedByBoss) {
+          ent.unlockBossChest();
         }
       }
 
-      const notif = `👑 LE BOSS DU SANCTUAIRE (${data.bossName.toUpperCase()}) A ÉTÉ TERRASSÉ ! LE PORTAIL ROYAL EST OUVERT !`;
+      const notif = `👑 LE BOSS DU SANCTUAIRE (${data.bossName.toUpperCase()}) A ÉTÉ TERRASSÉ ! LE PORTAIL ROYAL ET LES COFFRES DU SANCTUAIRE SONT DÉVERROUILLÉS !`;
       this.interactionPrompt.showNotification(notif);
       this.chatUI.addMessage('SYSTÈME', notif, true);
     });
@@ -693,6 +697,7 @@ export class Game {
     this.lostHomonculusOnExtract = false;
     this.hasSentDeathNotification = false;
     this.hasSentBossDefeated = false;
+    this.bossDefeatedAnnounced = false;
     this.map = new GameMap(level.grid, level.floorGrid, level.skyTileId);
     this.player.x = level.playerSpawn.x;
     this.player.y = level.playerSpawn.y;
@@ -815,6 +820,16 @@ export class Game {
             }
           );
           if (tileId === TILE_TYPE.CHEST) {
+            if (
+              level.bossChestCoords?.includes(coordKey) ||
+              (level.name?.toLowerCase().includes('citadelle') &&
+                col >= 30 &&
+                col <= 40 &&
+                row >= 30 &&
+                row <= 40)
+            ) {
+              sprite.isLockedByBoss = true;
+            }
             sprite.onChestOpenedCallback = (x, y, isMimic, items, dropPositions) => {
               if (this.currentInstanceId) {
                 NetworkClient.getInstance().sendChestOpened({
@@ -908,6 +923,12 @@ export class Game {
             this.entities.push(newEntity);
           }
         );
+        if (s.textureId === TILE_TYPE.CHEST) {
+          const coordKey = `${Math.floor(s.x)},${Math.floor(s.y)}`;
+          if (level.bossChestCoords?.includes(coordKey)) {
+            sprite.isLockedByBoss = true;
+          }
+        }
         this.entities.push(sprite);
       }
     }
@@ -953,7 +974,8 @@ export class Game {
           ext.activationDelaySec ?? 45,
           (port) => {
             this.handleExtraction(port);
-          }
+          },
+          ext.requiresBoss ?? ext.name.toLowerCase().includes('royal')
         );
         this.entities.push(portal);
       }
@@ -1467,17 +1489,29 @@ export class Game {
       }
     }
 
-    // Si le Boss du Sanctuaire est vaincu (Reine de Sang, Roi Gâteau ou Blob Boss), activation immédiate du portail royal
+    // Si le Boss du Sanctuaire est vaincu (Reine de Sang, Roi Gâteau ou Blob Boss), activation immédiate du portail royal et des coffres royaux
     const boss = this.entities.find(
       (e): e is Enemy =>
         e instanceof Enemy &&
         (e.type.id === 'blob_boss' ||
           e.type.id === 'blood_queen' ||
-          e.type.id === 'carrot_cake_king')
+          e.type.id === 'carrot_cake_king' ||
+          e.type.rank === 'boss')
     );
     if (boss && !boss.isAlive()) {
       if (SoundManager.isBossMusicActive()) {
         SoundManager.stopBossMusic(1500);
+      }
+      if (!this.bossDefeatedAnnounced) {
+        this.bossDefeatedAnnounced = true;
+        this.interactionPrompt.showNotification(
+          `👑 ${boss.type.name.toUpperCase()} VAINCU ! LE PORTAIL ROYAL ET LES COFFRES DU SANCTUAIRE SONT DÉVERROUILLÉS !`
+        );
+        this.chatUI.addMessage(
+          'SYSTÈME',
+          `👑 Vous avez terrassé le Boss (${boss.type.name}) ! Le Portail Royal et les Coffres Royaux du Sanctuaire sont déverrouillés !`,
+          true
+        );
       }
       if (this.currentInstanceId && !this.hasSentBossDefeated) {
         this.hasSentBossDefeated = true;
@@ -1485,15 +1519,13 @@ export class Game {
           instanceId: this.currentInstanceId,
           bossName: boss.type.name,
         });
-        this.chatUI.addMessage(
-          'SYSTÈME',
-          `👑 Vous avez terrassé le Boss (${boss.type.name}) ! Le Portail Royal est ouvert !`,
-          true
-        );
       }
       for (const ent of this.entities) {
-        if (ent instanceof ExtractionPortal && ent.name.includes('Royal')) {
-          ent.activateNow();
+        if (ent instanceof ExtractionPortal && (ent.requiresBoss || ent.name.includes('Royal'))) {
+          ent.unlockByBoss();
+        }
+        if (ent instanceof BillboardSprite && ent.isLockedByBoss) {
+          ent.unlockBossChest();
         }
       }
     }

@@ -5,11 +5,14 @@ export interface ExtractionInfo {
   name: string;
   isActive: boolean;
   remainingSec: number;
+  requiresBoss?: boolean;
 }
 
 export class ExtractionPortal extends Entity {
   public readonly name: string;
   public readonly activationDelaySec: number;
+  public requiresBoss: boolean;
+  private isBossDefeated = false;
   private elapsedTime = 0;
   private animTimer = 0;
   private wasActiveAnnounced = false;
@@ -22,12 +25,14 @@ export class ExtractionPortal extends Entity {
     y: number,
     name: string,
     activationDelaySec = 45,
-    onExtract?: (portal: ExtractionPortal, player: Player) => void
+    onExtract?: (portal: ExtractionPortal, player: Player) => void,
+    requiresBoss = false
   ) {
     super(x, y, 0, 0.45);
     this.name = name;
     this.activationDelaySec = activationDelaySec;
     this.onExtract = onExtract;
+    this.requiresBoss = requiresBoss;
     ExtractionPortal.ensureSprites();
   }
 
@@ -40,22 +45,38 @@ export class ExtractionPortal extends Entity {
   }
 
   public isActive(): boolean {
-    return this.active && this.elapsedTime >= this.activationDelaySec;
+    if (!this.active) {
+      return false;
+    }
+    if (this.requiresBoss && !this.isBossDefeated) {
+      return false;
+    }
+    return this.elapsedTime >= this.activationDelaySec;
   }
 
   public activateNow(): void {
     this.elapsedTime = Math.max(this.elapsedTime, this.activationDelaySec);
   }
 
+  public unlockByBoss(): void {
+    this.isBossDefeated = true;
+    this.activateNow();
+  }
+
+  public isBossUnlocked(): boolean {
+    return this.isBossDefeated;
+  }
+
   public getExtractionInfo(): ExtractionInfo {
-    const remaining = Math.max(
-      0,
-      Math.ceil(this.activationDelaySec - this.elapsedTime)
-    );
+    const isWaitingBoss = this.requiresBoss && !this.isBossDefeated;
+    const remaining = isWaitingBoss
+      ? 999
+      : Math.max(0, Math.ceil(this.activationDelaySec - this.elapsedTime));
     return {
       name: this.name,
       isActive: this.isActive(),
       remainingSec: remaining,
+      requiresBoss: isWaitingBoss,
     };
   }
 
@@ -66,6 +87,10 @@ export class ExtractionPortal extends Entity {
   public override getInteractionPrompt(_player?: Player): string | null {
     if (!this.active) {
       return null;
+    }
+
+    if (this.requiresBoss && !this.isBossDefeated) {
+      return `🔒 ${this.name.toUpperCase()} (SCELLÉ : VAINQUEZ LE BOSS DU SANCTUAIRE)`;
     }
 
     if (this.isActive()) {
@@ -82,6 +107,10 @@ export class ExtractionPortal extends Entity {
   public override interact(player: Player): string | null {
     if (!this.active) {
       return null;
+    }
+
+    if (this.requiresBoss && !this.isBossDefeated) {
+      return `🔒 CE PORTAIL ROYAL EST SCELLÉ PAR L'ÂME DU BOSS ! TERRASSEZ-LE POUR L'OUVRIR !`;
     }
 
     if (!this.isActive()) {
@@ -101,7 +130,9 @@ export class ExtractionPortal extends Entity {
       return;
     }
 
-    this.elapsedTime += deltaTime;
+    if (!this.requiresBoss || this.isBossDefeated) {
+      this.elapsedTime += deltaTime;
+    }
     this.animTimer += deltaTime;
 
     // Détection de l'activation

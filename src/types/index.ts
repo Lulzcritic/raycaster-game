@@ -124,6 +124,7 @@ export interface ExtractionSpawnData {
   y: number;
   name: string;
   activationDelaySec?: number;
+  requiresBoss?: boolean;
 }
 
 export interface DifficultyScaling {
@@ -140,6 +141,7 @@ export interface LevelData {
   skyTileId?: number;
   sprites?: SpriteSpawnData[];
   chestLoots?: Record<string, EquipmentItem[] | string[]>;
+  bossChestCoords?: string[];
   enemies?: EnemySpawnData[];
   doors?: DoorSpawnData[];
   extractions?: ExtractionSpawnData[];

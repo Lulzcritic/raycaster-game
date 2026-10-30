@@ -39,6 +39,7 @@ interface ChunkChest {
   y: number;
   tier?: 'starter' | 'standard' | 'high' | 'royal';
   fixedLoot?: string[];
+  requiresBoss?: boolean;
 }
 
 interface ChunkPortal {
@@ -46,6 +47,7 @@ interface ChunkPortal {
   y: number;
   name: string;
   delaySec: number;
+  requiresBoss?: boolean;
 }
 
 interface ChunkSprite {
@@ -127,8 +129,8 @@ export class MapGenerator {
       '###########',
     ],
     chests: [
-      { x: 2, y: 5, tier: 'royal' },
-      { x: 8, y: 5, tier: 'royal' },
+      { x: 2, y: 5, tier: 'royal', requiresBoss: true },
+      { x: 8, y: 5, tier: 'royal', requiresBoss: true },
     ],
     portals: [
       {
@@ -136,6 +138,7 @@ export class MapGenerator {
         y: 3.5,
         name: 'Portail Royal du Sanctuaire',
         delaySec: 90,
+        requiresBoss: true,
       },
     ],
     sprites: [
@@ -455,6 +458,7 @@ export class MapGenerator {
     );
 
     const chestLoots: Record<string, EquipmentItem[]> = {};
+    const bossChestCoords: string[] = [];
     const enemies: EnemySpawnData[] = [];
     const doors: DoorSpawnData[] = [];
     const extractions: ExtractionSpawnData[] = [];
@@ -717,7 +721,8 @@ export class MapGenerator {
         sprites,
         extractions,
         chestLoots,
-        playerGearScore
+        playerGearScore,
+        bossChestCoords
       );
 
       // Calcul du point de réveil du joueur dans cette crypte
@@ -752,7 +757,8 @@ export class MapGenerator {
       sprites,
       extractions,
       chestLoots,
-      playerGearScore
+      playerGearScore,
+      bossChestCoords
     );
 
     // C. Placement des 44 modules de Zone 2 avec rotations aléatoires (0, 90, 180 ou 270°)
@@ -771,7 +777,8 @@ export class MapGenerator {
         sprites,
         extractions,
         chestLoots,
-        playerGearScore
+        playerGearScore,
+        bossChestCoords
       );
     }
 
@@ -925,6 +932,7 @@ export class MapGenerator {
       floorGrid,
       skyTileId: TILE_TYPE.SKY_1,
       chestLoots,
+      bossChestCoords,
       enemies,
       doors,
       extractions,
@@ -997,13 +1005,20 @@ export class MapGenerator {
         y: Math.round(rc.y),
         tier: c.tier,
         fixedLoot: c.fixedLoot,
+        requiresBoss: c.requiresBoss,
       };
     });
 
     // Rotation des portails
     const newPortals = template.portals?.map((p) => {
       const rc = rotCoord(p.x, p.y);
-      return { x: rc.x, y: rc.y, name: p.name, delaySec: p.delaySec };
+      return {
+        x: rc.x,
+        y: rc.y,
+        name: p.name,
+        delaySec: p.delaySec,
+        requiresBoss: p.requiresBoss,
+      };
     });
 
     // Rotation des sprites
@@ -1114,7 +1129,8 @@ export class MapGenerator {
     sprites: SpriteSpawnData[],
     extractions: ExtractionSpawnData[],
     chestLoots: Record<string, EquipmentItem[]>,
-    playerGearScore: number = 50
+    playerGearScore: number = 50,
+    bossChestCoords: string[] = []
   ): void {
     const ox = cx * MapGenerator.CHUNK_STEP;
     const oy = cy * MapGenerator.CHUNK_STEP;
@@ -1165,6 +1181,9 @@ export class MapGenerator {
         grid[gy][gx] = TILE_TYPE.CHEST;
 
         const keyCoord = `${gx},${gy}`;
+        if (c.requiresBoss) {
+          bossChestCoords.push(keyCoord);
+        }
         chestLoots[keyCoord] = MapGenerator.generateChestLoot(
           c.tier,
           playerGearScore,
@@ -1181,6 +1200,7 @@ export class MapGenerator {
           y: oy + p.y,
           name: p.name,
           activationDelaySec: p.delaySec,
+          requiresBoss: p.requiresBoss,
         });
       }
     }

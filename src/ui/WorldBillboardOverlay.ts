@@ -1069,11 +1069,14 @@ export class WorldBillboardOverlay {
 
   private updatePortalElement(
     el: HTMLElement,
-    info: { name: string; isActive: boolean; remainingSec: number }
+    info: { name: string; isActive: boolean; remainingSec: number; requiresBoss?: boolean }
   ): void {
     if (info.isActive) {
       el.className = 'world-portal-badge active';
       el.textContent = `🌀 ${info.name.toUpperCase()} [OUVERT]`;
+    } else if (info.requiresBoss) {
+      el.className = 'world-portal-badge inactive boss-locked';
+      el.textContent = `🔒 ${info.name.toUpperCase()} [SCELLÉ PAR LE BOSS]`;
     } else {
       el.className = 'world-portal-badge inactive';
       el.textContent = `⏳ ${info.name.toUpperCase()} (${info.remainingSec}s)`;

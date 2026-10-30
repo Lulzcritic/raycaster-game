@@ -63,12 +63,20 @@ export class BillboardSprite extends Entity {
     this.onSpawnEntity = onSpawnEntity;
   }
 
+  public isLockedByBoss = false;
+  public wasLockedByBoss = false;
+
   public hasLoot(): boolean {
     return this.lootItems.length > 0;
   }
 
   public isChestOpened(): boolean {
     return this.isOpened;
+  }
+
+  public unlockBossChest(): void {
+    this.isLockedByBoss = false;
+    this.wasLockedByBoss = true;
   }
 
   public update(deltaTime: number, _map: GameMap): void {
@@ -123,7 +131,10 @@ export class BillboardSprite extends Entity {
       return null;
     }
     if (this.textureId === TILE_TYPE.CHEST) {
-      return '[F] OUVRIR LE COFFRE';
+      if (this.isLockedByBoss) {
+        return "🔒 COFFRE ROYAL SCELLÉ : VAINQUEZ LE BOSS DU SANCTUAIRE POUR L'OUVRIR !";
+      }
+      return this.wasLockedByBoss ? '[F] OUVRIR LE COFFRE ROYAL' : '[F] OUVRIR LE COFFRE';
     }
     if (this.textureId === TILE_TYPE.HOMONCULUS) {
       const isEquipped = player ? player.inventory.hasItem('offhand') : false;
@@ -139,6 +150,11 @@ export class BillboardSprite extends Entity {
   public override interact(player: Player, map?: GameMap): string | null {
     if (!this.isInteractable()) {
       return null;
+    }
+
+    if (this.textureId === TILE_TYPE.CHEST && this.isLockedByBoss) {
+      SoundManager.play3D('button', this.x, this.y, { volume: 0.6, pitchVariation: 0.2 });
+      return "🔒 CE COFFRE EST SCELLÉ PAR L'ÂME DU BOSS ! TERRASSEZ-LE POUR DÉVERROUILLER LE BUTIN !";
     }
 
     if (this.textureId === TILE_TYPE.HOMONCULUS) {
@@ -173,8 +189,9 @@ export class BillboardSprite extends Entity {
     QuestManager.onChestOpened();
 
     // Un coffre a 1 chance sur 4 de se transformer en Mimic s'il ne contient pas de clé essentielle
+    // Les coffres royaux du boss ne sont jamais des mimics
     const hasKey = this.lootItems.some((item) => item.slot === 'key');
-    const isMimic = !hasKey && Math.random() < 0.25;
+    const isMimic = !hasKey && !this.wasLockedByBoss && Math.random() < 0.25;
 
     if (isMimic) {
       this.active = false;

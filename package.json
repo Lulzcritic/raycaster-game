@@ -8,7 +8,7 @@
     "server": "tsx server/src/index.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "tsx test/test_database.ts && tsx test/test_auth_modal_and_guest_mode.ts && tsx test/test_ladder.ts && tsx test/test_props_and_pillars.ts && tsx test/test_death_and_spectator.ts && tsx test/test_sound_manager.ts && tsx test/test_boss_music_integration.ts && tsx test/test_loading_screen.ts && tsx test/test_metadata_and_discord_embeds.ts && tsx test/test_ci.ts"
+    "test": "tsx test/test_database.ts && tsx test/test_auth_modal_and_guest_mode.ts && tsx test/test_ladder.ts && tsx test/test_props_and_pillars.ts && tsx test/test_death_and_spectator.ts && tsx test/test_sound_manager.ts && tsx test/test_boss_music_integration.ts && tsx test/test_boss_sanctum_unlock.ts && tsx test/test_loading_screen.ts && tsx test/test_metadata_and_discord_embeds.ts && tsx test/test_ci.ts"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",

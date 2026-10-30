@@ -1503,6 +1503,13 @@ body {
   text-shadow: 2px 2px 0 #000000;
 }
 
+.world-portal-badge.boss-locked {
+  background: rgba(88, 28, 28, 0.95);
+  border: 2px solid #f87171;
+  color: #fca5a5;
+  text-shadow: 2px 2px 0 #000000;
+}
+
 /* =========================================================================
    ÉCRAN DE VICTOIRE D'EXTRACTION (MODAL HAUTE RÉSOLUTION)
    ========================================================================= */

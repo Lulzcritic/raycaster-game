@@ -149,6 +149,9 @@ export class Game {
       initialFovDeg,
       () => {
         this.openHub('ladder');
+      },
+      () => {
+        this.openHub(this.hubUI.getCurrentTab());
       }
     );
     this.pauseMenu = new PauseMenu(
@@ -203,6 +206,9 @@ export class Game {
     this.input.onEscapeWhileBlocked = () => {
       if (this.isInMainMenu && this.mainMenu.isInSettings()) {
         this.mainMenu.showMain();
+      } else if (this.isInHub && this.mainMenu.isInSettings()) {
+        this.mainMenu.hide();
+        this.openHub(this.hubUI.getCurrentTab());
       }
     };
 
@@ -257,6 +263,9 @@ export class Game {
       },
       () => {
         this.returnToMainMenu();
+      },
+      () => {
+        this.openSettingsFromHub();
       }
     );
     this.hubUI.setPlayer(this.player);
@@ -1149,6 +1158,11 @@ export class Game {
     this.hubUI.setPlayer(this.player);
     const targetTab = (tab === 'shop' || tab === 'quests') ? 'play' : tab;
     this.hubUI.show(targetTab);
+  }
+
+  public openSettingsFromHub(): void {
+    this.hubUI.hide();
+    this.mainMenu.showSettings(true);
   }
 
   public returnToHub(): void {

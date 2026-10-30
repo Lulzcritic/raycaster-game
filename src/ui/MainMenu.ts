@@ -35,6 +35,19 @@ export class MainMenu {
   private readonly mainCtrlStrafe: HTMLElement | null;
   private readonly unsubscribeControls?: () => void;
 
+  // Éléments du panneau Réglages Audio
+  private readonly mainSettingsMusicBtn: HTMLButtonElement | null;
+  private readonly mainSettingsMusicIcon: HTMLElement | null;
+  private readonly mainSettingsMusicText: HTMLElement | null;
+  private readonly mainSettingsSfxBtn: HTMLButtonElement | null;
+  private readonly mainSettingsSfxIcon: HTMLElement | null;
+  private readonly mainSettingsSfxText: HTMLElement | null;
+  private readonly mainAudioIndicator: HTMLElement | null;
+  private readonly unsubscribeAudio?: () => void;
+
+  private isOpenedFromHub = false;
+  private onBackToHubCallback?: () => void;
+
   // Pied de page : version de l'application
   private readonly versionDisplay: HTMLElement | null;
 
@@ -46,7 +59,8 @@ export class MainMenu {
     onPlay?: () => void,
     onFovChange?: (fovDegrees: number) => void,
     initialFovDegrees = 75,
-    onLadder?: () => void
+    onLadder?: () => void,
+    onBackToHub?: () => void
   ) {
     this.menuElement = document.getElementById('main-menu');
     this.logoImg = document.getElementById('main-menu-logo') as HTMLImageElement | null;
@@ -70,6 +84,15 @@ export class MainMenu {
     this.mainCtrlMove = document.getElementById('main-ctrl-move');
     this.mainCtrlStrafe = document.getElementById('main-ctrl-strafe');
 
+    // Récupération des éléments audio
+    this.mainSettingsMusicBtn = document.getElementById('main-settings-music-btn') as HTMLButtonElement | null;
+    this.mainSettingsMusicIcon = document.getElementById('main-settings-music-icon');
+    this.mainSettingsMusicText = document.getElementById('main-settings-music-text');
+    this.mainSettingsSfxBtn = document.getElementById('main-settings-sfx-btn') as HTMLButtonElement | null;
+    this.mainSettingsSfxIcon = document.getElementById('main-settings-sfx-icon');
+    this.mainSettingsSfxText = document.getElementById('main-settings-sfx-text');
+    this.mainAudioIndicator = document.getElementById('main-audio-indicator');
+
     // Récupération de l'affichage de la version
     this.versionDisplay = document.getElementById('main-menu-version');
     this.updateVersionDisplay();
@@ -77,6 +100,7 @@ export class MainMenu {
     this.onPlayCallback = onPlay;
     this.onLadderCallback = onLadder;
     this.onFovChangeCallback = onFovChange;
+    this.onBackToHubCallback = onBackToHub;
 
     this.authModal = new AuthModal(() => {
       this.updateAccountDisplay(AuthManager.getUser());
@@ -106,9 +130,18 @@ export class MainMenu {
     this.settingsBackBtn?.addEventListener('click', this.handleBackClick);
     this.fovSlider?.addEventListener('input', this.handleFovInput);
 
+    // Écouteurs audio
+    this.mainSettingsMusicBtn?.addEventListener('click', this.handleMusicToggle);
+    this.mainSettingsSfxBtn?.addEventListener('click', this.handleSfxToggle);
+
     // Écouteurs pour le commutateur de disposition clavier (QWERTY / AZERTY)
     this.mainLayoutQwertyBtn?.addEventListener('click', this.handleQwertyClick);
     this.mainLayoutAzertyBtn?.addEventListener('click', this.handleAzertyClick);
+
+    // Abonnement aux changements d'état muet audio
+    this.unsubscribeAudio = SoundManager.subscribeMute(() => {
+      this.updateAudioButtons();
+    });
 
     // Abonnement aux changements de disposition clavier
     this.unsubscribeControls = ControlsManager.subscribe((layout) => {
@@ -119,6 +152,8 @@ export class MainMenu {
     this.unsubscribeAuth = AuthManager.subscribe((user) => {
       this.updateAccountDisplay(user);
     });
+
+    this.updateAudioButtons();
   }
 
   private readonly handleQwertyClick = (): void => {
@@ -197,12 +232,77 @@ export class MainMenu {
     }
   }
 
+  private readonly handleMusicToggle = (): void => {
+    SoundManager.toggleMusicMute();
+    this.updateAudioButtons();
+    SoundManager.playButtonSound();
+  };
+
+  private readonly handleSfxToggle = (): void => {
+    const isMuted = SoundManager.toggleSfxMute();
+    this.updateAudioButtons();
+    if (!isMuted) {
+      SoundManager.playButtonSound();
+    }
+  };
+
+  /**
+   * Met à jour les libellés, icônes et styles visuels (.is-muted) des boutons audio du menu principal.
+   */
+  public updateAudioButtons(): void {
+    const isMusicMuted = SoundManager.isMusicMute();
+    const isSfxMuted = SoundManager.isSfxMute();
+
+    const musicIcon = isMusicMuted ? '🔇' : '🎵';
+    const musicText = isMusicMuted ? 'MUSIQUE : OFF' : 'MUSIQUE : ON';
+    const musicTitle = isMusicMuted ? 'Activer la musique' : 'Couper la musique';
+
+    const sfxIcon = isSfxMuted ? '🔇' : '🔊';
+    const sfxText = isSfxMuted ? 'EFFETS : OFF' : 'EFFETS : ON';
+    const sfxTitle = isSfxMuted ? 'Activer les effets sonores' : 'Couper les effets sonores';
+
+    if (this.mainSettingsMusicIcon) this.mainSettingsMusicIcon.textContent = musicIcon;
+    if (this.mainSettingsMusicText) this.mainSettingsMusicText.textContent = musicText;
+    if (this.mainSettingsMusicBtn) {
+      this.mainSettingsMusicBtn.title = musicTitle;
+      this.mainSettingsMusicBtn.classList.toggle('is-muted', isMusicMuted);
+    }
+
+    if (this.mainSettingsSfxIcon) this.mainSettingsSfxIcon.textContent = sfxIcon;
+    if (this.mainSettingsSfxText) this.mainSettingsSfxText.textContent = sfxText;
+    if (this.mainSettingsSfxBtn) {
+      this.mainSettingsSfxBtn.title = sfxTitle;
+      this.mainSettingsSfxBtn.classList.toggle('is-muted', isSfxMuted);
+    }
+
+    if (this.mainAudioIndicator) {
+      if (isMusicMuted && isSfxMuted) {
+        this.mainAudioIndicator.textContent = 'TOUT COUPÉ';
+        this.mainAudioIndicator.style.color = '#f87171';
+      } else if (!isMusicMuted && !isSfxMuted) {
+        this.mainAudioIndicator.textContent = 'SON ACTIF';
+        this.mainAudioIndicator.style.color = '#facc15';
+      } else {
+        this.mainAudioIndicator.textContent = 'PARTIEL';
+        this.mainAudioIndicator.style.color = '#38bdf8';
+      }
+    }
+  }
+
   private readonly handleSettingsClick = (): void => {
     this.showSettings();
   };
 
   private readonly handleBackClick = (): void => {
-    this.showMain();
+    SoundManager.playButtonSound();
+    if (this.isOpenedFromHub) {
+      this.isOpenedFromHub = false;
+      this.hide();
+      this.menuElement?.classList.remove('is-in-settings');
+      this.onBackToHubCallback?.();
+    } else {
+      this.showMain();
+    }
   };
 
   private readonly handleFovInput = (): void => {
@@ -219,6 +319,8 @@ export class MainMenu {
   };
 
   public showMain(): void {
+    this.isOpenedFromHub = false;
+    this.menuElement?.classList.remove('is-in-settings');
     if (this.coinText) {
       this.coinText.textContent = String(WalletManager.getCoins());
     }
@@ -226,9 +328,17 @@ export class MainMenu {
     this.settingsView?.classList.add('hidden');
   }
 
-  public showSettings(): void {
+  public showSettings(fromHub = false): void {
+    this.isOpenedFromHub = fromHub;
     this.mainView?.classList.add('hidden');
     this.settingsView?.classList.remove('hidden');
+    this.menuElement?.classList.add('is-in-settings');
+    this.menuElement?.classList.remove('hidden');
+    this.updateAudioButtons();
+  }
+
+  public setOnBackToHub(cb: () => void): void {
+    this.onBackToHubCallback = cb;
   }
 
   public setFov(fovDegrees: number): void {
@@ -280,10 +390,13 @@ export class MainMenu {
     this.ladderBtn?.removeEventListener('click', this.handleLadderClick);
     this.settingsBtn?.removeEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.removeEventListener('click', this.handleBackClick);
+    this.mainSettingsMusicBtn?.removeEventListener('click', this.handleMusicToggle);
+    this.mainSettingsSfxBtn?.removeEventListener('click', this.handleSfxToggle);
     this.fovSlider?.removeEventListener('input', this.handleFovInput);
     this.mainLayoutQwertyBtn?.removeEventListener('click', this.handleQwertyClick);
     this.mainLayoutAzertyBtn?.removeEventListener('click', this.handleAzertyClick);
     this.unsubscribeControls?.();
     this.unsubscribeAuth?.();
+    this.unsubscribeAudio?.();
   }
 }

@@ -109,6 +109,15 @@ export class HubUI {
     localPlayerId?: string;
   }) => void;
   private onReturnToMenuCallback?: () => void;
+  private onOpenSettingsCallback?: () => void;
+
+  // Contrôles audio et paramètres du Hub
+  private readonly hubMusicBtn: HTMLButtonElement | null;
+  private readonly hubMusicIcon: HTMLElement | null;
+  private readonly hubSfxBtn: HTMLButtonElement | null;
+  private readonly hubSfxIcon: HTMLElement | null;
+  private readonly hubSettingsBtn: HTMLButtonElement | null;
+  private unsubscribeAudio?: () => void;
 
   // Nouvelle interface de file d'attente Multijoueur
   private readonly queueOverlay: HTMLElement | null;
@@ -125,10 +134,12 @@ export class HubUI {
       instanceId?: string;
       localPlayerId?: string;
     }) => void,
-    onReturnToMenu?: () => void
+    onReturnToMenu?: () => void,
+    onOpenSettings?: () => void
   ) {
     this.onStartRaidCallback = onStartRaid;
     this.onReturnToMenuCallback = onReturnToMenu;
+    this.onOpenSettingsCallback = onOpenSettings;
 
     this.hubElement = document.getElementById('hub-menu');
     this.hubStage = document.getElementById('hub-stage');
@@ -137,6 +148,13 @@ export class HubUI {
     this.coinText = document.getElementById('hub-coin-text');
     this.menuBtn = document.getElementById('hub-btn-menu') as HTMLButtonElement | null;
     this.launchGameBtn = document.getElementById('hub-launch-game-btn') as HTMLButtonElement | null;
+
+    // Contrôles Audio et Paramètres
+    this.hubMusicBtn = document.getElementById('hub-music-btn') as HTMLButtonElement | null;
+    this.hubMusicIcon = document.getElementById('hub-music-icon');
+    this.hubSfxBtn = document.getElementById('hub-sfx-btn') as HTMLButtonElement | null;
+    this.hubSfxIcon = document.getElementById('hub-sfx-icon');
+    this.hubSettingsBtn = document.getElementById('hub-btn-settings') as HTMLButtonElement | null;
 
     this.views = {
       play: document.getElementById('hub-view-play'),
@@ -442,6 +460,58 @@ export class HubUI {
     WalletManager.subscribe(() => {
       this.updateWalletDisplay();
     });
+
+    // Contrôles audio du Hub
+    this.hubMusicBtn?.addEventListener('click', () => {
+      SoundManager.toggleMusicMute();
+      this.updateAudioButtons();
+      SoundManager.playButtonSound();
+    });
+
+    this.hubSfxBtn?.addEventListener('click', () => {
+      const isMuted = SoundManager.toggleSfxMute();
+      this.updateAudioButtons();
+      if (!isMuted) {
+        SoundManager.playButtonSound();
+      }
+    });
+
+    // Bouton Paramètres du Hub
+    this.hubSettingsBtn?.addEventListener('click', () => {
+      SoundManager.playButtonSound();
+      this.onOpenSettingsCallback?.();
+    });
+
+    // Abonnement aux changements d'état muet audio
+    this.unsubscribeAudio = SoundManager.subscribeMute(() => {
+      this.updateAudioButtons();
+    });
+    this.updateAudioButtons();
+  }
+
+  public destroy(): void {
+    this.unsubscribeAudio?.();
+  }
+
+  public updateAudioButtons(): void {
+    const isMusicMuted = SoundManager.isMusicMute();
+    const isSfxMuted = SoundManager.isSfxMute();
+
+    if (this.hubMusicIcon) {
+      this.hubMusicIcon.textContent = isMusicMuted ? '🔇' : '🎵';
+    }
+    if (this.hubMusicBtn) {
+      this.hubMusicBtn.title = isMusicMuted ? 'Activer la musique' : 'Couper la musique';
+      this.hubMusicBtn.classList.toggle('is-muted', isMusicMuted);
+    }
+
+    if (this.hubSfxIcon) {
+      this.hubSfxIcon.textContent = isSfxMuted ? '🔇' : '🔊';
+    }
+    if (this.hubSfxBtn) {
+      this.hubSfxBtn.title = isSfxMuted ? 'Activer les effets sonores' : 'Couper les effets sonores';
+      this.hubSfxBtn.classList.toggle('is-muted', isSfxMuted);
+    }
   }
 
   private setupNetworkListeners(): void {

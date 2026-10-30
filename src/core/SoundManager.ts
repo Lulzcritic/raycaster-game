@@ -930,6 +930,7 @@ export class SoundManager {
     } catch {
       // Ignorer
     }
+    this.notifyMuteListeners();
   }
 
   /**
@@ -944,6 +945,36 @@ export class SoundManager {
       localStorage.setItem('raycaster_sfx_muted', String(muted));
     } catch {
       // Ignorer
+    }
+    this.notifyMuteListeners();
+  }
+
+  private static readonly muteListeners = new Set<(state: { musicMuted: boolean; sfxMuted: boolean }) => void>();
+
+  /**
+   * Permet aux interfaces UI de s'abonner aux changements d'état muet (musique et SFX).
+   * Exécute immédiatement le callback avec l'état initial.
+   * Retourne une fonction de désabonnement.
+   */
+  public static subscribeMute(listener: (state: { musicMuted: boolean; sfxMuted: boolean }) => void): () => void {
+    this.muteListeners.add(listener);
+    try {
+      listener({ musicMuted: this.isMusicMuted, sfxMuted: this.isSfxMuted });
+    } catch {
+      // Ignorer
+    }
+    return () => {
+      this.muteListeners.delete(listener);
+    };
+  }
+
+  private static notifyMuteListeners(): void {
+    for (const listener of this.muteListeners) {
+      try {
+        listener({ musicMuted: this.isMusicMuted, sfxMuted: this.isSfxMuted });
+      } catch {
+        // Ignorer
+      }
     }
   }
 

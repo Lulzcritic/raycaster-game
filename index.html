@@ -265,15 +265,21 @@
           </div>
 
           <!-- Réglages Audio (Musique et Effets sonores) -->
-          <div class="setting-audio-group">
-            <button id="settings-music-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer la musique">
-              <span id="settings-music-icon" class="audio-btn-icon">🎵</span>
-              <span id="settings-music-text" class="audio-btn-text">MUSIQUE : ON</span>
-            </button>
-            <button id="settings-sfx-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer les effets sonores">
-              <span id="settings-sfx-icon" class="audio-btn-icon">🔊</span>
-              <span id="settings-sfx-text" class="audio-btn-text">EFFETS : ON</span>
-            </button>
+          <div class="settings-group setting-audio-box">
+            <div class="setting-row">
+              <span class="setting-title">RÉGLAGES AUDIO</span>
+              <span id="pause-audio-indicator" class="setting-value layout-indicator">SON ACTIF</span>
+            </div>
+            <div class="setting-audio-group">
+              <button id="settings-music-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer la musique">
+                <span id="settings-music-icon" class="audio-btn-icon">🎵</span>
+                <span id="settings-music-text" class="audio-btn-text">MUSIQUE : ON</span>
+              </button>
+              <button id="settings-sfx-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer les effets sonores">
+                <span id="settings-sfx-icon" class="audio-btn-icon">🔊</span>
+                <span id="settings-sfx-text" class="audio-btn-text">EFFETS : ON</span>
+              </button>
+            </div>
           </div>
           <div class="pause-btn-group">
             <button id="settings-back-btn" class="pause-btn pause-btn-secondary" type="button">RETOUR</button>
@@ -397,6 +403,34 @@
               </div>
             </div>
 
+            <!-- Réglages Audio (Musique et Effets sonores) -->
+            <div class="settings-group setting-audio-box">
+              <div class="setting-row">
+                <span class="setting-title">RÉGLAGES AUDIO</span>
+                <span id="main-audio-indicator" class="setting-value layout-indicator">SON ACTIF</span>
+              </div>
+              <div class="setting-audio-group">
+                <button
+                  id="main-settings-music-btn"
+                  class="pause-btn pause-btn-audio"
+                  type="button"
+                  title="Couper / Activer la musique"
+                >
+                  <span id="main-settings-music-icon" class="audio-btn-icon">🎵</span>
+                  <span id="main-settings-music-text" class="audio-btn-text">MUSIQUE : ON</span>
+                </button>
+                <button
+                  id="main-settings-sfx-btn"
+                  class="pause-btn pause-btn-audio"
+                  type="button"
+                  title="Couper / Activer les effets sonores"
+                >
+                  <span id="main-settings-sfx-icon" class="audio-btn-icon">🔊</span>
+                  <span id="main-settings-sfx-text" class="audio-btn-text">EFFETS : ON</span>
+                </button>
+              </div>
+            </div>
+
             <div class="main-menu-controls-guide">
               <div class="controls-guide-title">✦ COMMANDES DU JEU ✦</div>
               <div class="controls-grid">
@@ -452,9 +486,22 @@
               <span class="hub-tab-soon-badge">SOON</span>
             </button>
           </div>
-          <div id="hub-wallet" class="hub-wallet">
-            <img id="hub-coin-icon" class="hub-coin-icon" alt="" />
-            <span id="hub-coin-text" class="hub-coin-text">0</span>
+          <div class="hub-nav-right">
+            <div class="hub-nav-audio-group">
+              <button id="hub-music-btn" class="hub-nav-audio-btn" type="button" title="Couper / Activer la musique">
+                <span id="hub-music-icon" class="audio-btn-icon">🎵</span>
+              </button>
+              <button id="hub-sfx-btn" class="hub-nav-audio-btn" type="button" title="Couper / Activer les effets sonores">
+                <span id="hub-sfx-icon" class="audio-btn-icon">🔊</span>
+              </button>
+            </div>
+            <div id="hub-wallet" class="hub-wallet">
+              <img id="hub-coin-icon" class="hub-coin-icon" alt="" />
+              <span id="hub-coin-text" class="hub-coin-text">0</span>
+            </div>
+            <button id="hub-btn-settings" class="hub-nav-btn hub-nav-btn-settings" type="button" title="Paramètres (Audio, FOV, Clavier)">
+              ⚙ PARAMÈTRES
+            </button>
           </div>
         </nav>
 

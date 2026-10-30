@@ -37,6 +37,8 @@ export class PauseMenu {
   private readonly settingsSfxBtn: HTMLButtonElement | null;
   private readonly settingsSfxIcon: HTMLElement | null;
   private readonly settingsSfxText: HTMLElement | null;
+  private readonly pauseAudioIndicator: HTMLElement | null;
+  private readonly unsubscribeAudio?: () => void;
 
   private onResumeCallback?: () => void;
   private onFovChangeCallback?: (fovDegrees: number) => void;
@@ -86,6 +88,7 @@ export class PauseMenu {
     this.settingsSfxBtn = document.getElementById('settings-sfx-btn') as HTMLButtonElement | null;
     this.settingsSfxIcon = document.getElementById('settings-sfx-icon');
     this.settingsSfxText = document.getElementById('settings-sfx-text');
+    this.pauseAudioIndicator = document.getElementById('pause-audio-indicator');
 
     this.onResumeCallback = onResume;
     this.onFovChangeCallback = onFovChange;
@@ -117,6 +120,11 @@ export class PauseMenu {
     // Abonnement aux changements de disposition du clavier
     this.unsubscribeControls = ControlsManager.subscribe((layout) => {
       this.updateLayoutDisplay(layout);
+    });
+
+    // Abonnement aux changements d'état muet audio
+    this.unsubscribeAudio = SoundManager.subscribeMute(() => {
+      this.updateAudioButtons();
     });
 
     // Initialisation visuelle de l'état des boutons audio
@@ -255,6 +263,19 @@ export class PauseMenu {
       this.settingsSfxBtn.title = sfxTitle;
       this.settingsSfxBtn.classList.toggle('is-muted', isSfxMuted);
     }
+
+    if (this.pauseAudioIndicator) {
+      if (isMusicMuted && isSfxMuted) {
+        this.pauseAudioIndicator.textContent = 'TOUT COUPÉ';
+        this.pauseAudioIndicator.style.color = '#f87171';
+      } else if (!isMusicMuted && !isSfxMuted) {
+        this.pauseAudioIndicator.textContent = 'SON ACTIF';
+        this.pauseAudioIndicator.style.color = '#facc15';
+      } else {
+        this.pauseAudioIndicator.textContent = 'PARTIEL';
+        this.pauseAudioIndicator.style.color = '#38bdf8';
+      }
+    }
   }
 
   public showMain(): void {
@@ -305,5 +326,6 @@ export class PauseMenu {
     this.pauseLayoutQwertyBtn?.removeEventListener('click', this.handleQwertyClick);
     this.pauseLayoutAzertyBtn?.removeEventListener('click', this.handleAzertyClick);
     this.unsubscribeControls?.();
+    this.unsubscribeAudio?.();
   }
 }

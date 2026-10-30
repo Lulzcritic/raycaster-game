@@ -83,9 +83,10 @@ export class Inventory {
     if (equipped && typeof equipped === 'object') {
       for (const [slot, item] of Object.entries(equipped)) {
         if (item && EQUIPMENT_SLOTS.includes(slot as EquipmentSlot)) {
+          const sanitized = GearScoreService.sanitizeItem(item);
           this.slots.set(slot as EquipmentSlot, {
-            ...item,
-            gearScore: item.gearScore ?? GearScoreService.calculateItemGearScore(item),
+            ...sanitized,
+            gearScore: sanitized.gearScore ?? GearScoreService.calculateItemGearScore(sanitized),
           });
         }
       }
@@ -203,11 +204,12 @@ export class Inventory {
           }
         } else if (typeof entry === 'object' && 'id' in entry) {
           const item = entry as EquipmentItem;
-          if (!item.gearScore) {
-            item.gearScore = GearScoreService.calculateItemGearScore(item);
+          const sanitized = GearScoreService.sanitizeItem(item);
+          if (!sanitized.gearScore) {
+            sanitized.gearScore = GearScoreService.calculateItemGearScore(sanitized);
           }
-          if (item.slot === slot) {
-            this.slots.set(slot as EquipmentSlot, item);
+          if (sanitized.slot === slot) {
+            this.slots.set(slot as EquipmentSlot, sanitized);
           }
         }
       }

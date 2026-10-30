@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import type { Player } from '../entities/Player';
 import { UpgradeManager } from './UpgradeManager';
+import { ItemDatabase } from '../config/ItemDatabase';
 
 const RARITY_BASE_SCORE: Record<ItemRarity, number> = {
   common: 15,
@@ -316,13 +317,27 @@ export class GearScoreService {
 
     const baseTemplateScore = this.calculateItemGearScore(template);
 
-    // Fourchette de cible : entre 85% et 125% du Gear Score du joueur
-    // Permet de trouver à la fois des objets équivalents et de vrais upgrades puissants (+25%)
-    const rollFactor = 0.85 + Math.random() * 0.40;
-    const targetScore = Math.max(30, Math.round(playerGearScore * rollFactor));
+    // Score moyen cible pour un emplacement individuel (1/4 du Gear Score total du joueur)
+    const averageSlotScore = Math.max(15, Math.round(playerGearScore / 4));
 
-    // Ratio d'échelle par rapport au template de base
-    const scaleFactor = Math.max(0.65, targetScore / Math.max(35, baseTemplateScore));
+    // Fourchette de roll aléatoire modérée : entre -10% et +15%
+    const rollFactor = 0.90 + Math.random() * 0.25;
+
+    // L'objet cible la puissance de son template de base, avec un ajustement modéré selon la puissance du joueur
+    // sans jamais s'envoler de façon exponentielle
+    const targetScore = Math.max(
+      Math.round(baseTemplateScore * 0.85),
+      Math.min(
+        Math.round(baseTemplateScore * 1.35),
+        Math.round(averageSlotScore * rollFactor)
+      )
+    );
+
+    // Ratio d'échelle borné (entre 0.80 et 1.30 max par rapport aux stats de base du template)
+    const scaleFactor = Math.max(
+      0.80,
+      Math.min(1.30, targetScore / Math.max(15, baseTemplateScore))
+    );
 
     const rolledStats: ItemStats = {};
     const statRanges: Partial<Record<keyof ItemStats, StatRollRange>> = {};
@@ -369,6 +384,35 @@ export class GearScoreService {
       gearScore: finalGearScore,
       statRanges,
     };
+  }
+
+  /**
+   * Assainit une pièce d'équipement : si ses statistiques ou son score dépassent de façon anormale
+   * le template d'origine (ex: vestige de l'ancien bug multiplicateur), ils sont recalculés
+   * et bornés pour rétablir un équilibre légitime.
+   */
+  public static sanitizeItem(item: EquipmentItem): EquipmentItem {
+    if (!item || !item.id) return item;
+    if (item.slot === 'key' || item.id === 'offhand_homonculus') {
+      return {
+        ...item,
+        gearScore: item.gearScore ?? this.calculateItemGearScore(item),
+      };
+    }
+
+    const template = ItemDatabase.getItemById(item.id);
+    if (!template) return item;
+
+    const baseTemplateScore = this.calculateItemGearScore(template);
+    const currentScore = item.gearScore ?? this.calculateItemGearScore(item);
+
+    // Si le score actuel dépasse de plus de 45% le score de base du template,
+    // l'objet a été corrompu par l'ancien bug de sur-scaling
+    if (currentScore > baseTemplateScore * 1.45) {
+      return this.rollItem(template, baseTemplateScore * 4);
+    }
+
+    return item;
   }
 
   /**

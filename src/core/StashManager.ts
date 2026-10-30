@@ -29,10 +29,11 @@ export class StashManager {
               };
             } else if (entry && typeof entry === 'object' && 'id' in entry) {
               const item = entry as EquipmentItem;
-              if (!item.gearScore) {
-                item.gearScore = GearScoreService.calculateItemGearScore(item);
+              const sanitized = GearScoreService.sanitizeItem(item);
+              if (!sanitized.gearScore) {
+                sanitized.gearScore = GearScoreService.calculateItemGearScore(sanitized);
               }
-              return item;
+              return sanitized;
             }
             return undefined;
           })

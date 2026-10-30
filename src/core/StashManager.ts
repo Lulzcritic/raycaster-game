@@ -61,6 +61,27 @@ export class StashManager {
     return this.stashItems;
   }
 
+  public static setStash(items: EquipmentItem[]): void {
+    this.init();
+    this.stashItems = [...items].map((it) => ({
+      ...it,
+      gearScore: it.gearScore ?? GearScoreService.calculateItemGearScore(it),
+    }));
+    this.save();
+  }
+
+  public static resetToDefault(): void {
+    const starterItem1 = ItemDatabase.getItemById('armor_moldy_hermit_rags');
+    const starterItem2 = ItemDatabase.getItemById('hat_leech_infested_mitre');
+    this.stashItems = [starterItem1, starterItem2]
+      .filter((i): i is EquipmentItem => i !== undefined)
+      .map((it) => ({
+        ...it,
+        gearScore: it.gearScore ?? GearScoreService.calculateItemGearScore(it),
+      }));
+    this.save();
+  }
+
   public static addItem(item: EquipmentItem): void {
     this.init();
     if (!item.gearScore) {

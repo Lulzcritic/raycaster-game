@@ -253,7 +253,7 @@ export class GearScoreService {
     item: EquipmentItem | { rarity: ItemRarity; stats: ItemStats }
   ): number {
     const rarityBase = RARITY_BASE_SCORE[item.rarity] ?? 15;
-    const stats = item.stats;
+    const stats = item.stats ?? {};
 
     let statScore = 0;
     if (stats.damage) statScore += stats.damage * 4.0;

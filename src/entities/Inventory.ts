@@ -61,6 +61,39 @@ export class Inventory {
   }
 
   /**
+   * Retourne un dictionnaire des objets équipés (clé = slot)
+   */
+  public getEquippedMap(): Record<string, EquipmentItem> {
+    const map: Record<string, EquipmentItem> = {};
+    for (const [slot, item] of this.slots.entries()) {
+      if (item && slot !== 'key' && slot !== 'offhand') {
+        map[slot] = item;
+      }
+    }
+    return map;
+  }
+
+  /**
+   * Réinitialise et applique l'ensemble des équipements (ex: synchronisation avec la DB)
+   */
+  public setAllEquipped(equipped: Record<string, EquipmentItem>): void {
+    for (const slot of EQUIPMENT_SLOTS) {
+      this.slots.set(slot, null);
+    }
+    if (equipped && typeof equipped === 'object') {
+      for (const [slot, item] of Object.entries(equipped)) {
+        if (item && EQUIPMENT_SLOTS.includes(slot as EquipmentSlot)) {
+          this.slots.set(slot as EquipmentSlot, {
+            ...item,
+            gearScore: item.gearScore ?? GearScoreService.calculateItemGearScore(item),
+          });
+        }
+      }
+    }
+    this.saveToStorage();
+  }
+
+  /**
    * Récupère l'objet actuellement équipé dans le slot demandé
    */
   public getItem(slot: EquipmentSlot): EquipmentItem | null {

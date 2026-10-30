@@ -62,6 +62,7 @@ import { UpgradeManager } from './UpgradeManager';
 import { StashManager } from './StashManager';
 import { InputManager } from './InputManager';
 import { SoundManager } from './SoundManager';
+import { AuthManager } from './AuthManager';
 
 export class Game {
   public readonly textures: TextureManager;
@@ -241,6 +242,8 @@ export class Game {
         }
       }
     );
+
+    AuthManager.setActiveInventory(this.player.inventory);
 
     this.setupNetworkListeners();
 
@@ -586,6 +589,7 @@ export class Game {
           QuestManager.init();
           StashManager.init();
           SoundManager.init();
+          await AuthManager.init(this.player.inventory);
         },
       },
       {
@@ -1104,8 +1108,28 @@ export class Game {
   public returnToHub(): void {
     if (!this.player.isAlive()) {
       this.player.inventory.clear();
+      if (AuthManager.isLoggedIn()) {
+        AuthManager.syncPlayer({
+          raidOutcome: 'died',
+          coins: WalletManager.getCoins(),
+          equipped: {},
+          stash: [...StashManager.getStash()],
+        }).catch(() => {});
+      }
     } else if (this.isExtracted) {
       QuestManager.onExtraction(WalletManager.getSessionCoins());
+      if (AuthManager.isLoggedIn()) {
+        const stats = this.player.getEffectiveStats();
+        const gs = GearScoreService.calculatePlayerGearScore(this.player);
+        AuthManager.syncPlayer({
+          raidOutcome: 'extracted',
+          coins: WalletManager.getCoins(),
+          equipped: this.player.inventory.getEquippedMap(),
+          stash: [...StashManager.getStash()],
+          gearScore: gs,
+          stats,
+        }).catch(() => {});
+      }
     }
 
     this.openHub('play');

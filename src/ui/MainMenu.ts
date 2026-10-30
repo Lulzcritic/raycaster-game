@@ -2,6 +2,10 @@ import mainMenuBgUrl from '../assets/textures/mainmenu.jpg';
 import logoUrl from '../assets/textures/logo.png';
 import { WalletManager } from '../core/WalletManager';
 import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
+import { AuthManager } from '../core/AuthManager';
+import { AuthModal } from './AuthModal';
+import { SoundManager } from '../core/SoundManager';
+import type { AuthUser } from '../types/auth';
 
 export class MainMenu {
   private readonly menuElement: HTMLElement | null;
@@ -9,12 +13,16 @@ export class MainMenu {
   private readonly mainView: HTMLElement | null;
   private readonly settingsView: HTMLElement | null;
   private readonly playBtn: HTMLButtonElement | null;
+  private readonly authBtn: HTMLButtonElement | null;
+  private readonly accountBadge: HTMLElement | null;
   private readonly settingsBtn: HTMLButtonElement | null;
   private readonly settingsBackBtn: HTMLButtonElement | null;
   private readonly fovSlider: HTMLInputElement | null;
   private readonly fovValueDisplay: HTMLElement | null;
   private readonly coinIcon: HTMLImageElement | null;
   private readonly coinText: HTMLElement | null;
+  private readonly authModal: AuthModal;
+  private unsubscribeAuth?: () => void;
 
   private onPlayCallback?: () => void;
   private onFovChangeCallback?: (fovDegrees: number) => void;
@@ -29,6 +37,8 @@ export class MainMenu {
     this.mainView = document.getElementById('main-menu-main-view');
     this.settingsView = document.getElementById('main-menu-settings-view');
     this.playBtn = document.getElementById('main-play-btn') as HTMLButtonElement | null;
+    this.authBtn = document.getElementById('main-auth-btn') as HTMLButtonElement | null;
+    this.accountBadge = document.getElementById('main-menu-account-badge');
     this.settingsBtn = document.getElementById('main-settings-btn') as HTMLButtonElement | null;
     this.settingsBackBtn = document.getElementById('main-settings-back-btn') as HTMLButtonElement | null;
     this.fovSlider = document.getElementById('main-fov-slider') as HTMLInputElement | null;
@@ -38,6 +48,13 @@ export class MainMenu {
 
     this.onPlayCallback = onPlay;
     this.onFovChangeCallback = onFovChange;
+
+    this.authModal = new AuthModal(() => {
+      this.updateAccountDisplay(AuthManager.getUser());
+      if (this.coinText) {
+        this.coinText.textContent = String(WalletManager.getCoins());
+      }
+    });
 
     if (this.menuElement) {
       this.menuElement.style.backgroundImage = `url('${mainMenuBgUrl}')`;
@@ -54,14 +71,51 @@ export class MainMenu {
     this.setFov(initialFovDegrees);
 
     this.playBtn?.addEventListener('click', this.handlePlayClick);
+    this.authBtn?.addEventListener('click', this.handleAuthClick);
     this.settingsBtn?.addEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.addEventListener('click', this.handleBackClick);
     this.fovSlider?.addEventListener('input', this.handleFovInput);
+
+    // Écoute des changements d'authentification pour mettre à jour l'interface
+    this.unsubscribeAuth = AuthManager.subscribe((user) => {
+      this.updateAccountDisplay(user);
+    });
   }
 
   private readonly handlePlayClick = (): void => {
     this.onPlayCallback?.();
   };
+
+  private readonly handleAuthClick = (): void => {
+    SoundManager.playButtonSound();
+    this.authModal.show(AuthManager.isLoggedIn() ? 'login' : 'login');
+  };
+
+  private updateAccountDisplay(user: AuthUser | null): void {
+    if (this.authBtn) {
+      if (user) {
+        this.authBtn.textContent = `👤 ${user.username.toUpperCase()}`;
+        this.authBtn.title = `Connecté en tant que ${user.username}. Cliquez pour gérer votre compte.`;
+      } else {
+        this.authBtn.textContent = `SE CONNECTER / S'INSCRIRE`;
+        this.authBtn.title = `Connectez-vous pour sauvegarder votre butin et votre or sur la base de données.`;
+      }
+    }
+
+    if (this.accountBadge) {
+      if (user) {
+        this.accountBadge.textContent = `🛡️ Aventurier : ${user.username} (Sauvegarde active)`;
+        this.accountBadge.className = 'account-badge authenticated';
+      } else {
+        this.accountBadge.textContent = `Mode Invité (sauvegarde inactive)`;
+        this.accountBadge.className = 'account-badge guest';
+      }
+    }
+
+    if (this.coinText) {
+      this.coinText.textContent = String(WalletManager.getCoins());
+    }
+  }
 
   private readonly handleSettingsClick = (): void => {
     this.showSettings();
@@ -134,8 +188,10 @@ export class MainMenu {
 
   public destroy(): void {
     this.playBtn?.removeEventListener('click', this.handlePlayClick);
+    this.authBtn?.removeEventListener('click', this.handleAuthClick);
     this.settingsBtn?.removeEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.removeEventListener('click', this.handleBackClick);
     this.fovSlider?.removeEventListener('input', this.handleFovInput);
+    this.unsubscribeAuth?.();
   }
 }

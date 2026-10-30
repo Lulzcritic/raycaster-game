@@ -100,6 +100,38 @@ export class QuestManager {
     return this.quests;
   }
 
+  public static getQuestsMap(): Record<string, { current: number; claimed: boolean }> {
+    this.init();
+    const map: Record<string, { current: number; claimed: boolean }> = {};
+    for (const q of this.quests) {
+      map[q.id] = { current: q.current, claimed: q.claimed };
+    }
+    return map;
+  }
+
+  public static loadQuests(data?: Record<string, { current: number; claimed: boolean }>): void {
+    this.init();
+    if (!data) return;
+    for (const q of this.quests) {
+      if (data[q.id]) {
+        q.current = Math.min(q.target, Math.max(0, data[q.id].current));
+        q.claimed = Boolean(data[q.id].claimed);
+        q.completed = q.current >= q.target;
+      }
+    }
+    this.save();
+  }
+
+  public static reset(): void {
+    this.init();
+    for (const q of this.quests) {
+      q.current = 0;
+      q.completed = false;
+      q.claimed = false;
+    }
+    this.save();
+  }
+
   public static onEnemyKilled(typeId: string): void {
     this.init();
     this.incrementQuest('kills');

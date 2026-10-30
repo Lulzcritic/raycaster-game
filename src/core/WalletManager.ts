@@ -45,6 +45,28 @@ export class WalletManager {
   }
 
   /**
+   * Définit directement le montant total de pièces (synchronisation base de données)
+   */
+  public static setCoins(amount: number): void {
+    if (!this.isInitialized) {
+      this.init();
+    }
+    const safeAmount = Math.max(0, Math.floor(amount));
+    const delta = safeAmount - this.totalCoins;
+    this.totalCoins = safeAmount;
+    this.save();
+    this.notify(this.totalCoins, delta);
+  }
+
+  /**
+   * Réinitialise les pièces lors du passage en mode Invité / Déconnexion
+   */
+  public static resetToGuest(): void {
+    this.setCoins(0);
+    this.sessionCoins = 0;
+  }
+
+  /**
    * Ajoute des pièces au portefeuille et sauvegarde dans le stockage local
    */
   public static addCoins(amount: number): void {

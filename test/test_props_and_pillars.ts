@@ -69,11 +69,45 @@ assert(barrels.length > 0, 'Il doit y avoir des tonneaux disséminés sur la car
 assert(boxes.length > 0, 'Il doit y avoir des caisses disséminées sur la carte');
 assert(tables.length > 0, 'Il doit y avoir des tables disséminées sur la carte');
 
-// Vérification de la règle stricte : aucun prop entre deux murs opposés
-const seedsToTest = [101, 202, 303, 4242, 9999];
+// Vérification des règles strictes sur plusieurs seeds
+const seedsToTest = [101, 202, 303, 4242, 9999, 12345, 77777];
 for (const seed of seedsToTest) {
   const testLevel = MapGenerator.generate({ seed });
   const mapGrid = testLevel.grid;
+
+  const isGroundTile = (x: number, y: number) => {
+    const t = mapGrid[y]?.[x];
+    return t === TILE_TYPE.GROUND_1 || t === TILE_TYPE.GROUND_2;
+  };
+
+  // 1. Validation de chaque PILIER : aucun pilier dans un couloir ou passage
+  const testPillars = testLevel.sprites.filter((s) => s.textureId === TILE_TYPE.PILLAR);
+  for (const pillar of testPillars) {
+    const px = Math.floor(pillar.x);
+    const py = Math.floor(pillar.y);
+
+    let dN = 0; while (dN < 8 && isGroundTile(px, py - 1 - dN)) dN++;
+    let dS = 0; while (dS < 8 && isGroundTile(px, py + 1 + dS)) dS++;
+    let dW = 0; while (dW < 8 && isGroundTile(px - 1 - dW, py)) dW++;
+    let dE = 0; while (dE < 8 && isGroundTile(px + 1 + dE, py)) dE++;
+
+    // Largeur et hauteur de la pièce >= 5 cases ouvertes (grande pièce uniquement)
+    assert(
+      dN + dS + 1 >= 5 && dW + dE + 1 >= 5,
+      `Le pilier en (${px}, ${py}) (seed ${seed}) est dans un passage trop étroit (spanY: ${dN + dS + 1}, spanX: ${dW + dE + 1}) !`
+    );
+
+    // Espace de passage libre tout autour (au moins 1 case praticable sur les 4 côtés)
+    assert(
+      dN >= 1 && dS >= 1 && dW >= 1 && dE >= 1,
+      `Le pilier en (${px}, ${py}) (seed ${seed}) doit avoir au moins 1 case de passage sur chacun de ses 4 côtés !`
+    );
+  }
+
+  // 2. Validation de chaque PROP (tonneaux, caisses, tables) :
+  // - Jamais dans un couloir (largeur et hauteur >= 4 cases)
+  // - Jamais entre deux murs opposés
+  // - Espace libre garanti pour passer à côté
   const sporadicProps = testLevel.sprites.filter(
     (s) =>
       s.textureId === TILE_TYPE.BARREL ||
@@ -103,9 +137,19 @@ for (const seed of seedsToTest) {
       !(wallW && wallE),
       `Le prop en (${gx}, ${gy}) (seed ${seed}) ne peut pas être entre deux murs horizontaux (Ouest et Est) !`
     );
+
+    let dN = 0; while (dN < 8 && isGroundTile(gx, gy - 1 - dN)) dN++;
+    let dS = 0; while (dS < 8 && isGroundTile(gx, gy + 1 + dS)) dS++;
+    let dW = 0; while (dW < 8 && isGroundTile(gx - 1 - dW, gy)) dW++;
+    let dE = 0; while (dE < 8 && isGroundTile(gx + 1 + dE, gy)) dE++;
+
+    assert(
+      dN + dS + 1 >= 4 && dW + dE + 1 >= 4,
+      `Le prop en (${gx}, ${gy}) (seed ${seed}) est dans un couloir (spanY: ${dN + dS + 1}, spanX: ${dW + dE + 1}) !`
+    );
   }
 }
-console.log('   ✅ Règle validée : 100% des props ont un passage libre à côté et aucun n\'est entre deux murs.\n');
+console.log('   ✅ Règle validée : 100% des props ont un passage libre à côté, aucun n\'est entre deux murs et aucun pilier n\'est dans un couloir.\n');
 
 // ---------------------------------------------------------------------------
 // 2. Test des collisions physiques des Props (GameMap.canMove)

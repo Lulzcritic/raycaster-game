@@ -167,10 +167,6 @@ export class MapGenerator {
       { typeId: 'blob', x: 8.5, y: 8.5 },
     ],
     chests: [{ x: 5, y: 1, tier: 'standard' }],
-    sprites: [
-      { x: 5.5, y: 4.0, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
-      { x: 5.5, y: 7.0, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
-    ],
   };
 
   private static readonly ARENA_CROSSFIRE: ModuleTemplate = {
@@ -217,10 +213,6 @@ export class MapGenerator {
       { typeId: 'blob', x: 5.5, y: 5.5 },
     ],
     chests: [{ x: 1, y: 1, tier: 'standard' }],
-    sprites: [
-      { x: 3.5, y: 5.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
-      { x: 7.5, y: 5.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
-    ],
   };
 
   private static readonly ARENA_LABYRINTH: ModuleTemplate = {
@@ -423,10 +415,6 @@ export class MapGenerator {
     ],
     enemies: [{ typeId: 'blob', x: 5.5, y: 5.5 }],
     chests: [{ x: 5, y: 2, tier: 'standard' }],
-    sprites: [
-      { x: 3.5, y: 5.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
-      { x: 7.5, y: 5.5, textureId: TILE_TYPE.PILLAR, scale: 1.0 },
-    ],
   };
 
   private static readonly CORRIDOR_CHICANE: ModuleTemplate = {
@@ -865,15 +853,55 @@ export class MapGenerator {
       grid[y][size - 1] = TILE_TYPE.WALL_1;
     }
 
+    // Collecte de tous les points névralgiques de passage (portes et connexions ouvertes entre modules)
+    const passagePoints: Array<{ x: number; y: number }> = [];
+    for (const d of doors) {
+      passagePoints.push({ x: d.x + 0.5, y: d.y + 0.5 });
+    }
+    for (let cy = 0; cy < MapGenerator.GRID_CHUNKS; cy++) {
+      for (let cx = 0; cx < MapGenerator.GRID_CHUNKS; cx++) {
+        if (cx < MapGenerator.GRID_CHUNKS - 1 && openConnections.has(makeConnKey(cx, cy, cx + 1, cy))) {
+          const doorX = cx * MapGenerator.CHUNK_STEP + 10;
+          const doorY = cy * MapGenerator.CHUNK_STEP + 5;
+          passagePoints.push({ x: doorX + 0.5, y: doorY + 0.5 });
+        }
+        if (cy < MapGenerator.GRID_CHUNKS - 1 && openConnections.has(makeConnKey(cx, cy, cx, cy + 1))) {
+          const doorX = cx * MapGenerator.CHUNK_STEP + 5;
+          const doorY = cy * MapGenerator.CHUNK_STEP + 10;
+          passagePoints.push({ x: doorX + 0.5, y: doorY + 0.5 });
+        }
+      }
+    }
+    for (let y = 1; y < size - 1; y++) {
+      for (let x = 1; x < size - 1; x++) {
+        if (grid[y][x] === TILE_TYPE.DOOR) {
+          passagePoints.push({ x: x + 0.5, y: y + 0.5 });
+        }
+      }
+    }
+
+    // 8.5 Filtrage et validation de sécurité absolue de TOUS les piliers : AUCUN pilier dans un couloir
+    const validatedSprites: SpriteSpawnData[] = [];
+    for (const sp of sprites) {
+      if (sp.textureId === TILE_TYPE.PILLAR) {
+        if (!MapGenerator.isPillarLocationSafe(grid, sp.x, sp.y, passagePoints)) {
+          continue; // Rejeter tout pilier dans un couloir ou passage étroit
+        }
+      }
+      validatedSprites.push(sp);
+    }
+    sprites.length = 0;
+    sprites.push(...validatedSprites);
+
     // 9. Dispersion sporadique des éléments de décor physiques (tonneaux, caisses, tables)
     MapGenerator.placeSporadicProps(
       grid,
       sprites,
       rng,
       playerSpawns,
-      doors,
       extractions,
-      enemies
+      enemies,
+      passagePoints
     );
 
     // 10. Sélection du point de réveil du joueur parmi les 4 cryptes
@@ -1172,17 +1200,79 @@ export class MapGenerator {
   }
 
   /**
+   * Vérifie si une coordonnée de grille est un sol praticable (GROUND_1 ou GROUND_2), ni mur ni porte.
+   */
+  public static isWalkableGround(grid: number[][], x: number, y: number): boolean {
+    if (x <= 0 || y <= 0 || x >= grid.length - 1 || y >= grid.length - 1) return false;
+    const t = grid[y][x];
+    return t === TILE_TYPE.GROUND_1 || t === TILE_TYPE.GROUND_2;
+  }
+
+  /**
+   * Valide la sécurité physique d'un pilier :
+   * Les piliers ne doivent JAMAIS être placés dans des couloirs ni devant des passages ou portes.
+   * Ils doivent exclusivement se trouver dans de grandes pièces ouvertes (au moins 5×5 cases de sol praticable)
+   * avec au moins 1 case de passage libre sur chacun de leurs 4 côtés.
+   */
+  public static isPillarLocationSafe(
+    grid: number[][],
+    x: number,
+    y: number,
+    passagePoints: Array<{ x: number; y: number }>
+  ): boolean {
+    const gx = Math.floor(x);
+    const gy = Math.floor(y);
+    const size = grid.length;
+    if (gx <= 1 || gy <= 1 || gx >= size - 2 || gy >= size - 2) return false;
+
+    // Doit reposer sur un sol praticable
+    if (!MapGenerator.isWalkableGround(grid, gx, gy)) return false;
+
+    // Distance minimale avec toute porte ou passage (>= 3.2 cases)
+    for (const p of passagePoints) {
+      if (Math.hypot(x - p.x, y - p.y) < 3.2) {
+        return false;
+      }
+    }
+
+    // Mesure du dégagement continu dans les 4 directions
+    let distN = 0; while (distN < 8 && MapGenerator.isWalkableGround(grid, gx, gy - 1 - distN)) distN++;
+    let distS = 0; while (distS < 8 && MapGenerator.isWalkableGround(grid, gx, gy + 1 + distS)) distS++;
+    let distW = 0; while (distW < 8 && MapGenerator.isWalkableGround(grid, gx - 1 - distW, gy)) distW++;
+    let distE = 0; while (distE < 8 && MapGenerator.isWalkableGround(grid, gx + 1 + distE, gy)) distE++;
+
+    // Un pilier doit impérativement être dans une grande pièce ouverte :
+    // - Au moins 5 cases ouvertes en Y (spanY >= 5)
+    // - Au moins 5 cases ouvertes en X (spanX >= 5)
+    if (distN + distS + 1 < 5 || distW + distE + 1 < 5) {
+      return false;
+    }
+
+    // Doit avoir au moins 1 case praticable de chaque côté (Nord, Sud, Est, Ouest)
+    if (distN < 1 || distS < 1 || distW < 1 || distE < 1) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Disperse de manière sporadique des éléments de décor physiques (tonneaux, caisses, tables)
-   * le long des murs et dans les recoins des salles sans jamais bloquer les portes ni les accès.
+   * le long des murs dans les salles ouvertes.
+   * RÈGLES STRICTES :
+   * - Interdiction formelle dans tout couloir ou passage de transition (spanX < 4 ou spanY < 4).
+   * - Interdiction à proximité de toute porte ou entrée de passage (< 3.2 cases).
+   * - Espace garanti pour passer à côté : la rangée adjacente entière doit être 100% libre et praticable.
+   * - Si un emplacement ne remplit pas ces conditions, aucun prop n'est placé.
    */
   private static placeSporadicProps(
     grid: number[][],
     sprites: SpriteSpawnData[],
     rng: () => number,
     playerSpawns: Array<{ x: number; y: number }>,
-    doors: DoorSpawnData[],
     extractions: ExtractionSpawnData[],
-    enemies: EnemySpawnData[]
+    enemies: EnemySpawnData[],
+    passagePoints: Array<{ x: number; y: number }>
   ): void {
     const size = grid.length;
 
@@ -1214,162 +1304,152 @@ export class MapGenerator {
           }
 
           // Tentatives pour trouver un emplacement valide adossé à un mur
-          for (let attempt = 0; attempt < 40; attempt++) {
+          for (let attempt = 0; attempt < 50; attempt++) {
             const lx = 1 + Math.floor(rng() * 9);
             const ly = 1 + Math.floor(rng() * 9);
             const gx = originX + lx;
             const gy = originY + ly;
 
-            if (gx <= 0 || gy <= 0 || gx >= size - 1 || gy >= size - 1) {
+            if (gx <= 1 || gy <= 1 || gx >= size - 2 || gy >= size - 2) {
               continue;
             }
 
-            // Doit être un sol praticable (GROUND_1 ou GROUND_2), ni un mur ni une porte
-            const tile = grid[gy][gx];
-            if (tile !== TILE_TYPE.GROUND_1 && tile !== TILE_TYPE.GROUND_2) {
+            // 1. Doit être un sol praticable (GROUND_1 ou GROUND_2), ni un mur ni une porte
+            if (!MapGenerator.isWalkableGround(grid, gx, gy)) {
               continue;
             }
 
-            // Fonction déterminant si une case est un obstacle infranchissable (mur, porte ou sprite solide déjà placé)
-            const isObstacle = (x: number, y: number): boolean => {
-              if (x <= 0 || y <= 0 || x >= size - 1 || y >= size - 1) return true;
-              const t = grid[y][x];
-              if (t === TILE_TYPE.WALL_1 || t === TILE_TYPE.DOOR) return true;
-              // Vérifie si un sprite solide (pilier, coffre ou prop déjà placé) est présent
-              for (const sp of sprites) {
-                if (Math.abs(sp.x - (x + 0.5)) < 0.6 && Math.abs(sp.y - (y + 0.5)) < 0.6) {
-                  return true;
-                }
+            // 2. Sécurité absolue : JAMAIS à proximité d'une porte ou d'un passage entre modules (>= 3.2 cases)
+            let tooCloseToPassage = false;
+            for (const pt of passagePoints) {
+              if (Math.hypot(gx + 0.5 - pt.x, gy + 0.5 - pt.y) < 3.2) {
+                tooCloseToPassage = true;
+                break;
               }
-              return false;
-            };
+            }
+            if (tooCloseToPassage) {
+              continue;
+            }
 
-            const wallNorth = isObstacle(gx, gy - 1);
-            const wallSouth = isObstacle(gx, gy + 1);
-            const wallWest = isObstacle(gx - 1, gy);
-            const wallEast = isObstacle(gx + 1, gy);
+            // 3. RÈGLE STRICTE : AUCUN PROP DANS UN COULOIR (largeur ou hauteur <= 3 cases)
+            // On calcule l'étendue continue de sol praticable dans les 4 directions
+            let distN = 0; while (distN < 8 && MapGenerator.isWalkableGround(grid, gx, gy - 1 - distN)) distN++;
+            let distS = 0; while (distS < 8 && MapGenerator.isWalkableGround(grid, gx, gy + 1 + distS)) distS++;
+            let distW = 0; while (distW < 8 && MapGenerator.isWalkableGround(grid, gx - 1 - distW, gy)) distW++;
+            let distE = 0; while (distE < 8 && MapGenerator.isWalkableGround(grid, gx + 1 + distE, gy)) distE++;
 
-            // 1. RÈGLE STRICTE : un prop ne peut JAMAIS être entre deux murs (couloir de largeur 1)
+            const spanY = distN + distS + 1;
+            const spanX = distW + distE + 1;
+
+            // Doit être une salle spacieuse d'au moins 4×4 cases ouvertes
+            if (spanY < 4 || spanX < 4) {
+              continue;
+            }
+
+            // 4. Doit être adossé à un pan de mur pour un encombrement naturel le long des parois
+            const wallNorth = !MapGenerator.isWalkableGround(grid, gx, gy - 1);
+            const wallSouth = !MapGenerator.isWalkableGround(grid, gx, gy + 1);
+            const wallWest = !MapGenerator.isWalkableGround(grid, gx - 1, gy);
+            const wallEast = !MapGenerator.isWalkableGround(grid, gx + 1, gy);
+
+            // Ne peut JAMAIS être coincé entre deux murs opposés
             if ((wallNorth && wallSouth) || (wallWest && wallEast)) {
               continue;
             }
 
-            // 2. Doit être adossé à au moins un pan de mur pour un encombrement naturel
+            // Doit toucher au moins un mur
             if (!wallNorth && !wallSouth && !wallWest && !wallEast) {
               continue;
             }
 
-            // 3. RÈGLE STRICTE : il doit obligatoirement y avoir un passage libre à côté pour circuler
-            let hasClearPassage = false;
+            // 5. RÈGLE FONDAMENTALE : IL DOIT TOUJOURS Y AVOIR UN ESPACE POUR PASSER À CÔTÉ
+            // La bande de passage adjacente de 3 cases ouvertes doit être 100% praticable et libre
+            let hasBypassSpace = false;
 
-            // Cas d'un recoin (deux murs adjacents formant un angle) :
-            // Pour ne pas bloquer un tournant en L de couloir, la diagonale opposée ET les 2 côtés libres doivent être praticables
-            if (wallNorth && wallWest) {
-              hasClearPassage =
-                !isObstacle(gx + 1, gy) &&
-                !isObstacle(gx, gy + 1) &&
-                !isObstacle(gx + 1, gy + 1);
-            } else if (wallNorth && wallEast) {
-              hasClearPassage =
-                !isObstacle(gx - 1, gy) &&
-                !isObstacle(gx, gy + 1) &&
-                !isObstacle(gx - 1, gy + 1);
-            } else if (wallSouth && wallWest) {
-              hasClearPassage =
-                !isObstacle(gx + 1, gy) &&
-                !isObstacle(gx, gy - 1) &&
-                !isObstacle(gx + 1, gy - 1);
-            } else if (wallSouth && wallEast) {
-              hasClearPassage =
-                !isObstacle(gx - 1, gy) &&
-                !isObstacle(gx, gy - 1) &&
-                !isObstacle(gx - 1, gy - 1);
-            } else if (wallNorth) {
-              // Adossé uniquement au mur Nord : le côté Sud doit offrir un passage complet
-              // Soit la rangée Sud permet de circuler horizontalement (gx-1, gx, gx+1 tous libres),
-              // soit la pièce s'étend plus loin vers le Sud (gy + 2 libre).
-              hasClearPassage =
-                !isObstacle(gx, gy + 1) &&
-                ((!isObstacle(gx - 1, gy + 1) && !isObstacle(gx + 1, gy + 1)) ||
-                  !isObstacle(gx, gy + 2));
-            } else if (wallSouth) {
-              // Adossé uniquement au mur Sud : le côté Nord doit offrir un passage complet
-              hasClearPassage =
-                !isObstacle(gx, gy - 1) &&
-                ((!isObstacle(gx - 1, gy - 1) && !isObstacle(gx + 1, gy - 1)) ||
-                  !isObstacle(gx, gy - 2));
-            } else if (wallWest) {
-              // Adossé uniquement au mur Ouest : le côté Est doit offrir un passage complet
-              hasClearPassage =
-                !isObstacle(gx + 1, gy) &&
-                ((!isObstacle(gx + 1, gy - 1) && !isObstacle(gx + 1, gy + 1)) ||
-                  !isObstacle(gx + 2, gy));
-            } else if (wallEast) {
-              // Adossé uniquement au mur Est : le côté Ouest doit offrir un passage complet
-              hasClearPassage =
-                !isObstacle(gx - 1, gy) &&
-                ((!isObstacle(gx - 1, gy - 1) && !isObstacle(gx - 1, gy + 1)) ||
-                  !isObstacle(gx - 2, gy));
+            const isBypassTileFree = (bx: number, by: number): boolean => {
+              if (!MapGenerator.isWalkableGround(grid, bx, by)) return false;
+              for (const sp of sprites) {
+                if (Math.hypot(bx + 0.5 - sp.x, by + 0.5 - sp.y) < 1.8) {
+                  return false;
+                }
+              }
+              return true;
+            };
+
+            if (wallNorth && distS >= 2) {
+              // Adossé au Nord : la rangée Sud (gy + 1) offre un passage complet de circulation
+              hasBypassSpace =
+                isBypassTileFree(gx - 1, gy + 1) &&
+                isBypassTileFree(gx, gy + 1) &&
+                isBypassTileFree(gx + 1, gy + 1);
+            } else if (wallSouth && distN >= 2) {
+              // Adossé au Sud : la rangée Nord (gy - 1) offre un passage complet de circulation
+              hasBypassSpace =
+                isBypassTileFree(gx - 1, gy - 1) &&
+                isBypassTileFree(gx, gy - 1) &&
+                isBypassTileFree(gx + 1, gy - 1);
+            } else if (wallWest && distE >= 2) {
+              // Adossé à l'Ouest : la colonne Est (gx + 1) offre un passage complet de circulation
+              hasBypassSpace =
+                isBypassTileFree(gx + 1, gy - 1) &&
+                isBypassTileFree(gx + 1, gy) &&
+                isBypassTileFree(gx + 1, gy + 1);
+            } else if (wallEast && distW >= 2) {
+              // Adossé à l'Est : la colonne Ouest (gx - 1) offre un passage complet de circulation
+              hasBypassSpace =
+                isBypassTileFree(gx - 1, gy - 1) &&
+                isBypassTileFree(gx - 1, gy) &&
+                isBypassTileFree(gx - 1, gy + 1);
             }
 
-            if (!hasClearPassage) {
+            if (!hasBypassSpace) {
               continue;
             }
 
             const posX = gx + 0.5;
             const posY = gy + 0.5;
 
-            // Distance de sécurité avec les portes (>= 2.2 cases)
-            let tooCloseToDoor = false;
-            for (const d of doors) {
-              if (Math.hypot(posX - (d.x + 0.5), posY - (d.y + 0.5)) < 2.2) {
-                tooCloseToDoor = true;
-                break;
-              }
-            }
-            if (tooCloseToDoor) continue;
-
-            // Distance de sécurité avec les points d'apparition (>= 2.5 cases)
+            // Distance de sécurité avec les points d'apparition (>= 3.0 cases)
             let tooCloseToSpawn = false;
             for (const s of playerSpawns) {
-              if (Math.hypot(posX - s.x, posY - s.y) < 2.5) {
+              if (Math.hypot(posX - s.x, posY - s.y) < 3.0) {
                 tooCloseToSpawn = true;
                 break;
               }
             }
             if (tooCloseToSpawn) continue;
 
-            // Distance de sécurité avec les cercles d'extraction (>= 2.5 cases)
+            // Distance de sécurité avec les cercles d'extraction (>= 3.0 cases)
             let tooCloseToPortal = false;
             for (const ext of extractions) {
-              if (Math.hypot(posX - ext.x, posY - ext.y) < 2.5) {
+              if (Math.hypot(posX - ext.x, posY - ext.y) < 3.0) {
                 tooCloseToPortal = true;
                 break;
               }
             }
             if (tooCloseToPortal) continue;
 
-            // Distance avec les autres sprites (piliers, coffres, autres props) (>= 1.6 cases)
+            // Distance avec les autres sprites (piliers, coffres, autres props) (>= 2.5 cases)
             let tooCloseToSprite = false;
             for (const sp of sprites) {
-              if (Math.hypot(posX - sp.x, posY - sp.y) < 1.6) {
+              if (Math.hypot(posX - sp.x, posY - sp.y) < 2.5) {
                 tooCloseToSprite = true;
                 break;
               }
             }
             if (tooCloseToSprite) continue;
 
-            // Distance avec les ennemis (>= 1.4 cases)
+            // Distance avec les monstres (>= 1.8 cases)
             let tooCloseToEnemy = false;
             for (const en of enemies) {
-              if (Math.hypot(posX - en.x, posY - en.y) < 1.4) {
+              if (Math.hypot(posX - en.x, posY - en.y) < 1.8) {
                 tooCloseToEnemy = true;
                 break;
               }
             }
             if (tooCloseToEnemy) continue;
 
-            // Position validée
+            // Position 100% validée avec espace de passage garanti
             sprites.push({
               x: posX,
               y: posY,

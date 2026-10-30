@@ -217,8 +217,8 @@ export class Player extends Entity {
 
     // Calcul des intentions de déplacement (Avant/Arrière et Gauche/Droite)
     let forwardInput = 0;
-    if (this.input.isKeyDown(KEYS.MOVE_FORWARD)) forwardInput += 1;
-    if (this.input.isKeyDown(KEYS.MOVE_BACKWARD)) forwardInput -= 1;
+    if (this.input.isKeyDown(KEYS.MOVE_FORWARD) || this.input.isKeyDown('arrowup')) forwardInput += 1;
+    if (this.input.isKeyDown(KEYS.MOVE_BACKWARD) || this.input.isKeyDown('arrowdown')) forwardInput -= 1;
 
     let strafeInput = 0;
     if (this.input.isKeyDown(KEYS.STRAFE_RIGHT)) strafeInput += 1;

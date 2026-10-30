@@ -106,17 +106,39 @@ export const COLORS = {
   WALL_HORIZONTAL: '#911111',
 } as const;
 
+import { ControlsManager, type KeyboardLayout, type KeyBindings } from '../core/ControlsManager';
+
+export type { KeyboardLayout, KeyBindings };
+
 export const KEYS = {
-  MOVE_FORWARD: 'w',
-  MOVE_BACKWARD: 's',
-  STRAFE_LEFT: 'a',
-  STRAFE_RIGHT: 'd',
-  TURN_LEFT: 'ArrowLeft',
-  TURN_RIGHT: 'ArrowRight',
-  SHOOT: ' ',
-  INTERACT: 'f',
-  PING: 't',
-} as const;
+  get MOVE_FORWARD(): string {
+    return ControlsManager.getBindings().MOVE_FORWARD;
+  },
+  get MOVE_BACKWARD(): string {
+    return ControlsManager.getBindings().MOVE_BACKWARD;
+  },
+  get STRAFE_LEFT(): string {
+    return ControlsManager.getBindings().STRAFE_LEFT;
+  },
+  get STRAFE_RIGHT(): string {
+    return ControlsManager.getBindings().STRAFE_RIGHT;
+  },
+  get TURN_LEFT(): string {
+    return ControlsManager.getBindings().TURN_LEFT;
+  },
+  get TURN_RIGHT(): string {
+    return ControlsManager.getBindings().TURN_RIGHT;
+  },
+  get SHOOT(): string {
+    return ControlsManager.getBindings().SHOOT;
+  },
+  get INTERACT(): string {
+    return ControlsManager.getBindings().INTERACT;
+  },
+  get PING(): string {
+    return ControlsManager.getBindings().PING;
+  },
+};
 
 export const INTERACTION_CONFIG = {
   MAX_DISTANCE: 1.4,

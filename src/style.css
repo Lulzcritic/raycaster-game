@@ -438,6 +438,103 @@ body {
   color: #888899;
 }
 
+/* Commutateur de disposition clavier (QWERTY / AZERTY) */
+.setting-keyboard-box {
+  margin-top: 2px;
+}
+
+.keyboard-segmented-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.keyboard-switch-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 12px;
+  background: #110e1c;
+  border: 2px solid #362d47;
+  clip-path: var(--pixel-notch-small);
+  color: #94a3b8;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-medieval);
+  transition: all 0.12s steps(2);
+  box-shadow:
+    inset 2px 2px 0 0 #1b162c,
+    inset -2px -2px 0 0 #08060e,
+    2px 2px 0 0 #000000;
+}
+
+.keyboard-switch-btn:hover {
+  background: #1a162b;
+  border-color: #6366f1;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow:
+    inset 2px 2px 0 0 #282142,
+    inset -2px -2px 0 0 #0c0916,
+    3px 3px 0 0 #000000;
+}
+
+.keyboard-switch-btn:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 2px 2px 0 0 #08060e,
+    1px 1px 0 0 #000000;
+}
+
+.keyboard-switch-btn.active {
+  background: linear-gradient(180deg, #382405 0%, #1c1102 100%);
+  border-color: #eab308;
+  color: #fef08a;
+  box-shadow:
+    inset 2px 2px 0 0 #713f12,
+    inset -2px -2px 0 0 #1f1201,
+    0 0 10px rgba(234, 179, 8, 0.3),
+    2px 2px 0 0 #000000;
+}
+
+.keyboard-switch-btn.active:hover {
+  background: linear-gradient(180deg, #482f07 0%, #291703 100%);
+  border-color: #fde047;
+  color: #ffffff;
+}
+
+.layout-btn-tag {
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid currentColor;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+
+.layout-btn-name {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.layout-btn-keys {
+  font-size: 11px;
+  font-family: monospace;
+  color: #cbd5e1;
+  letter-spacing: 0.5px;
+}
+
+.keyboard-switch-btn.active .layout-btn-keys {
+  color: #fef9c3;
+}
+
 .pixel-slider {
   -webkit-appearance: none;
   appearance: none;

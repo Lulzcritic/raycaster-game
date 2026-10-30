@@ -1,4 +1,5 @@
 import { SoundManager } from '../core/SoundManager';
+import { ControlsManager, type KeyboardLayout } from '../core/ControlsManager';
 
 export class PauseMenu {
   private readonly menuElement: HTMLElement | null;
@@ -13,6 +14,14 @@ export class PauseMenu {
   private readonly mainMenuButton: HTMLButtonElement | null;
   private readonly fovSlider: HTMLInputElement | null;
   private readonly fovValueDisplay: HTMLElement | null;
+
+  // Éléments pour le switch de disposition du clavier (QWERTY / AZERTY)
+  private readonly pauseLayoutIndicator: HTMLElement | null;
+  private readonly pauseLayoutQwertyBtn: HTMLButtonElement | null;
+  private readonly pauseLayoutAzertyBtn: HTMLButtonElement | null;
+  private readonly pauseCtrlMove: HTMLElement | null;
+  private readonly pauseCtrlStrafe: HTMLElement | null;
+  private readonly unsubscribeControls?: () => void;
 
   // Boutons et labels pour le contrôle audio
   private readonly pauseMusicBtn: HTMLButtonElement | null;
@@ -56,6 +65,13 @@ export class PauseMenu {
     this.fovSlider = document.getElementById('fov-slider') as HTMLInputElement | null;
     this.fovValueDisplay = document.getElementById('fov-value');
 
+    // Récupération des éléments du commutateur clavier
+    this.pauseLayoutIndicator = document.getElementById('pause-layout-indicator');
+    this.pauseLayoutQwertyBtn = document.getElementById('pause-layout-qwerty-btn') as HTMLButtonElement | null;
+    this.pauseLayoutAzertyBtn = document.getElementById('pause-layout-azerty-btn') as HTMLButtonElement | null;
+    this.pauseCtrlMove = document.getElementById('pause-ctrl-move');
+    this.pauseCtrlStrafe = document.getElementById('pause-ctrl-strafe');
+
     // Récupération des éléments audio
     this.pauseMusicBtn = document.getElementById('pause-music-btn') as HTMLButtonElement | null;
     this.pauseMusicIcon = document.getElementById('pause-music-icon');
@@ -93,6 +109,15 @@ export class PauseMenu {
     this.pauseSfxBtn?.addEventListener('click', this.handleSfxToggle);
     this.settingsMusicBtn?.addEventListener('click', this.handleMusicToggle);
     this.settingsSfxBtn?.addEventListener('click', this.handleSfxToggle);
+
+    // Écouteurs pour le commutateur de disposition clavier (QWERTY / AZERTY)
+    this.pauseLayoutQwertyBtn?.addEventListener('click', this.handleQwertyClick);
+    this.pauseLayoutAzertyBtn?.addEventListener('click', this.handleAzertyClick);
+
+    // Abonnement aux changements de disposition du clavier
+    this.unsubscribeControls = ControlsManager.subscribe((layout) => {
+      this.updateLayoutDisplay(layout);
+    });
 
     // Initialisation visuelle de l'état des boutons audio
     this.updateAudioButtons();
@@ -149,6 +174,42 @@ export class PauseMenu {
       SoundManager.playButtonSound();
     }
   };
+
+  private readonly handleQwertyClick = (): void => {
+    ControlsManager.setLayout('qwerty');
+    SoundManager.playButtonSound();
+  };
+
+  private readonly handleAzertyClick = (): void => {
+    ControlsManager.setLayout('azerty');
+    SoundManager.playButtonSound();
+  };
+
+  /**
+   * Met à jour les libellés, styles visuels et indicateurs du commutateur clavier.
+   */
+  public updateLayoutDisplay(layout: KeyboardLayout): void {
+    const isAzerty = layout === 'azerty';
+    if (this.pauseLayoutIndicator) {
+      this.pauseLayoutIndicator.textContent = isAzerty ? 'AZERTY' : 'QWERTY';
+    }
+    if (this.pauseLayoutQwertyBtn) {
+      this.pauseLayoutQwertyBtn.classList.toggle('active', !isAzerty);
+      this.pauseLayoutQwertyBtn.setAttribute('aria-pressed', String(!isAzerty));
+    }
+    if (this.pauseLayoutAzertyBtn) {
+      this.pauseLayoutAzertyBtn.classList.toggle('active', isAzerty);
+      this.pauseLayoutAzertyBtn.setAttribute('aria-pressed', String(isAzerty));
+    }
+
+    const labels = ControlsManager.getLabels(layout);
+    if (this.pauseCtrlMove) {
+      this.pauseCtrlMove.textContent = `${labels.forwardBackward} : AVANCER / RECULER`;
+    }
+    if (this.pauseCtrlStrafe) {
+      this.pauseCtrlStrafe.textContent = `${labels.strafe} : GAUCHE / DROITE`;
+    }
+  }
 
   /**
    * Met à jour les libellés, icônes et styles visuels (.is-muted) des boutons audio.
@@ -217,6 +278,7 @@ export class PauseMenu {
 
   public show(): void {
     this.updateAudioButtons();
+    this.updateLayoutDisplay(ControlsManager.getLayout());
     this.showMain();
     this.menuElement?.classList.remove('hidden');
   }
@@ -239,5 +301,9 @@ export class PauseMenu {
     this.pauseSfxBtn?.removeEventListener('click', this.handleSfxToggle);
     this.settingsMusicBtn?.removeEventListener('click', this.handleMusicToggle);
     this.settingsSfxBtn?.removeEventListener('click', this.handleSfxToggle);
+
+    this.pauseLayoutQwertyBtn?.removeEventListener('click', this.handleQwertyClick);
+    this.pauseLayoutAzertyBtn?.removeEventListener('click', this.handleAzertyClick);
+    this.unsubscribeControls?.();
   }
 }

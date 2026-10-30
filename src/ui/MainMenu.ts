@@ -5,6 +5,7 @@ import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 import { AuthManager } from '../core/AuthManager';
 import { AuthModal } from './AuthModal';
 import { SoundManager } from '../core/SoundManager';
+import { ControlsManager, type KeyboardLayout } from '../core/ControlsManager';
 import type { AuthUser } from '../types/auth';
 
 export class MainMenu {
@@ -24,6 +25,14 @@ export class MainMenu {
   private readonly coinText: HTMLElement | null;
   private readonly authModal: AuthModal;
   private unsubscribeAuth?: () => void;
+
+  // Éléments du commutateur clavier (QWERTY / AZERTY)
+  private readonly mainLayoutIndicator: HTMLElement | null;
+  private readonly mainLayoutQwertyBtn: HTMLButtonElement | null;
+  private readonly mainLayoutAzertyBtn: HTMLButtonElement | null;
+  private readonly mainCtrlMove: HTMLElement | null;
+  private readonly mainCtrlStrafe: HTMLElement | null;
+  private readonly unsubscribeControls?: () => void;
 
   private onPlayCallback?: () => void;
   private onLadderCallback?: () => void;
@@ -49,6 +58,13 @@ export class MainMenu {
     this.fovValueDisplay = document.getElementById('main-fov-value');
     this.coinIcon = document.getElementById('main-menu-coin-icon') as HTMLImageElement | null;
     this.coinText = document.getElementById('main-menu-coin-text');
+
+    // Récupération des éléments du commutateur clavier
+    this.mainLayoutIndicator = document.getElementById('main-layout-indicator');
+    this.mainLayoutQwertyBtn = document.getElementById('main-layout-qwerty-btn') as HTMLButtonElement | null;
+    this.mainLayoutAzertyBtn = document.getElementById('main-layout-azerty-btn') as HTMLButtonElement | null;
+    this.mainCtrlMove = document.getElementById('main-ctrl-move');
+    this.mainCtrlStrafe = document.getElementById('main-ctrl-strafe');
 
     this.onPlayCallback = onPlay;
     this.onLadderCallback = onLadder;
@@ -82,10 +98,55 @@ export class MainMenu {
     this.settingsBackBtn?.addEventListener('click', this.handleBackClick);
     this.fovSlider?.addEventListener('input', this.handleFovInput);
 
+    // Écouteurs pour le commutateur de disposition clavier (QWERTY / AZERTY)
+    this.mainLayoutQwertyBtn?.addEventListener('click', this.handleQwertyClick);
+    this.mainLayoutAzertyBtn?.addEventListener('click', this.handleAzertyClick);
+
+    // Abonnement aux changements de disposition clavier
+    this.unsubscribeControls = ControlsManager.subscribe((layout) => {
+      this.updateLayoutDisplay(layout);
+    });
+
     // Écoute des changements d'authentification pour mettre à jour l'interface
     this.unsubscribeAuth = AuthManager.subscribe((user) => {
       this.updateAccountDisplay(user);
     });
+  }
+
+  private readonly handleQwertyClick = (): void => {
+    ControlsManager.setLayout('qwerty');
+    SoundManager.playButtonSound();
+  };
+
+  private readonly handleAzertyClick = (): void => {
+    ControlsManager.setLayout('azerty');
+    SoundManager.playButtonSound();
+  };
+
+  /**
+   * Met à jour les libellés, styles visuels et indicateurs du commutateur clavier.
+   */
+  public updateLayoutDisplay(layout: KeyboardLayout): void {
+    const isAzerty = layout === 'azerty';
+    if (this.mainLayoutIndicator) {
+      this.mainLayoutIndicator.textContent = isAzerty ? 'AZERTY' : 'QWERTY';
+    }
+    if (this.mainLayoutQwertyBtn) {
+      this.mainLayoutQwertyBtn.classList.toggle('active', !isAzerty);
+      this.mainLayoutQwertyBtn.setAttribute('aria-pressed', String(!isAzerty));
+    }
+    if (this.mainLayoutAzertyBtn) {
+      this.mainLayoutAzertyBtn.classList.toggle('active', isAzerty);
+      this.mainLayoutAzertyBtn.setAttribute('aria-pressed', String(isAzerty));
+    }
+
+    const labels = ControlsManager.getLabels(layout);
+    if (this.mainCtrlMove) {
+      this.mainCtrlMove.textContent = labels.forwardBackward;
+    }
+    if (this.mainCtrlStrafe) {
+      this.mainCtrlStrafe.textContent = labels.strafe;
+    }
   }
 
   private readonly handlePlayClick = (): void => {
@@ -180,6 +241,7 @@ export class MainMenu {
   }
 
   public show(): void {
+    this.updateLayoutDisplay(ControlsManager.getLayout());
     this.showMain();
     this.menuElement?.classList.remove('hidden');
     this.playAppearAnimation();
@@ -204,6 +266,9 @@ export class MainMenu {
     this.settingsBtn?.removeEventListener('click', this.handleSettingsClick);
     this.settingsBackBtn?.removeEventListener('click', this.handleBackClick);
     this.fovSlider?.removeEventListener('input', this.handleFovInput);
+    this.mainLayoutQwertyBtn?.removeEventListener('click', this.handleQwertyClick);
+    this.mainLayoutAzertyBtn?.removeEventListener('click', this.handleAzertyClick);
+    this.unsubscribeControls?.();
     this.unsubscribeAuth?.();
   }
 }

@@ -200,8 +200,8 @@
             </button>
           </div>
           <div class="pause-controls">
-            <p>W / S : AVANCER / RECULER</p>
-            <p>A / D : GAUCHE / DROITE</p>
+            <p id="pause-ctrl-move">W / S : AVANCER / RECULER</p>
+            <p id="pause-ctrl-strafe">A / D : GAUCHE / DROITE</p>
             <p>SOURIS : ORIENTER LA VUE</p>
             <p>CLIC G / ESPACE : BOULE DE FEU</p>
             <p>CLIC DROIT : ORBE VIOLET REBONDISSANT</p>
@@ -231,6 +231,39 @@
               <span>110° (LARGE)</span>
             </div>
           </div>
+
+          <!-- Disposition du Clavier (Switch QWERTY / AZERTY) -->
+          <div class="settings-group setting-keyboard-box">
+            <div class="setting-row">
+              <span class="setting-title">DISPOSITION DU CLAVIER</span>
+              <span id="pause-layout-indicator" class="setting-value layout-indicator">QWERTY</span>
+            </div>
+            <div class="keyboard-segmented-switch" id="pause-keyboard-switch" role="group" aria-label="Disposition des touches">
+              <button
+                id="pause-layout-qwerty-btn"
+                class="keyboard-switch-btn active"
+                type="button"
+                data-layout="qwerty"
+                title="Touches W, A, S, D (Clavier standard QWERTY)"
+              >
+                <span class="layout-btn-tag">US</span>
+                <span class="layout-btn-name">QWERTY</span>
+                <span class="layout-btn-keys">(W A S D)</span>
+              </button>
+              <button
+                id="pause-layout-azerty-btn"
+                class="keyboard-switch-btn"
+                type="button"
+                data-layout="azerty"
+                title="Touches Z, Q, S, D (Clavier français AZERTY)"
+              >
+                <span class="layout-btn-tag">FR</span>
+                <span class="layout-btn-name">AZERTY</span>
+                <span class="layout-btn-keys">(Z Q S D)</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Réglages Audio (Musique et Effets sonores) -->
           <div class="setting-audio-group">
             <button id="settings-music-btn" class="pause-btn pause-btn-audio" type="button" title="Couper / Activer la musique">
@@ -332,11 +365,43 @@
               </div>
             </div>
 
+            <!-- Disposition du Clavier (Switch QWERTY / AZERTY) -->
+            <div class="settings-group setting-keyboard-box">
+              <div class="setting-row">
+                <span class="setting-title">DISPOSITION DU CLAVIER</span>
+                <span id="main-layout-indicator" class="setting-value layout-indicator">QWERTY</span>
+              </div>
+              <div class="keyboard-segmented-switch" id="main-keyboard-switch" role="group" aria-label="Disposition des touches">
+                <button
+                  id="main-layout-qwerty-btn"
+                  class="keyboard-switch-btn active"
+                  type="button"
+                  data-layout="qwerty"
+                  title="Touches W, A, S, D (Clavier standard QWERTY)"
+                >
+                  <span class="layout-btn-tag">US</span>
+                  <span class="layout-btn-name">QWERTY</span>
+                  <span class="layout-btn-keys">(W A S D)</span>
+                </button>
+                <button
+                  id="main-layout-azerty-btn"
+                  class="keyboard-switch-btn"
+                  type="button"
+                  data-layout="azerty"
+                  title="Touches Z, Q, S, D (Clavier français AZERTY)"
+                >
+                  <span class="layout-btn-tag">FR</span>
+                  <span class="layout-btn-name">AZERTY</span>
+                  <span class="layout-btn-keys">(Z Q S D)</span>
+                </button>
+              </div>
+            </div>
+
             <div class="main-menu-controls-guide">
               <div class="controls-guide-title">✦ COMMANDES DU JEU ✦</div>
               <div class="controls-grid">
-                <div class="control-item"><span class="control-key">W / S</span><span>Avancer / Reculer</span></div>
-                <div class="control-item"><span class="control-key">A / D</span><span>Strafe Gauche / Droite</span></div>
+                <div class="control-item"><span id="main-ctrl-move" class="control-key">W / S</span><span>Avancer / Reculer</span></div>
+                <div class="control-item"><span id="main-ctrl-strafe" class="control-key">A / D</span><span>Strafe Gauche / Droite</span></div>
                 <div class="control-item"><span class="control-key">SOURIS</span><span>Orienter la vue</span></div>
                 <div class="control-item"><span class="control-key">CLIC G / ESPACE</span><span>Boule de Feu</span></div>
                 <div class="control-item"><span class="control-key">CLIC D</span><span>Orbe Violet Rebondissant</span></div>

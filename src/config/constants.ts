@@ -32,6 +32,9 @@ export const TILE_TYPE = {
   BOX: 9,
   TABLE: 10,
   PILLAR: 11,
+  WALL_2: 12,
+  WALL_3: 13,
+  WALL_4: 14,
 } as const;
 
 /**
@@ -43,6 +46,9 @@ export const TEXTURE_DEFINITIONS: readonly TextureDefinition[] = [
   { id: TILE_TYPE.SKY_2, category: 'sky', path: '/assets/textures/skybox.jpg' },
   { id: TILE_TYPE.GROUND_1, category: 'floor', path: '/assets/textures/ground1.jpg' },
   { id: TILE_TYPE.WALL_1, category: 'wall', path: '/assets/textures/wall1.jpg' },
+  { id: TILE_TYPE.WALL_2, category: 'wall', path: '/assets/textures/wall2.jpg' },
+  { id: TILE_TYPE.WALL_3, category: 'wall', path: '/assets/textures/wall3.jpg' },
+  { id: TILE_TYPE.WALL_4, category: 'wall', path: '/assets/textures/wall4.jpg' },
   { id: TILE_TYPE.GROUND_2, category: 'floor', path: '/assets/textures/ground2.jpg' },
   {
     id: TILE_TYPE.CHEST,

@@ -118,13 +118,13 @@ export class MapGenerator {
     grid: [
       '###########',
       '#.*.....*.#',
-      '#.##...##.#',
+      '#.44...44.#',
       '#.........#',
       '#....*....#',
       'D..*****..D',
       '#....*....#',
       '#.........#',
-      '#.##...##.#',
+      '#.44...44.#',
       '#.*.....*.#',
       '###########',
     ],
@@ -269,13 +269,13 @@ export class MapGenerator {
     grid: [
       '###########',
       '#.........#',
-      '#..#...#..#',
-      '#..#***#..#',
-      '#..#***#..#',
+      '#..2...2..#',
+      '#..2***2..#',
+      '#..2***2..#',
       'D....*....D',
-      '#..#***#..#',
-      '#..#***#..#',
-      '#..#...#..#',
+      '#..2***2..#',
+      '#..2***2..#',
+      '#..2...2..#',
       '#.........#',
       '###########',
     ],
@@ -376,11 +376,11 @@ export class MapGenerator {
       '###########',
       '#...#.#...#',
       '#...*.*...#',
-      '#..#***#..#',
+      '#..3***3..#',
       '#...*.*...#',
       'D....*....D',
       '#...*.*...#',
-      '#..#***#..#',
+      '#..3***3..#',
       '#...*.*...#',
       '#...#.#...#',
       '###########',
@@ -911,7 +911,10 @@ export class MapGenerator {
       passagePoints
     );
 
-    // 10. Sélection du point de réveil du joueur parmi les 4 cryptes
+    // 10. Diversification parsimonieuse des textures de mur (WALL_1, WALL_2, WALL_3, WALL_4)
+    MapGenerator.diversifyWalls(grid, rng);
+
+    // 11. Sélection du point de réveil du joueur parmi les 4 cryptes
     let chosenSpawn = playerSpawns[0];
     if (_options.spawnIndex !== undefined && playerSpawns.length > 0) {
       chosenSpawn = playerSpawns[_options.spawnIndex % playerSpawns.length];
@@ -1142,8 +1145,14 @@ export class MapGenerator {
         const gx = ox + lx;
         const gy = oy + ly;
 
-        if (char === '#') {
+        if (char === '#' || char === '1') {
           grid[gy][gx] = TILE_TYPE.WALL_1;
+        } else if (char === '2') {
+          grid[gy][gx] = TILE_TYPE.WALL_2;
+        } else if (char === '3') {
+          grid[gy][gx] = TILE_TYPE.WALL_3;
+        } else if (char === '4') {
+          grid[gy][gx] = TILE_TYPE.WALL_4;
         } else if (char === '*') {
           grid[gy][gx] = TILE_TYPE.GROUND_1;
           floorGrid[gy][gx] = TILE_TYPE.GROUND_2;
@@ -1226,6 +1235,69 @@ export class MapGenerator {
     if (x <= 0 || y <= 0 || x >= grid.length - 1 || y >= grid.length - 1) return false;
     const t = grid[y][x];
     return t === TILE_TYPE.GROUND_1 || t === TILE_TYPE.GROUND_2;
+  }
+
+  /**
+   * Vérifie si un identifiant de tuile correspond à l'une des variantes de mur solide.
+   */
+  public static isWall(tileId: number): boolean {
+    return (
+      tileId === TILE_TYPE.WALL_1 ||
+      tileId === TILE_TYPE.WALL_2 ||
+      tileId === TILE_TYPE.WALL_3 ||
+      tileId === TILE_TYPE.WALL_4
+    );
+  }
+
+  /**
+   * Applique avec parsimonie les textures de mur alternatives (WALL_2, WALL_3, WALL_4)
+   * sur les murs visibles du donjon afin de briser la monotonie sans altérer
+   * la cohérence architecturale.
+   * Répartition calibrée :
+   * - 82% : WALL_1 (mur principal de pierre taillée)
+   * - 6%  : WALL_2 (variante 2)
+   * - 6%  : WALL_3 (variante 3)
+   * - 6%  : WALL_4 (variante 4)
+   */
+  public static diversifyWalls(grid: number[][], rng: () => number = Math.random): void {
+    const size = grid.length;
+    // Les bords extrêmes de la carte restent uniformes en WALL_1
+    for (let y = 1; y < size - 1; y++) {
+      for (let x = 1; x < size - 1; x++) {
+        // Seuls les murs de base (WALL_1) sont candidats à la variation,
+        // préservant ainsi les variantes thématiques explicites (2, 3, 4) posées dans les modules.
+        if (grid[y][x] !== TILE_TYPE.WALL_1) {
+          continue;
+        }
+
+        // On ne diversifie que les murs visibles/exposés aux yeux du joueur
+        // (ayant au moins une face adjacente vers un sol praticable ou une porte)
+        const isExposed =
+          MapGenerator.isWalkableGround(grid, x, y - 1) ||
+          MapGenerator.isWalkableGround(grid, x, y + 1) ||
+          MapGenerator.isWalkableGround(grid, x - 1, y) ||
+          MapGenerator.isWalkableGround(grid, x + 1, y) ||
+          grid[y - 1]?.[x] === TILE_TYPE.DOOR ||
+          grid[y + 1]?.[x] === TILE_TYPE.DOOR ||
+          grid[y]?.[x - 1] === TILE_TYPE.DOOR ||
+          grid[y]?.[x + 1] === TILE_TYPE.DOOR;
+
+        if (!isExposed) {
+          continue;
+        }
+
+        const roll = rng();
+        if (roll < 0.82) {
+          grid[y][x] = TILE_TYPE.WALL_1;
+        } else if (roll < 0.88) {
+          grid[y][x] = TILE_TYPE.WALL_2;
+        } else if (roll < 0.94) {
+          grid[y][x] = TILE_TYPE.WALL_3;
+        } else {
+          grid[y][x] = TILE_TYPE.WALL_4;
+        }
+      }
+    }
   }
 
   /**

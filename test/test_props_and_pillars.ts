@@ -122,7 +122,7 @@ for (const seed of seedsToTest) {
 
     const isWallTile = (x: number, y: number) => {
       const t = mapGrid[y]?.[x];
-      return t === TILE_TYPE.WALL_1 || t === TILE_TYPE.DOOR;
+      return MapGenerator.isWall(t) || t === TILE_TYPE.DOOR;
     };
 
     const wallN = isWallTile(gx, gy - 1);
@@ -233,6 +233,62 @@ arrow.update(0.05, map);
 assert(arrow.state === 'impact', 'La flèche du squelette doit être stoppée net par le pilier');
 console.log('   ✅ Arrêt des projectiles sur le pilier validé.\n');
 
+// ---------------------------------------------------------------------------
+// 6. Test de la diversité et de la parsimonie des textures de mur (wall1, 2, 3, 4)
+// ---------------------------------------------------------------------------
+console.log('6. Test de la diversité parsimonieuse des textures de murs (WALL_1 à WALL_4)...');
+let totalWalls = 0;
+let countWall1 = 0;
+let countWall2 = 0;
+let countWall3 = 0;
+let countWall4 = 0;
+
+for (let y = 0; y < level.grid.length; y++) {
+  for (let x = 0; x < level.grid[y].length; x++) {
+    const tile = level.grid[y][x];
+    if (MapGenerator.isWall(tile)) {
+      totalWalls++;
+      if (tile === TILE_TYPE.WALL_1) countWall1++;
+      else if (tile === TILE_TYPE.WALL_2) countWall2++;
+      else if (tile === TILE_TYPE.WALL_3) countWall3++;
+      else if (tile === TILE_TYPE.WALL_4) countWall4++;
+
+      // Vérifier le périmètre extérieur : 100% WALL_1
+      if (x === 0 || y === 0 || x === level.grid[y].length - 1 || y === level.grid.length - 1) {
+        assert.strictEqual(tile, TILE_TYPE.WALL_1, 'Le périmètre extérieur doit être strictement WALL_1');
+      }
+    }
+  }
+}
+
+const pct1 = ((countWall1 / totalWalls) * 100).toFixed(1);
+const pct2 = ((countWall2 / totalWalls) * 100).toFixed(1);
+const pct3 = ((countWall3 / totalWalls) * 100).toFixed(1);
+const pct4 = ((countWall4 / totalWalls) * 100).toFixed(1);
+
+console.log(`   - Total murs : ${totalWalls}`);
+console.log(`   - WALL_1 (Standard) : ${countWall1} (${pct1}%)`);
+console.log(`   - WALL_2 (Variante 2) : ${countWall2} (${pct2}%)`);
+console.log(`   - WALL_3 (Variante 3) : ${countWall3} (${pct3}%)`);
+console.log(`   - WALL_4 (Variante 4) : ${countWall4} (${pct4}%)`);
+
+assert(countWall1 > countWall2 + countWall3 + countWall4, 'WALL_1 doit être la texture majoritaire dominante');
+assert(countWall2 > 0, 'WALL_2 doit être présent avec parsimonie');
+assert(countWall3 > 0, 'WALL_3 doit être présent avec parsimonie');
+assert(countWall4 > 0, 'WALL_4 doit être présent avec parsimonie');
+assert(parseFloat(pct1) >= 75, 'WALL_1 doit représenter au moins 75% des murs pour garantir la cohérence');
+
+// Test de GameMap.isWall sur chaque variante
+const testMap = new GameMap([
+  [TILE_TYPE.WALL_1, TILE_TYPE.WALL_2],
+  [TILE_TYPE.WALL_3, TILE_TYPE.WALL_4],
+]);
+assert.strictEqual(testMap.isWall(0, 0), true, 'WALL_1 doit être reconnu comme un mur par GameMap');
+assert.strictEqual(testMap.isWall(1, 0), true, 'WALL_2 doit être reconnu comme un mur par GameMap');
+assert.strictEqual(testMap.isWall(0, 1), true, 'WALL_3 doit être reconnu comme un mur par GameMap');
+assert.strictEqual(testMap.isWall(1, 1), true, 'WALL_4 doit être reconnu comme un mur par GameMap');
+console.log('   ✅ Diversité parsimonieuse des murs et reconnaissance physique validées.\n');
+
 console.log('======================================================');
-console.log('🎉 TOUS LES TESTS DES PROPS & PILIERS ONT RÉUSSI !');
+console.log('🎉 TOUS LES TESTS DES PROPS, PILIERS & MURS ONT RÉUSSI !');
 console.log('======================================================');

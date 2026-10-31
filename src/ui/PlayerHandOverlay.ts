@@ -4,10 +4,10 @@ import type { Player } from '../entities/Player';
 import type { Renderer } from '../graphics/Renderer';
 
 /**
- * Calque haute résolution pour l'affichage de la main et de la baguette du joueur,
+ * Calque d'affichage de la main et de la baguette du joueur,
  * ainsi que de l'Homonculus tenu en main gauche lorsque équipé.
- * Rendu à la résolution native de l'écran (anti-aliasé et parfaitement net, non-pixelisé)
- * avec une échelle agrandie et réactive selon le ratio d'affichage.
+ * Rendu pixelisé (downsampled) pour s'harmoniser parfaitement
+ * avec l'esthétique rétro 320x240 du moteur de raycasting.
  */
 export class PlayerHandOverlay {
   private readonly container: HTMLElement | null;
@@ -21,11 +21,60 @@ export class PlayerHandOverlay {
     this.leftHandImg = document.getElementById('player-left-hand-image') as HTMLImageElement | null;
 
     if (this.handImg) {
-      this.handImg.src = handwandUrl;
+      this.pixelateTexture(handwandUrl, 160, 160)
+        .then((pixelatedSrc) => {
+          if (this.handImg) {
+            this.handImg.src = pixelatedSrc;
+          }
+        })
+        .catch(() => {
+          if (this.handImg) {
+            this.handImg.src = handwandUrl;
+          }
+        });
     }
     if (this.leftHandImg) {
-      this.leftHandImg.src = homonculusUrl;
+      this.pixelateTexture(homonculusUrl, 84, 84)
+        .then((pixelatedSrc) => {
+          if (this.leftHandImg) {
+            this.leftHandImg.src = pixelatedSrc;
+          }
+        })
+        .catch(() => {
+          if (this.leftHandImg) {
+            this.leftHandImg.src = homonculusUrl;
+          }
+        });
     }
+  }
+
+  /**
+   * Sous-échantillonne une texture haute résolution sur un canevas hors-écran
+   * pour produire un sprite pixel-art rétro aux gros pixels nets.
+   */
+  private pixelateTexture(url: string, targetWidth: number, targetHeight: number): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const offscreenCanvas = document.createElement('canvas');
+          offscreenCanvas.width = targetWidth;
+          offscreenCanvas.height = targetHeight;
+          const ctx = offscreenCanvas.getContext('2d');
+          if (!ctx) {
+            resolve(url);
+            return;
+          }
+          ctx.imageSmoothingEnabled = true;
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+          resolve(offscreenCanvas.toDataURL('image/png'));
+        } catch {
+          resolve(url);
+        }
+      };
+      img.onerror = () => resolve(url);
+      img.src = url;
+    });
   }
 
   public update(player: Player, renderer: Renderer, isExtracted: boolean): void {

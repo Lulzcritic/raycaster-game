@@ -68,7 +68,7 @@ body {
   z-index: 1;
 }
 
-/* Calque de la main et de la baguette du joueur en haute résolution non-pixelisée */
+/* Calque de la main et de la baguette du joueur pixelisé en harmonie avec le raycaster */
 .player-hand-container {
   position: fixed;
   inset: 0;
@@ -84,9 +84,9 @@ body {
 
 .player-hand-image {
   position: absolute;
-  /* Rendu vectoriel / haute résolution natif et lissage haute définition */
-  image-rendering: auto;
-  image-rendering: -webkit-optimize-contrast;
+  /* Rendu rétro pixel-art pour s'harmoniser avec la résolution 320x240 du raycaster */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   user-select: none;
   pointer-events: none;
   will-change: left, top;

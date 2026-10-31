@@ -1,6 +1,7 @@
 import type { GameMap } from '../world/GameMap';
 import { Entity } from './Entity';
 import type { Player } from './Player';
+import { SoundManager } from '../core/SoundManager';
 
 type ArrowState = 'flying' | 'impact';
 
@@ -33,6 +34,7 @@ export class Arrow extends Entity {
     if (this.state !== 'impact') {
       this.state = 'impact';
       this.impactTimer = 0;
+      SoundManager.play3D('arrowHit', this.x, this.y, { volume: 0.75, pitchVariation: 0.15 });
     }
   }
 

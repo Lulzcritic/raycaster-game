@@ -110,6 +110,7 @@ export class Player extends Entity {
     const effective = Math.max(1, amount - defense);
     this.health = Math.max(0, this.health - effective);
     this.damageFlashTimer = 0.28;
+    SoundManager.play2D('playerDamage', { volume: 0.75, pitchVariation: 0.1 });
   }
 
   /**

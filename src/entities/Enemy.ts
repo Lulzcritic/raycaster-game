@@ -77,6 +77,9 @@ export class Enemy extends Entity {
   private readonly totalHatchTime = 5.5;
   private hasHatched = false;
 
+  // Cadence des bruits de pas spatialisés 3D des monstres
+  private stepAudioTimer = 0.2 + Math.random() * 0.3;
+
   constructor(
     x: number,
     y: number,
@@ -900,6 +903,27 @@ export class Enemy extends Entity {
         this.isMoving = false;
       }
     }
+
+    // Émission des bruits de pas spatialisés 3D selon l'espèce de monstre en mouvement
+    if (this.isMoving) {
+      this.stepAudioTimer -= deltaTime;
+      if (this.stepAudioTimer <= 0) {
+        if (this.type.id === 'skeleton_archer') {
+          this.stepAudioTimer = 0.52;
+          SoundManager.play3D('skeletonStep', this.x, this.y, { volume: 0.5, pitchVariation: 0.15 });
+        } else if (this.type.id === 'pumpkin') {
+          this.stepAudioTimer = 0.44;
+          SoundManager.play3D('pumpkinStep', this.x, this.y, { volume: 0.55, pitchVariation: 0.15 });
+        } else if (
+          this.type.movementPattern === 'hop' ||
+          this.type.id === 'slime' ||
+          this.type.id === 'blob_boss'
+        ) {
+          this.stepAudioTimer = 0.72;
+          SoundManager.play3D('blobWalk', this.x, this.y, { volume: 0.6, pitchVariation: 0.15 });
+        }
+      }
+    }
   }
 
   private moveWithCollision(moveX: number, moveY: number, map: GameMap): void {
@@ -998,6 +1022,8 @@ export class Enemy extends Entity {
         this.onSpawnEntity(arrow);
       }
 
+      SoundManager.play3D('skeletonShoot', this.x, this.y, { volume: 0.8, pitchVariation: 0.1 });
+
       this.postAttackTimer = 0.24; // Pose de décoche (attack3) maintenue
       this.attackCooldownTimer = this.type.stats.attackCooldown;
       return;
@@ -1010,6 +1036,9 @@ export class Enemy extends Entity {
     // Vérifie que le joueur est toujours à portée d'attaque
     if (dist <= this.type.stats.attackRange * 1.35) {
       this.player.takeDamage(this.attackDamage);
+      if (this.type.id === 'pumpkin') {
+        SoundManager.play3D('pumpkinAttack', this.x, this.y, { volume: 0.85, pitchVariation: 0.1 });
+      }
       // Rebond en arrière après l'attaque avec respect des collisions
       const angle = Math.atan2(dy, dx);
       const recoilX = -Math.cos(angle) * 0.12;

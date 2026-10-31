@@ -2,6 +2,7 @@ import type { GameMap } from '../world/GameMap';
 import { Entity } from './Entity';
 import { CoinSpriteManager } from '../graphics/CoinSpriteManager';
 import type { Player } from './Player';
+import { SoundManager } from '../core/SoundManager';
 
 /**
  * Pièce d'or tombée au sol suite à la défaite d'un monstre.
@@ -65,6 +66,7 @@ export class DroppedCoin extends Entity {
       if (t >= 1) {
         this.isLanded = true;
         this.currentElevation = 0;
+        SoundManager.play3D('coinDrop', this.x, this.y, { volume: 0.55, pitchVariation: 0.2 });
       }
     } else {
       // Légère oscillation verticale de lévitation au sol
@@ -87,6 +89,7 @@ export class DroppedCoin extends Entity {
     }
     this.isCollected = true;
     this.active = false;
+    SoundManager.play3D('coinDrop', this.x, this.y, { volume: 0.75, pitchVariation: 0.15 });
     this.onCollect?.(this.value);
   }
 

@@ -8,6 +8,14 @@ const SOUND_EFFECT_URLS = {
   shoot: new URL('../assets/audio/effects/shoot.wav', import.meta.url).href,
   catMeow: new URL('../assets/audio/effects/catMeow.mp3', import.meta.url).href,
   catPurr: new URL('../assets/audio/effects/catPurr.mp3', import.meta.url).href,
+  arrowHit: new URL('../assets/audio/effects/arrowHit.mp3', import.meta.url).href,
+  blobWalk: new URL('../assets/audio/effects/blobWalk.mp3', import.meta.url).href,
+  coinDrop: new URL('../assets/audio/effects/coinDrop.mp3', import.meta.url).href,
+  playerDamage: new URL('../assets/audio/effects/playerDamage.mp3', import.meta.url).href,
+  pumpkinAttack: new URL('../assets/audio/effects/pumpkinAttack.mp3', import.meta.url).href,
+  pumpkinStep: new URL('../assets/audio/effects/pumpkinStep.mp3', import.meta.url).href,
+  skeletonShoot: new URL('../assets/audio/effects/skeletonShoot.mp3', import.meta.url).href,
+  skeletonStep: new URL('../assets/audio/effects/skeletonStep.mp3', import.meta.url).href,
 };
 
 const menuMusicUrl = new URL('../assets/audio/music/menuhub.mp3', import.meta.url).href;

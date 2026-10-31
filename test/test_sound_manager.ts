@@ -14,6 +14,16 @@ async function runTests() {
   SoundManager.play3D('shoot', 10, 10);
   SoundManager.play3D('chestOpening', 10, 10);
   SoundManager.play3D('slimeDeath', 5, 5);
+  SoundManager.play3D('catMeow', 3, 3);
+  SoundManager.play3D('catPurr', 3, 3);
+  SoundManager.play3D('arrowHit', 4, 4);
+  SoundManager.play3D('blobWalk', 5, 5);
+  SoundManager.play3D('coinDrop', 2, 2);
+  SoundManager.play2D('playerDamage');
+  SoundManager.play3D('pumpkinAttack', 6, 6);
+  SoundManager.play3D('pumpkinStep', 6, 6);
+  SoundManager.play3D('skeletonShoot', 7, 7);
+  SoundManager.play3D('skeletonStep', 7, 7);
   SoundManager.stopMenuMusic(0);
 
   // Vérification des modificateurs de volume

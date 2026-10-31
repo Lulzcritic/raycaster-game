@@ -10,7 +10,8 @@ import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg
 export class Database {
   private static pool: Pool | null = null;
   private static isOnline = false;
-  private static connectionPromise: Promise<boolean> | null = null;
+  private static isConnecting = false;
+  private static retryTimer: NodeJS.Timeout | null = null;
 
   public static getConnectionString(): string {
     if (process.env.DATABASE_URL) {
@@ -26,53 +27,114 @@ export class Database {
     return `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
   }
 
-  /**
-   * Initialise le pool de connexion et tente une première connexion à PostgreSQL.
-   */
-  public static async init(): Promise<boolean> {
-    if (this.connectionPromise) {
-      return this.connectionPromise;
+  public static getPoolConfig(): any {
+    // Si PGHOST ou les variables discrètes sont renseignées, on privilégie la configuration
+    // par objet direct pour éviter les corruptions d'échappement de caractères spéciaux (@, #, !, $, etc.) dans les URIs
+    if (process.env.PGHOST) {
+      return {
+        host: process.env.PGHOST,
+        port: Number(process.env.PGPORT || 5432),
+        user: process.env.PGUSER || process.env.POSTGRES_USER || 'raycaster',
+        password: process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD || 'raycaster_secret',
+        database: process.env.PGDATABASE || process.env.POSTGRES_DB || 'raycaster_db',
+        max: 15,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 4000,
+      };
     }
 
-    this.connectionPromise = (async () => {
-      const connectionString = this.getConnectionString();
-      try {
-        this.pool = new Pool({
-          connectionString,
-          max: 15,
-          idleTimeoutMillis: 30000,
-          connectionTimeoutMillis: 4000,
-        });
+    if (process.env.DATABASE_URL) {
+      return {
+        connectionString: process.env.DATABASE_URL,
+        max: 15,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 4000,
+      };
+    }
 
-        this.pool.on('error', (err) => {
-          console.warn('[Database] Erreur inattendue sur client idle PostgreSQL :', err.message);
-        });
+    return {
+      connectionString: this.getConnectionString(),
+      max: 15,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 4000,
+    };
+  }
 
-        // Test de connexion ping
-        const client = await this.pool.connect();
-        try {
-          await client.query('SELECT 1');
-          this.isOnline = true;
-          console.log(`[Database] ✅ Connecté avec succès à PostgreSQL (${connectionString.split('@')[1] || 'DB'})`);
-        } finally {
-          client.release();
+  /**
+   * Initialise le pool de connexion et tente une première connexion à PostgreSQL.
+   * Si la première tentative échoue, une boucle de reconnexion automatique en arrière-plan
+   * réessaie toutes les 5 secondes jusqu'à disponibilité de PostgreSQL.
+   */
+  public static async init(): Promise<boolean> {
+    if (this.isOnline) {
+      return true;
+    }
+
+    const connected = await this.tryConnect();
+
+    // Reconnexion automatique périodique en arrière-plan si la première tentative échoue
+    if (!connected && !this.retryTimer) {
+      this.retryTimer = setInterval(async () => {
+        if (!this.isOnline && !this.isConnecting) {
+          const success = await this.tryConnect();
+          if (success && this.retryTimer) {
+            clearInterval(this.retryTimer);
+            this.retryTimer = null;
+          }
         }
+      }, 5000);
+      this.retryTimer.unref();
+    }
 
-        // Création automatique des tables si pas encore créées
-        await this.initSchema();
-        return true;
-      } catch (err: any) {
-        this.isOnline = false;
-        console.warn(
-          `[Database] ⚠️ PostgreSQL non joignable (${err.message}). ` +
-          `Assurez-vous que le conteneur Docker est démarré ('docker compose up -d postgres'). ` +
-          `Le serveur de jeu continue de fonctionner en mode mémoire.`
-        );
-        return false;
+    return connected;
+  }
+
+  private static async tryConnect(): Promise<boolean> {
+    if (this.isConnecting) return false;
+    this.isConnecting = true;
+
+    try {
+      if (this.pool) {
+        try {
+          await this.pool.end();
+        } catch {}
+        this.pool = null;
       }
-    })();
 
-    return this.connectionPromise;
+      const poolConfig = this.getPoolConfig();
+      this.pool = new Pool(poolConfig);
+
+      this.pool.on('error', (err) => {
+        console.warn('[Database] Erreur inattendue sur client idle PostgreSQL :', err.message);
+      });
+
+      // Test de connexion ping
+      const client = await this.pool.connect();
+      try {
+        await client.query('SELECT 1');
+        this.isOnline = true;
+        const target = poolConfig.host
+          ? `${poolConfig.host}:${poolConfig.port}/${poolConfig.database}`
+          : (this.getConnectionString().split('@')[1] || 'DB');
+        console.log(`[Database] ✅ Connecté avec succès à PostgreSQL (${target})`);
+      } finally {
+        client.release();
+      }
+
+      // Création automatique des tables si pas encore créées
+      await this.initSchema();
+      return true;
+    } catch (err: any) {
+      this.isOnline = false;
+      console.warn(
+        `[Database] ⚠️ PostgreSQL non joignable (${err.message}). ` +
+        `Assurez-vous que le conteneur Docker est démarré ('docker compose up -d postgres'). ` +
+        `Le serveur de jeu continue de fonctionner en mode mémoire.`
+      );
+      return false;
+    } finally {
+      this.isConnecting = false;
+    }
   }
 
   /**
@@ -202,11 +264,15 @@ export class Database {
   }
 
   public static async close(): Promise<void> {
+    if (this.retryTimer) {
+      clearInterval(this.retryTimer);
+      this.retryTimer = null;
+    }
     if (this.pool) {
       await this.pool.end();
       this.pool = null;
       this.isOnline = false;
-      this.connectionPromise = null;
+      this.isConnecting = false;
     }
   }
 }

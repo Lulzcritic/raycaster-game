@@ -35,6 +35,11 @@ services:
       - PORT=3001
       - NODE_ENV=production
       - VITE_APP_VERSION=${VITE_APP_VERSION:-0.1.1}
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGUSER=${POSTGRES_USER:-raycaster}
+      - PGPASSWORD=${POSTGRES_PASSWORD:-raycaster_secret}
+      - PGDATABASE=${POSTGRES_DB:-raycaster_db}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-raycaster}:${POSTGRES_PASSWORD:-raycaster_secret}@postgres:5432/${POSTGRES_DB:-raycaster_db}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-citadel_admin}
     healthcheck:

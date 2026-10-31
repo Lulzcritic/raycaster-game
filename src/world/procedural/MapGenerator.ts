@@ -2,6 +2,7 @@ import { TILE_TYPE } from '../../config/constants';
 import { ItemDatabase } from '../../config/ItemDatabase';
 import { GearScoreService } from '../../core/GearScoreService';
 import type {
+  CatSpawnData,
   DoorSpawnData,
   EnemySpawnData,
   EquipmentItem,
@@ -917,6 +918,9 @@ export class MapGenerator {
     // 10.b Rareté des Gobelins au Trésor (au maximum 1 seul par expédition, ~30% de chance d'apparition globale)
     MapGenerator.spawnRareTreasureGoblin(grid, zone2Coords, chunkRoleMap, enemies, rng);
 
+    // 10.c Placement de 2 ou 3 chats compagnons paisibles dans les pièces de la Citadelle
+    const cats = MapGenerator.spawnCats(grid, zone2Coords, rng);
+
     // 11. Sélection du point de réveil du joueur parmi les 4 cryptes
     let chosenSpawn = playerSpawns[0];
     if (_options.spawnIndex !== undefined && playerSpawns.length > 0) {
@@ -943,6 +947,7 @@ export class MapGenerator {
       doors,
       extractions,
       sprites,
+      cats,
       playerSpawns: playerSpawns.map((s) => ({ x: s.x, y: s.y })),
       playerSpawn: {
         x: chosenSpawn.x,
@@ -1357,6 +1362,52 @@ export class MapGenerator {
         y: spot.y,
       });
     }
+  }
+
+  /**
+   * Place 2 ou 3 chats compagnons paisibles dans des pièces distinctes de la Citadelle (Zone 2).
+   */
+  public static spawnCats(
+    grid: number[][],
+    zone2Coords: Array<[number, number]>,
+    rng: () => number = Math.random
+  ): CatSpawnData[] {
+    const cats: CatSpawnData[] = [];
+    const catCount = rng() < 0.5 ? 2 : 3;
+
+    // Mélange des pièces disponibles de Zone 2
+    const shuffledRooms = [...zone2Coords];
+    for (let i = shuffledRooms.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [shuffledRooms[i], shuffledRooms[j]] = [shuffledRooms[j], shuffledRooms[i]];
+    }
+
+    for (const [cx, cy] of shuffledRooms) {
+      if (cats.length >= catCount) {
+        break;
+      }
+
+      const originX = cx * MapGenerator.CHUNK_STEP;
+      const originY = cy * MapGenerator.CHUNK_STEP;
+
+      const candidateSpots: Array<{ x: number; y: number }> = [];
+      for (let ly = 1; ly < MapGenerator.CHUNK_SIZE - 1; ly++) {
+        for (let lx = 1; lx < MapGenerator.CHUNK_SIZE - 1; lx++) {
+          const gx = originX + lx;
+          const gy = originY + ly;
+          if (MapGenerator.isWalkableGround(grid, gx, gy)) {
+            candidateSpots.push({ x: gx + 0.5, y: gy + 0.5 });
+          }
+        }
+      }
+
+      if (candidateSpots.length > 0) {
+        const spot = candidateSpots[Math.floor(rng() * candidateSpots.length)];
+        cats.push({ x: spot.x, y: spot.y });
+      }
+    }
+
+    return cats;
   }
 
   /**

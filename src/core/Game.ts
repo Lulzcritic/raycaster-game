@@ -50,8 +50,10 @@ import { BloodWaveSegment } from '../entities/BloodWaveSegment';
 import { PurpleOrb } from '../entities/PurpleOrb';
 import { FrostingPuddle } from '../entities/FrostingPuddle';
 import { RemotePlayer } from '../entities/RemotePlayer';
+import { Cat } from '../entities/Cat';
 import { Prop } from '../entities/Prop';
 import { PropSpriteManager, type PropKind } from '../graphics/PropSpriteManager';
+import { CatSpriteManager } from '../graphics/CatSpriteManager';
 import { PlayerSpriteManager } from '../graphics/PlayerSpriteManager';
 import { NetworkClient } from '../network/NetworkClient';
 import { findSpacedDropPositions } from '../utils/dropSpread';
@@ -672,6 +674,10 @@ export class Game {
         run: () => PropSpriteManager.preloadAll(),
       },
       {
+        name: 'Installation des chats compagnons paisibles...',
+        run: () => CatSpriteManager.preloadAll(),
+      },
+      {
         name: 'Harmonisation du moteur sonore 3D...',
         run: () => SoundManager.preloadAllEffects(),
       },
@@ -989,6 +995,14 @@ export class Game {
           ext.requiresBoss ?? ext.name.toLowerCase().includes('royal')
         );
         this.entities.push(portal);
+      }
+    }
+
+    // 5. Spawning des chats compagnons paisibles
+    if (level.cats) {
+      for (const catData of level.cats) {
+        const cat = new Cat(catData.x, catData.y);
+        this.entities.push(cat);
       }
     }
   }

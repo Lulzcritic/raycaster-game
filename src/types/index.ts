@@ -127,6 +127,11 @@ export interface ExtractionSpawnData {
   requiresBoss?: boolean;
 }
 
+export interface CatSpawnData {
+  x: number;
+  y: number;
+}
+
 export interface DifficultyScaling {
   playerGearScore: number;
   hpMultiplier: number;
@@ -140,6 +145,7 @@ export interface LevelData {
   floorGrid?: number[][];
   skyTileId?: number;
   sprites?: SpriteSpawnData[];
+  cats?: CatSpawnData[];
   chestLoots?: Record<string, EquipmentItem[] | string[]>;
   bossChestCoords?: string[];
   enemies?: EnemySpawnData[];

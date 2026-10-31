@@ -6,6 +6,8 @@ const SOUND_EFFECT_URLS = {
   keyLoot: new URL('../assets/audio/effects/keyLoot.mp3', import.meta.url).href,
   playerSteps: new URL('../assets/audio/effects/playerSteps.wav', import.meta.url).href,
   shoot: new URL('../assets/audio/effects/shoot.wav', import.meta.url).href,
+  catMeow: new URL('../assets/audio/effects/catMeow.mp3', import.meta.url).href,
+  catPurr: new URL('../assets/audio/effects/catPurr.mp3', import.meta.url).href,
 };
 
 const menuMusicUrl = new URL('../assets/audio/music/menuhub.mp3', import.meta.url).href;

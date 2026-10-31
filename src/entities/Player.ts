@@ -112,6 +112,16 @@ export class Player extends Entity {
     this.damageFlashTimer = 0.28;
   }
 
+  /**
+   * Soigne le joueur d'un montant spécifié sans dépasser ses points de vie maximum.
+   * Retourne le montant effectif de points de vie restaurés.
+   */
+  public heal(amount: number): number {
+    const prev = this.health;
+    this.health = Math.min(this.maxHealth, this.health + Math.max(0, amount));
+    return this.health - prev;
+  }
+
   public isAlive(): boolean {
     return this.health > 0;
   }

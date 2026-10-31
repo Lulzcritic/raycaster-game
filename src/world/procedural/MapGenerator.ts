@@ -190,7 +190,7 @@ export class MapGenerator {
     enemies: [
       { typeId: 'skeleton_archer', x: 2.5, y: 2.5 },
       { typeId: 'skeleton_archer', x: 8.5, y: 8.5 },
-      { typeId: 'goblin', x: 5.5, y: 5.5 },
+      { typeId: 'blob', x: 5.5, y: 5.5 },
     ],
     chests: [{ x: 5, y: 9, tier: 'standard' }],
   };
@@ -386,7 +386,7 @@ export class MapGenerator {
       '###########',
     ],
     enemies: [
-      { typeId: 'goblin', x: 3.5, y: 5.5 },
+      { typeId: 'skeleton_archer', x: 3.5, y: 5.5 },
       { typeId: 'blob', x: 7.5, y: 5.5 },
     ],
     sprites: [
@@ -914,6 +914,9 @@ export class MapGenerator {
     // 10. Diversification parsimonieuse des textures de mur (WALL_1, WALL_2, WALL_3, WALL_4)
     MapGenerator.diversifyWalls(grid, rng);
 
+    // 10.b Rareté des Gobelins au Trésor (au maximum 1 seul par expédition, ~30% de chance d'apparition globale)
+    MapGenerator.spawnRareTreasureGoblin(grid, zone2Coords, chunkRoleMap, enemies, rng);
+
     // 11. Sélection du point de réveil du joueur parmi les 4 cryptes
     let chosenSpawn = playerSpawns[0];
     if (_options.spawnIndex !== undefined && playerSpawns.length > 0) {
@@ -1297,6 +1300,62 @@ export class MapGenerator {
           grid[y][x] = TILE_TYPE.WALL_4;
         }
       }
+    }
+  }
+
+  /**
+   * Fait apparaître un Gobelin au Trésor avec une rareté contrôlée :
+   * - 30% de chance d'apparition globale par expédition (70% des raids n'en ont aucun).
+   * - Au maximum 1 seul gobelin sur l'ensemble de la Citadelle 71×71.
+   * - Placé au cœur d'une arène ou salle au trésor de Zone 2 sur un sol praticable.
+   */
+  public static spawnRareTreasureGoblin(
+    grid: number[][],
+    zone2Coords: Array<[number, number]>,
+    chunkRoleMap: Map<string, ModuleTemplate>,
+    enemies: EnemySpawnData[],
+    rng: () => number = Math.random
+  ): void {
+    if (rng() >= 0.30) {
+      return;
+    }
+
+    // Sélection d'une pièce appropriée parmi les arènes et chambres de trésor de Zone 2
+    const candidateRooms = zone2Coords.filter(([cx, cy]) => {
+      const template = chunkRoleMap.get(`${cx},${cy}`);
+      return (
+        template === MapGenerator.TREASURE_VAULT ||
+        template === MapGenerator.TREASURE_SHRINE ||
+        template === MapGenerator.ARENA_CROSSFIRE ||
+        template === MapGenerator.ARENA_COLOSSEUM ||
+        template === MapGenerator.CROSSROAD_GRAND
+      );
+    });
+
+    const pool = candidateRooms.length > 0 ? candidateRooms : zone2Coords;
+    const [cx, cy] = pool[Math.floor(rng() * pool.length)];
+    const originX = cx * MapGenerator.CHUNK_STEP;
+    const originY = cy * MapGenerator.CHUNK_STEP;
+
+    // Recherche d'un sol praticable libre au centre du module
+    const candidateSpots: Array<{ x: number; y: number }> = [];
+    for (let ly = 2; ly < MapGenerator.CHUNK_SIZE - 2; ly++) {
+      for (let lx = 2; lx < MapGenerator.CHUNK_SIZE - 2; lx++) {
+        const gx = originX + lx;
+        const gy = originY + ly;
+        if (MapGenerator.isWalkableGround(grid, gx, gy)) {
+          candidateSpots.push({ x: gx + 0.5, y: gy + 0.5 });
+        }
+      }
+    }
+
+    if (candidateSpots.length > 0) {
+      const spot = candidateSpots[Math.floor(rng() * candidateSpots.length)];
+      enemies.push({
+        typeId: 'goblin',
+        x: spot.x,
+        y: spot.y,
+      });
     }
   }
 

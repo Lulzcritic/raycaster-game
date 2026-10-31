@@ -188,10 +188,10 @@ export class BillboardSprite extends Entity {
     SoundManager.play3D('chestOpening', this.x, this.y, { volume: 0.85 });
     QuestManager.onChestOpened();
 
-    // Un coffre a 1 chance sur 4 de se transformer en Mimic s'il ne contient pas de clé essentielle
-    // Les coffres royaux du boss ne sont jamais des mimics
+    // Un coffre ordinaire a désormais une faible chance (~6%, soit environ 1 chance sur 16) de se transformer en Mimic.
+    // Les coffres royaux du boss et les coffres de clés ne sont jamais des mimics.
     const hasKey = this.lootItems.some((item) => item.slot === 'key');
-    const isMimic = !hasKey && !this.wasLockedByBoss && Math.random() < 0.25;
+    const isMimic = !hasKey && !this.wasLockedByBoss && Math.random() < 0.06;
 
     if (isMimic) {
       this.active = false;

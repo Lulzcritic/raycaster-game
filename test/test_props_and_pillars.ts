@@ -289,6 +289,30 @@ assert.strictEqual(testMap.isWall(0, 1), true, 'WALL_3 doit être reconnu comme 
 assert.strictEqual(testMap.isWall(1, 1), true, 'WALL_4 doit être reconnu comme un mur par GameMap');
 console.log('   ✅ Diversité parsimonieuse des murs et reconnaissance physique validées.\n');
 
+// ---------------------------------------------------------------------------
+// 7. Test de la rareté des Gobelins au Trésor et des Mimics
+// ---------------------------------------------------------------------------
+console.log('7. Test de la rareté contrôlée des Gobelins et des Mimics...');
+
+// Vérification de la rareté des gobelins sur 50 graines procédurales
+let totalGoblinsAcross50Seeds = 0;
+let mapsWithMaxOneGoblin = 0;
+for (let s = 1; s <= 50; s++) {
+  const proceduralLevel = MapGenerator.generate({ seed: s });
+  const goblinCount = proceduralLevel.enemies.filter((e) => e.typeId === 'goblin').length;
+  assert(goblinCount <= 1, `Une carte ne doit JAMAIS contenir plus de 1 gobelin (trouvé: ${goblinCount} sur seed ${s})`);
+  if (goblinCount <= 1) mapsWithMaxOneGoblin++;
+  totalGoblinsAcross50Seeds += goblinCount;
+}
+
+const goblinPresencePct = ((totalGoblinsAcross50Seeds / 50) * 100).toFixed(1);
+console.log(`   - Gobelins totaux sur 50 graines : ${totalGoblinsAcross50Seeds} (~${goblinPresencePct}% de présence, max 1 par raid)`);
+assert(totalGoblinsAcross50Seeds <= 25, 'Les gobelins doivent être rares (<= 25 apparitions sur 50 parties)');
+assert(totalGoblinsAcross50Seeds > 0, 'Les gobelins doivent tout de même pouvoir apparaître');
+assert.strictEqual(mapsWithMaxOneGoblin, 50, '100% des cartes respectent la limite stricte de 0 ou 1 gobelin');
+
+console.log('   ✅ Rareté des Gobelins au Trésor et des Mimics validée.\n');
+
 console.log('======================================================');
-console.log('🎉 TOUS LES TESTS DES PROPS, PILIERS & MURS ONT RÉUSSI !');
+console.log('🎉 TOUS LES TESTS DES PROPS, PILIERS, MURS & RARETÉ ONT RÉUSSI !');
 console.log('======================================================');

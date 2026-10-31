@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import http from 'http';
+import { fileURLToPath } from 'url';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { Matchmaker } from './Matchmaker';
 import { Database } from './db/Database';
@@ -8,6 +9,9 @@ import { AuthService } from './db/AuthService';
 import { PlayerRepository } from './db/PlayerRepository';
 import { AnalyticsService } from './AnalyticsService';
 import type { ClientMessage } from '../../src/types/network';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT) || 3001;
 const DIST_DIR = path.resolve(process.cwd(), 'dist');
@@ -71,7 +75,9 @@ function extractToken(req: http.IncomingMessage): string | null {
   return urlObj.searchParams.get('token');
 }
 
+let cachedAdminHtml: string | null = null;
 function getAdminHtml(): string | null {
+  if (cachedAdminHtml) return cachedAdminHtml;
   const candidates = [
     path.join(__dirname, 'admin', 'admin.html'),
     path.join(__dirname, '..', 'src', 'admin', 'admin.html'),
@@ -79,9 +85,12 @@ function getAdminHtml(): string | null {
     path.join(process.cwd(), 'dist-server', 'src', 'admin', 'admin.html'),
   ];
   for (const c of candidates) {
-    if (fs.existsSync(c)) {
-      return fs.readFileSync(c, 'utf-8');
-    }
+    try {
+      if (fs.existsSync(c)) {
+        cachedAdminHtml = fs.readFileSync(c, 'utf-8');
+        return cachedAdminHtml;
+      }
+    } catch {}
   }
   return null;
 }
@@ -96,31 +105,32 @@ function requireAdminAuth(req: http.IncomingMessage, res: http.ServerResponse): 
 }
 
 const server = http.createServer(async (req, res) => {
-  // En-têtes CORS universels pour les requêtes HTTP et requêtes preflight OPTIONS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  try {
+    // En-têtes CORS universels pour les requêtes HTTP et requêtes preflight OPTIONS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    });
-    res.end();
-    return;
-  }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      });
+      res.end();
+      return;
+    }
 
-  const rawUrl = req.url ?? '/';
-  let pathName = rawUrl.split('?')[0];
+    const rawUrl = req.url ?? '/';
+    let pathName = rawUrl.split('?')[0];
 
-  // Normalisation du chemin : si le reverse proxy (Nginx) transmet le préfixe /toc, on le retire
-  if (pathName.startsWith('/toc/')) {
-    pathName = pathName.substring(4); // ex: "/toc/api/auth/register" -> "/api/auth/register"
-  } else if (pathName === '/toc') {
-    pathName = '/';
-  }
+    // Normalisation du chemin : si le reverse proxy (Nginx/Caddy) transmet le préfixe /toc, on le retire
+    if (pathName.startsWith('/toc/')) {
+      pathName = pathName.substring(4); // ex: "/toc/api/auth/register" -> "/api/auth/register"
+    } else if (pathName === '/toc') {
+      pathName = '/';
+    }
 
   // 1. Healthcheck système & base de données
   if (pathName === '/health' || pathName === '/status') {
@@ -135,8 +145,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 1b. Interface Console Administrateur & Télémétrie (/admin ou /admin/)
-  if ((pathName === '/admin' || pathName === '/admin/') && (req.method === 'GET' || req.method === 'HEAD')) {
+  // 1b. Interface Console Administrateur & Télémétrie (/admin ou /admin/ ou /citadel-admin)
+  if (
+    (pathName === '/admin' || pathName === '/admin/' || pathName === '/citadel-admin' || pathName === '/citadel-admin/') &&
+    (req.method === 'GET' || req.method === 'HEAD')
+  ) {
     const html = getAdminHtml();
     if (html) {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -412,8 +425,14 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify({ error: `Route non trouvée sur la passerelle (${req.method} ${rawUrl})` }));
+    res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ error: `Route non trouvée sur la passerelle (${req.method} ${rawUrl})` }));
+  } catch (err: any) {
+    console.error('[Server] Erreur HTTP non gérée:', err);
+    if (!res.headersSent) {
+      sendJson(res, 500, { success: false, error: 'Erreur interne du serveur' });
+    }
+  }
 });
 
 const wss = new WebSocketServer({ server });

@@ -25,6 +25,10 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'app.loading_footer': 'LOADING CITADEL ASSETS...',
     'app.ready': 'Ready for expedition!',
 
+    // Pause & Real-Time In-Game Menu
+    'pause.title': 'IN-GAME MENU',
+    'pause.warning': '⚠️ REAL-TIME: The dungeon and monsters do not stop!',
+
     // Common Buttons & Actions
     'btn.play': 'PLAY',
     'btn.resume': 'RESUME',
@@ -307,6 +311,10 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'app.loading': 'INITIALISATION DES ARCANES DE LA CITADELLE...',
     'app.loading_footer': 'CHARGEMENT DE LA CITADELLE EN COURS',
     'app.ready': "Prêt pour l'expédition !",
+
+    // Menu Pause & En Jeu Temps Réel
+    'pause.title': 'MENU EN JEU',
+    'pause.warning': "⚠️ TEMPS RÉEL : Le donjon et les monstres ne s'arrêtent pas !",
 
     // Boutons et Actions communs
     'btn.play': 'JOUER',

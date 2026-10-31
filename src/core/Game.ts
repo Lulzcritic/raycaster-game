@@ -190,7 +190,7 @@ export class Game {
       }
       this.isPaused = paused;
       this.worldBillboardOverlay.setVisible(!paused);
-      this.hudOverlay.setVisible(!paused);
+      this.hudOverlay.setVisible(true);
       this.playerHandOverlay.setVisible(!paused);
       if (paused) {
         this.pauseMenu.show();
@@ -1366,7 +1366,8 @@ export class Game {
     const dt = (time - this.lastTime) / 1000;
     this.lastTime = time;
 
-    if (!this.isPaused && !this.isInMainMenu && !this.isInHub) {
+    // En expédition multijoueur PvPvE, le monde (monstres, sorts, joueurs) tourne toujours en temps réel
+    if (!this.isInMainMenu && !this.isInHub) {
       this.update(dt);
     }
     this.render();
@@ -1376,6 +1377,8 @@ export class Game {
 
   private update(deltaTime: number): void {
     if (!this.player.isAlive()) {
+      this.pauseMenu.hide();
+      this.merchantUI.close();
       if (SoundManager.isBossMusicActive()) {
         SoundManager.stopBossMusic(1000);
       }
@@ -1758,6 +1761,12 @@ export class Game {
   }
 
   private updateInteraction(): void {
+    if (this.input.isPaused()) {
+      this.interactionPrompt.setPrompt(null);
+      this.input.consumeKeyPress(KEYS.INTERACT);
+      return;
+    }
+
     const target = this.findClosestInteractable();
 
     if (!target) {

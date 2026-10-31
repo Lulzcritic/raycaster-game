@@ -160,6 +160,10 @@ export class InputManager {
     }
   }
 
+  public isPaused(): boolean {
+    return this.paused;
+  }
+
   public lockPointer(): void {
     if (document.pointerLockElement !== this.canvas) {
       this.canvas.focus();

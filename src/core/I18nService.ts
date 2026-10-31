@@ -49,6 +49,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'btn.cancel_queue': '✕ CANCEL AND RETURN TO CAMP [ESC]',
     'btn.abandon': 'ABANDON EXPEDITION (DEATH)',
     'btn.main_menu': 'MAIN MENU (DEATH)',
+    'btn.menu': 'MAIN MENU',
+    'btn.menu_title': 'Back to main menu',
     'btn.return_camp': 'RETURN TO CAMP [R]',
     'btn.spectate': '👁️ SPECTATE SQUAD [V]',
 
@@ -84,6 +86,11 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'settings.ctrl_orb': 'Bouncing Purple Orb',
     'settings.ctrl_interact': 'Interact (Chests, Doors, Merchant)',
     'settings.ctrl_pause': 'In-game Pause Menu',
+    'settings.ctrl_mouse_full': 'MOUSE : LOOK AROUND',
+    'settings.ctrl_fireball_full': 'LEFT CLICK / SPACE : FIREBALL',
+    'settings.ctrl_orb_full': 'RIGHT CLICK : BOUNCING PURPLE ORB',
+    'settings.ctrl_interact_full': 'F : INTERACT',
+    'settings.ctrl_pause_full': 'ESC : PAUSE MENU',
 
     // HUD & Spells
     'hud.health': 'HP {current} / {max}',
@@ -325,6 +332,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'btn.cancel_queue': '✕ ANNULER ET RETOURNER AU CAMPEMENT [ÉCHAP]',
     'btn.abandon': "ABANDONNER L'EXPÉDITION (MORT)",
     'btn.main_menu': 'MENU PRINCIPAL (MORT)',
+    'btn.menu': 'MENU PRINCIPAL',
+    'btn.menu_title': 'Retour au menu principal',
     'btn.return_camp': 'RETOURNER AU CAMPEMENT [R]',
     'btn.spectate': "👁️ REGARDER L'ESCOUADE [V]",
 
@@ -360,6 +369,11 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'settings.ctrl_orb': 'Orbe Violet Rebondissant',
     'settings.ctrl_interact': 'Interagir (Coffres, Portes, Marchand)',
     'settings.ctrl_pause': 'Menu Pause en jeu',
+    'settings.ctrl_mouse_full': 'SOURIS : ORIENTER LA VUE',
+    'settings.ctrl_fireball_full': 'CLIC GAUCHE / ESPACE : BOULE DE FEU',
+    'settings.ctrl_orb_full': 'CLIC DROIT : ORBE VIOLET REBONDISSANT',
+    'settings.ctrl_interact_full': 'F : INTERAGIR',
+    'settings.ctrl_pause_full': 'ÉCHAP : MENU PAUSE',
 
     // HUD & Sorts
     'hud.health': 'PV {current} / {max}',

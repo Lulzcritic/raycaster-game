@@ -108,6 +108,8 @@ async function runTests(): Promise<void> {
   I18nService.setLanguage('en');
   assert.strictEqual(I18nService.t('btn.play'), 'PLAY');
   assert.strictEqual(I18nService.t('btn.resume'), 'RESUME');
+  assert.strictEqual(I18nService.t('btn.menu'), 'MAIN MENU');
+  assert.strictEqual(I18nService.t('btn.menu_title'), 'Back to main menu');
   assert.strictEqual(I18nService.t('settings.title'), 'SETTINGS');
   assert.strictEqual(I18nService.t('slot.weapon'), 'WEAPON');
   assert.strictEqual(I18nService.t('rarity.legendary'), 'LEGENDARY');
@@ -116,6 +118,8 @@ async function runTests(): Promise<void> {
   I18nService.setLanguage('fr');
   assert.strictEqual(I18nService.t('btn.play'), 'JOUER');
   assert.strictEqual(I18nService.t('btn.resume'), 'REPRENDRE');
+  assert.strictEqual(I18nService.t('btn.menu'), 'MENU PRINCIPAL');
+  assert.strictEqual(I18nService.t('btn.menu_title'), 'Retour au menu principal');
   assert.strictEqual(I18nService.t('settings.title'), 'PARAMÈTRES');
   assert.strictEqual(I18nService.t('slot.weapon'), 'ARME');
   assert.strictEqual(I18nService.t('rarity.legendary'), 'LÉGENDAIRE');

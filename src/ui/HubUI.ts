@@ -89,7 +89,6 @@ export class HubUI {
   private readonly playBodySlots: Partial<Record<EquipmentSlot, HTMLElement | null>> = {};
   private readonly equippedSlotsContainer: HTMLElement | null;
   private readonly stashListContainer: HTMLElement | null;
-  private readonly fullStatsContainer: HTMLElement | null;
   private readonly upgradesListContainer: HTMLElement | null;
   private readonly shopItemsListContainer: HTMLElement | null;
   private readonly questsListContainer: HTMLElement | null;
@@ -194,7 +193,6 @@ export class HubUI {
     };
     this.equippedSlotsContainer = document.getElementById('hub-equipped-slots');
     this.stashListContainer = document.getElementById('hub-stash-list');
-    this.fullStatsContainer = document.getElementById('hub-full-stats');
 
     // Boutique & Quêtes
     this.upgradesListContainer = document.getElementById('hub-upgrades-list');
@@ -1002,67 +1000,6 @@ export class HubUI {
           this.stashListContainer.appendChild(itemCard);
         }
       }
-    }
-
-    // 3. Fiche détaillée des caractéristiques
-    if (this.fullStatsContainer) {
-      const gear = this.player.inventory.getTotalStats();
-      const upg = UpgradeManager.getStats();
-      const total = this.player.getEffectiveStats();
-
-      this.fullStatsContainer.innerHTML = `
-        <div class="hub-stats-table">
-          <div class="hub-stats-table-row header">
-            <span>${isFr ? 'STATISTIQUE' : 'STATISTIC'}</span>
-            <span>${isFr ? 'BASE' : 'BASE'}</span>
-            <span>${isFr ? 'OBJETS' : 'ITEMS'}</span>
-            <span>${isFr ? 'TALENTS' : 'TALENTS'}</span>
-            <span>TOTAL</span>
-          </div>
-          <div class="hub-stats-table-row">
-            <span>${isFr ? 'Points de Vie (PV)' : 'Health Points (HP)'}</span>
-            <span>100</span>
-            <span class="font-green">+${gear.maxHealth}</span>
-            <span class="font-green">+${upg.maxHealth}</span>
-            <span class="font-green font-bold">${100 + total.maxHealth}</span>
-          </div>
-          <div class="hub-stats-table-row">
-            <span>${isFr ? 'Dégâts Magiques' : 'Magic Damage'}</span>
-            <span>${FIREBALL_CONFIG.DAMAGE}</span>
-            <span class="font-red">+${gear.damage}</span>
-            <span class="font-red">+${upg.damage}</span>
-            <span class="font-red font-bold">${FIREBALL_CONFIG.DAMAGE + total.damage}</span>
-          </div>
-          <div class="hub-stats-table-row">
-            <span>${isFr ? 'Armure / Défense' : 'Armor / Defense'}</span>
-            <span>0</span>
-            <span class="font-blue">+${gear.defense}</span>
-            <span class="font-blue">+${upg.defense}</span>
-            <span class="font-blue font-bold">${total.defense}</span>
-          </div>
-          <div class="hub-stats-table-row">
-            <span>${isFr ? 'Vitesse de Déplacement' : 'Movement Speed'}</span>
-            <span>100%</span>
-            <span class="font-yellow">+${Math.round(gear.moveSpeed * 100)}%</span>
-            <span class="font-yellow">+${Math.round(upg.moveSpeed * 100)}%</span>
-            <span class="font-yellow font-bold">${100 + Math.round(total.moveSpeed * 100)}%</span>
-          </div>
-          <div class="hub-stats-table-row">
-            <span>${isFr ? 'Vitesse d\'Incantation' : 'Casting Speed'}</span>
-            <span>100%</span>
-            <span class="font-purple">+${Math.round(gear.castSpeed * 100)}%</span>
-            <span class="font-purple">+${Math.round(upg.castSpeed * 100)}%</span>
-            <span class="font-purple font-bold">${100 + Math.round(total.castSpeed * 100)}%</span>
-          </div>
-          <div class="hub-stats-table-row">
-            <span>${isFr ? 'Puissance Mystique' : 'Mystic Power'}</span>
-            <span>0</span>
-            <span class="font-purple">+${gear.magicPower}</span>
-            <span class="font-purple">+${upg.magicPower}</span>
-            <span class="font-purple font-bold">${total.magicPower}</span>
-          </div>
-        </div>
-      `;
     }
   }
 

@@ -234,6 +234,7 @@ async function runTests() {
   console.log('\n======================================================');
   console.log('🎉 TOUS LES TESTS DE MORT & SPECTATEUR ONT RÉUSSI !');
   console.log('======================================================\n');
+  process.exit(0);
 }
 
 runTests().catch((err) => {

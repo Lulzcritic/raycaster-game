@@ -7,6 +7,7 @@ import type {
   ServerMessage,
 } from '../../src/types/network';
 import { GameInstance, type PlayerSession } from './GameInstance';
+import { AnalyticsService } from './AnalyticsService';
 
 export interface QueuedPlayer {
   ws: WebSocket;
@@ -17,6 +18,21 @@ export interface QueuedPlayer {
   joinedAt: number;
 }
 
+export interface ClientMeta {
+  id: string;
+  ip: string;
+  name: string;
+  isGuest: boolean;
+  skinId: string;
+  gearScore: number;
+  connectedAt: number;
+  lastPingAt: number;
+  status: 'hub' | 'queue' | 'in_raid';
+  instanceId?: string;
+  hp?: number;
+  maxHp?: number;
+}
+
 export class Matchmaker {
   public static readonly CYCLE_DURATION_SEC = 60;
   public static readonly MAX_PLAYERS_PER_INSTANCE = 4;
@@ -25,6 +41,7 @@ export class Matchmaker {
   private cycleCountdownSec = Matchmaker.CYCLE_DURATION_SEC;
   private readonly queue: QueuedPlayer[] = [];
   private readonly connectedClients = new Set<WebSocket>();
+  private readonly clientMetadata = new Map<WebSocket, ClientMeta>();
   private readonly activeInstances = new Map<string, GameInstance>();
   private timer: NodeJS.Timeout | null = null;
 
@@ -32,13 +49,47 @@ export class Matchmaker {
     this.startCycleTimer();
   }
 
-  public registerClient(ws: WebSocket): void {
+  public registerClient(ws: WebSocket, ip = '127.0.0.1'): void {
     this.connectedClients.add(ws);
+    const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    this.clientMetadata.set(ws, {
+      id: clientId,
+      ip,
+      name: 'Aventurier',
+      isGuest: true,
+      skinId: 'puzzle_lord',
+      gearScore: 0,
+      connectedAt: Date.now(),
+      lastPingAt: Date.now(),
+      status: 'hub',
+    });
+
+    // Enregistrement télémétrique
+    AnalyticsService.getInstance().trackEvent({
+      eventType: 'session_start',
+      playerName: 'Aventurier',
+      isGuest: true,
+      data: { ip, clientId },
+    });
+
     // Envoi immédiat du statut du convoi au nouvel arrivant
     this.sendQueueStatusTo(ws);
   }
 
   public unregisterClient(ws: WebSocket): void {
+    const meta = this.clientMetadata.get(ws);
+    if (meta) {
+      const durationSec = Math.floor((Date.now() - meta.connectedAt) / 1000);
+      AnalyticsService.getInstance().trackEvent({
+        eventType: 'session_end',
+        playerName: meta.name,
+        isGuest: meta.isGuest,
+        gearScore: meta.gearScore,
+        data: { durationSec, ip: meta.ip },
+      });
+      this.clientMetadata.delete(ws);
+    }
+
     this.connectedClients.delete(ws);
     this.leaveQueue(ws);
 
@@ -159,6 +210,19 @@ export class Matchmaker {
     const existingIndex = this.queue.findIndex((p) => p.ws === ws);
     const id = `player_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const skinId = payload.skinId || 'puzzle_lord';
+    const isGuest =
+      !payload.playerName ||
+      payload.playerName === 'Lord Aventurier' ||
+      payload.playerName.startsWith('Invité');
+
+    const meta = this.clientMetadata.get(ws);
+    if (meta) {
+      meta.name = payload.playerName || 'Aventurier';
+      meta.skinId = skinId;
+      meta.gearScore = payload.gearScore || 30;
+      meta.status = 'queue';
+      meta.isGuest = isGuest;
+    }
 
     if (existingIndex !== -1) {
       this.queue[existingIndex].name = payload.playerName || 'Aventurier';
@@ -178,14 +242,32 @@ export class Matchmaker {
       );
     }
 
+    AnalyticsService.getInstance().trackEvent({
+      eventType: 'queue_join',
+      playerName: payload.playerName || 'Aventurier',
+      isGuest,
+      gearScore: payload.gearScore || 30,
+      data: { skinId, queueLength: this.queue.length },
+    });
+
     this.broadcastQueueStatus();
   }
 
   public leaveQueue(ws: WebSocket): void {
+    const meta = this.clientMetadata.get(ws);
+    if (meta && meta.status === 'queue') {
+      meta.status = 'hub';
+    }
+
     const idx = this.queue.findIndex((p) => p.ws === ws);
     if (idx !== -1) {
       const removed = this.queue.splice(idx, 1)[0];
       console.log(`[Matchmaker] Joueur a quitté la file: ${removed.name}`);
+      AnalyticsService.getInstance().trackEvent({
+        eventType: 'queue_leave',
+        playerName: removed.name,
+        gearScore: removed.gearScore,
+      });
       this.broadcastQueueStatus();
     }
   }
@@ -249,8 +331,33 @@ export class Matchmaker {
     const instance = new GameInstance(instanceId, mapSeed, playerSessions);
     instance.onDestroyCallback = (id) => {
       this.activeInstances.delete(id);
+      for (const p of playerSessions) {
+        const meta = this.clientMetadata.get(p.ws);
+        if (meta && meta.instanceId === id) {
+          meta.status = 'hub';
+          meta.instanceId = undefined;
+        }
+      }
     };
     this.activeInstances.set(instanceId, instance);
+
+    for (const p of group) {
+      const meta = this.clientMetadata.get(p.ws);
+      if (meta) {
+        meta.status = 'in_raid';
+        meta.instanceId = instanceId;
+      }
+    }
+
+    AnalyticsService.getInstance().trackEvent({
+      eventType: 'raid_start',
+      instanceId,
+      data: {
+        playerCount: group.length,
+        mapSeed,
+        players: group.map((p) => ({ name: p.name, gearScore: p.gearScore })),
+      },
+    });
 
     console.log(
       `[Matchmaker] Instance créée: ${instanceId} (Seed: ${mapSeed}) avec ${group.length} joueur(s).`
@@ -322,6 +429,155 @@ export class Matchmaker {
       queuedPlayers: this.queue.length,
       countdown: this.cycleCountdownSec,
     };
+  }
+
+  public getQueue(): QueuedPlayer[] {
+    return this.queue;
+  }
+
+  public getCycleCountdown(): number {
+    return this.cycleCountdownSec;
+  }
+
+  public getAllClientsWithDetails(): Array<{
+    id: string;
+    name: string;
+    isGuest: boolean;
+    status: string;
+    location: string;
+    hp: number;
+    maxHp: number;
+    gearScore: number;
+    ip: string;
+    skinId?: string;
+    connectedAt: number;
+    connectedDurationSec: number;
+  }> {
+    const list: Array<any> = [];
+    const now = Date.now();
+
+    for (const [ws, meta] of this.clientMetadata.entries()) {
+      let location = 'Campement (Hub)';
+      let hp = 100;
+      let maxHp = 100;
+
+      if (meta.status === 'queue') {
+        const qPos = this.queue.findIndex((q) => q.ws === ws);
+        location = `File d'attente (#${qPos !== -1 ? qPos + 1 : 1})`;
+      } else if (meta.status === 'in_raid' && meta.instanceId) {
+        const instance = this.activeInstances.get(meta.instanceId);
+        if (instance) {
+          const session = instance.players.find((p) => p.ws === ws);
+          if (session) {
+            hp = session.hp;
+            maxHp = session.maxHp;
+            const statusLabel =
+              session.status === 'extracted'
+                ? ' (Extrait)'
+                : session.status === 'dead'
+                ? ' (Mort)'
+                : '';
+            location = `Crypte ${meta.instanceId.substring(0, 11)}${statusLabel}`;
+          }
+        }
+      }
+
+      const normalizedStatus =
+        meta.status === 'queue' ? 'in_queue' : meta.status === 'raid' ? 'in_raid' : 'in_lobby';
+
+      list.push({
+        id: meta.id,
+        name: meta.name,
+        isGuest: meta.isGuest,
+        status: normalizedStatus,
+        location,
+        hp,
+        maxHp,
+        gearScore: meta.gearScore,
+        ip: meta.ip,
+        skinId: meta.skinId,
+        connectedAt: meta.connectedAt,
+        connectedDurationSec: Math.floor((now - meta.connectedAt) / 1000),
+      });
+    }
+
+    return list;
+  }
+
+  public getActiveInstancesList(): Array<{
+    id: string;
+    mapSeed: number;
+    uptimeSec: number;
+    totalPlayers: number;
+    alivePlayers: number;
+    deadPlayers: number;
+    extractedPlayers: number;
+    players: Array<{
+      name: string;
+      hp: number;
+      maxHp: number;
+      gearScore: number;
+      status: string;
+    }>;
+  }> {
+    const list: Array<any> = [];
+    const now = Date.now();
+
+    for (const instance of this.activeInstances.values()) {
+      const alivePlayers = instance.players.filter((p) => p.status === 'in_raid').length;
+      const deadPlayers = instance.players.filter((p) => p.status === 'dead').length;
+      const extractedPlayers = instance.players.filter((p) => p.status === 'extracted').length;
+
+      list.push({
+        id: instance.id,
+        mapSeed: instance.mapSeed,
+        uptimeSec: Math.floor((now - instance.createdAt) / 1000),
+        totalPlayers: instance.players.length,
+        alivePlayers,
+        deadPlayers,
+        extractedPlayers,
+        players: instance.players.map((p) => ({
+          name: p.name,
+          hp: p.hp,
+          maxHp: p.maxHp,
+          gearScore: p.gearScore,
+          status: p.status,
+        })),
+      });
+    }
+
+    return list;
+  }
+
+  public broadcastAnnouncement(text: string): void {
+    const payload = {
+      senderId: 'server_admin',
+      senderName: '📢 [ADMIN]',
+      text,
+      timestamp: Date.now(),
+      isSystem: true,
+      badgeColor: '#f59e0b',
+    };
+    const message = JSON.stringify({ type: 'REMOTE_CHAT_MESSAGE', payload });
+
+    for (const ws of this.connectedClients) {
+      if (ws.readyState === ws.OPEN) {
+        ws.send(message);
+      }
+    }
+  }
+
+  public kickClient(clientId: string, reason?: string): boolean {
+    for (const [ws, meta] of this.clientMetadata.entries()) {
+      if (meta.id === clientId || meta.name === clientId) {
+        try {
+          ws.close(4001, reason || "Expulsé par l'administrateur");
+        } catch {}
+        this.unregisterClient(ws);
+        return true;
+      }
+    }
+    return false;
   }
 
   public destroy(): void {

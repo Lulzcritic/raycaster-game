@@ -139,6 +139,22 @@ export class Database {
           quests JSONB NOT NULL DEFAULT '{}'::jsonb,
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS game_events (
+          id BIGSERIAL PRIMARY KEY,
+          event_type VARCHAR(64) NOT NULL,
+          player_name VARCHAR(64) NOT NULL DEFAULT 'Inconnu',
+          is_guest BOOLEAN NOT NULL DEFAULT true,
+          user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          gear_score INT NOT NULL DEFAULT 0,
+          instance_id VARCHAR(64),
+          data JSONB NOT NULL DEFAULT '{}'::jsonb,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_game_events_type ON game_events(event_type);
+      CREATE INDEX IF NOT EXISTS idx_game_events_created_at ON game_events(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_game_events_instance ON game_events(instance_id);
     `;
 
     try {

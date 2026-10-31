@@ -6,6 +6,7 @@ import { Matchmaker } from './Matchmaker';
 import { Database } from './db/Database';
 import { AuthService } from './db/AuthService';
 import { PlayerRepository } from './db/PlayerRepository';
+import { AnalyticsService } from './AnalyticsService';
 import type { ClientMessage } from '../../src/types/network';
 
 const PORT = Number(process.env.PORT) || 3001;
@@ -70,6 +71,30 @@ function extractToken(req: http.IncomingMessage): string | null {
   return urlObj.searchParams.get('token');
 }
 
+function getAdminHtml(): string | null {
+  const candidates = [
+    path.join(__dirname, 'admin', 'admin.html'),
+    path.join(__dirname, '..', 'src', 'admin', 'admin.html'),
+    path.join(process.cwd(), 'server', 'src', 'admin', 'admin.html'),
+    path.join(process.cwd(), 'dist-server', 'src', 'admin', 'admin.html'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      return fs.readFileSync(c, 'utf-8');
+    }
+  }
+  return null;
+}
+
+function requireAdminAuth(req: http.IncomingMessage, res: http.ServerResponse): boolean {
+  const token = extractToken(req);
+  if (!token || !AnalyticsService.getInstance().verifyAdminToken(token)) {
+    sendJson(res, 401, { success: false, error: 'Accès administrateur non autorisé ou session expirée' });
+    return false;
+  }
+  return true;
+}
+
 const server = http.createServer(async (req, res) => {
   // En-têtes CORS universels pour les requêtes HTTP et requêtes preflight OPTIONS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -110,6 +135,16 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 1b. Interface Console Administrateur & Télémétrie (/admin ou /admin/)
+  if ((pathName === '/admin' || pathName === '/admin/') && (req.method === 'GET' || req.method === 'HEAD')) {
+    const html = getAdminHtml();
+    if (html) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(html);
+      return;
+    }
+  }
+
   // 2. Healthcheck dédié PostgreSQL
   if (pathName === '/api/db/health' || pathName === '/api/db/status') {
     sendJson(res, 200, {
@@ -133,6 +168,12 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseJsonBody<{ username?: string; password?: string }>(req);
       const result = await AuthService.register(body.username ?? '', body.password ?? '');
+      AnalyticsService.getInstance().trackEvent({
+        eventType: 'account_register',
+        playerId: result.user?.id,
+        playerName: result.user?.username,
+        data: { username: body.username },
+      });
       sendJson(res, 201, { success: true, ...result });
     } catch (err: any) {
       sendJson(res, 400, { success: false, error: err.message });
@@ -152,6 +193,12 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseJsonBody<{ username?: string; password?: string }>(req);
       const result = await AuthService.login(body.username ?? '', body.password ?? '');
+      AnalyticsService.getInstance().trackEvent({
+        eventType: 'account_login',
+        playerId: result.user?.id,
+        playerName: result.user?.username,
+        data: { username: body.username },
+      });
       sendJson(res, 200, { success: true, ...result });
     } catch (err: any) {
       sendJson(res, 401, { success: false, error: err.message });
@@ -238,6 +285,97 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 8b. API Admin : Authentification (/api/admin/login)
+  if (pathName === '/api/admin/login' && req.method === 'POST') {
+    const body = await parseJsonBody<{ password?: string }>(req);
+    const authResult = AnalyticsService.getInstance().loginAdmin(body.password || '');
+    if (authResult.success) {
+      sendJson(res, 200, authResult);
+    } else {
+      sendJson(res, 401, authResult);
+    }
+    return;
+  }
+
+  // 8c. API Admin : Déconnexion (/api/admin/logout)
+  if (pathName === '/api/admin/logout' && req.method === 'POST') {
+    const token = extractToken(req);
+    if (token) {
+      AnalyticsService.getInstance().logoutAdmin(token);
+    }
+    sendJson(res, 200, { success: true });
+    return;
+  }
+
+  // 8d. API Admin : Vue d'ensemble temps réel (/api/admin/realtime)
+  if (pathName === '/api/admin/realtime' && req.method === 'GET') {
+    if (!requireAdminAuth(req, res)) return;
+    const overview = await AnalyticsService.getInstance().getRealtimeOverview(matchmaker);
+    sendJson(res, 200, { success: true, ...overview });
+    return;
+  }
+
+  // 8e. API Admin : Télémétrie et Funnel agrégé (/api/admin/analytics)
+  if (pathName === '/api/admin/analytics' && req.method === 'GET') {
+    if (!requireAdminAuth(req, res)) return;
+    const parsedUrl = new URL(req.url ?? '', `http://${req.headers.host || 'localhost'}`);
+    const timeframe = (parsedUrl.searchParams.get('timeframe') as any) || '24h';
+    const stats = await AnalyticsService.getInstance().getAnalyticsSummary(timeframe);
+    sendJson(res, 200, { success: true, stats });
+    return;
+  }
+
+  // 8f. API Admin : Liste des événements / logs (/api/admin/events)
+  if (pathName === '/api/admin/events' && req.method === 'GET') {
+    if (!requireAdminAuth(req, res)) return;
+    const parsedUrl = new URL(req.url ?? '', `http://${req.headers.host || 'localhost'}`);
+    const eventType = parsedUrl.searchParams.get('type') || undefined;
+    const limit = Math.min(Number(parsedUrl.searchParams.get('limit')) || 100, 500);
+    const offset = Number(parsedUrl.searchParams.get('offset')) || 0;
+    const playerId = parsedUrl.searchParams.get('playerId') || undefined;
+    const search = parsedUrl.searchParams.get('search') || undefined;
+
+    const events = await AnalyticsService.getInstance().getEvents({
+      eventType,
+      limit,
+      offset,
+      playerId,
+      search,
+    });
+    sendJson(res, 200, { success: true, events, count: events.length });
+    return;
+  }
+
+  // 8g. API Admin : Diffusion globale d'une annonce (/api/admin/broadcast)
+  if (pathName === '/api/admin/broadcast' && req.method === 'POST') {
+    if (!requireAdminAuth(req, res)) return;
+    const body = await parseJsonBody<{ message?: string }>(req);
+    const msg = (body.message || '').trim();
+    if (!msg) {
+      sendJson(res, 400, { success: false, error: 'Le message ne peut pas être vide' });
+      return;
+    }
+    matchmaker.broadcastAnnouncement(msg);
+    sendJson(res, 200, { success: true, message: 'Message broadcasté à tous les joueurs en ligne' });
+    return;
+  }
+
+  // 8h. API Admin : Expulsion d'un joueur en ligne (/api/admin/kick)
+  if (pathName === '/api/admin/kick' && req.method === 'POST') {
+    if (!requireAdminAuth(req, res)) return;
+    const body = await parseJsonBody<{ clientId?: string; reason?: string }>(req);
+    if (!body.clientId) {
+      sendJson(res, 400, { success: false, error: 'Identifiant clientId requis' });
+      return;
+    }
+    const kicked = matchmaker.kickClient(body.clientId, body.reason);
+    sendJson(res, 200, {
+      success: kicked,
+      message: kicked ? 'Joueur expulsé avec succès' : 'Client introuvable ou déjà déconnecté',
+    });
+    return;
+  }
+
   // 9. Distribution des fichiers statiques du client (si dist/ existe)
   if (fs.existsSync(DIST_DIR)) {
     const cleanUrl = pathName === '/' ? '/index.html' : pathName;
@@ -282,10 +420,11 @@ const wss = new WebSocketServer({ server });
 const matchmaker = new Matchmaker();
 
 wss.on('connection', (ws: WebSocket, req) => {
-  const ip = req.socket.remoteAddress;
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : null) || req.socket.remoteAddress || 'unknown';
   console.log(`[Server] Nouveau client connecté depuis ${ip}`);
 
-  matchmaker.registerClient(ws);
+  matchmaker.registerClient(ws, ip);
 
   ws.on('message', (raw: string | Buffer) => {
     try {

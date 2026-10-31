@@ -1,4 +1,5 @@
 import type { WebSocket } from 'ws';
+import { AnalyticsService } from './AnalyticsService';
 import type {
   BossDefeatedPayload,
   ChatMessagePayload,
@@ -175,6 +176,19 @@ export class GameInstance {
     const opener = this.players.find((p) => p.ws === ws);
     if (!opener) return;
 
+    AnalyticsService.getInstance().trackEvent({
+      eventType: 'chest_open',
+      playerId: opener.id,
+      playerName: opener.name,
+      instanceId: this.id,
+      data: {
+        isMimic: payload.isMimic,
+        itemsCount: payload.items?.length ?? 0,
+        x: Math.round(payload.x),
+        y: Math.round(payload.y),
+      },
+    });
+
     const remotePayload: RemoteChestOpenedPayload = {
       openerId: opener.id,
       openerName: opener.name,
@@ -243,6 +257,20 @@ export class GameInstance {
     player.portalName = payload.portalName;
     player.coins = payload.coins ?? player.coins;
 
+    const durationSeconds = Math.round((Date.now() - this.createdAt) / 1000);
+    AnalyticsService.getInstance().trackEvent({
+      eventType: 'raid_extract',
+      playerId: player.id,
+      playerName: player.name,
+      instanceId: this.id,
+      data: {
+        portalName: payload.portalName,
+        coins: player.coins,
+        durationSeconds,
+        gearScore: player.gearScore,
+      },
+    });
+
     const remotePayload: RemotePlayerExtractedPayload = {
       playerId: player.id,
       playerName: player.name,
@@ -261,6 +289,21 @@ export class GameInstance {
     player.status = 'dead';
     player.hp = 0;
 
+    const durationSeconds = Math.round((Date.now() - this.createdAt) / 1000);
+    AnalyticsService.getInstance().trackEvent({
+      eventType: 'raid_death',
+      playerId: player.id,
+      playerName: player.name,
+      instanceId: this.id,
+      data: {
+        durationSeconds,
+        droppedItemsCount: payload.droppedItems?.length ?? 0,
+        x: Math.round(payload.x),
+        y: Math.round(payload.y),
+        gearScore: player.gearScore,
+      },
+    });
+
     const remotePayload: RemotePlayerDiedPayload = {
       playerId: player.id,
       playerName: player.name,
@@ -274,6 +317,18 @@ export class GameInstance {
   }
 
   public handleBossDefeated(ws: WebSocket, payload: BossDefeatedPayload): void {
+    const killer = this.players.find((p) => p.ws === ws);
+    AnalyticsService.getInstance().trackEvent({
+      eventType: 'boss_kill',
+      playerId: killer?.id,
+      playerName: killer?.name,
+      instanceId: this.id,
+      data: {
+        bossName: payload.bossName,
+        raidDurationSeconds: Math.round((Date.now() - this.createdAt) / 1000),
+      },
+    });
+
     const remotePayload: RemoteBossDefeatedPayload = {
       bossName: payload.bossName,
     };
@@ -299,6 +354,17 @@ export class GameInstance {
   public handleChatMessage(ws: WebSocket, payload: ChatMessagePayload): void {
     const sender = this.players.find((p) => p.ws === ws);
     if (!sender) return;
+
+    AnalyticsService.getInstance().trackEvent({
+      eventType: 'chat_message',
+      playerId: sender.id,
+      playerName: sender.name,
+      instanceId: this.id,
+      data: {
+        length: payload.text?.length || 0,
+        textPreview: payload.text?.slice(0, 50),
+      },
+    });
 
     const remotePayload: RemoteChatMessagePayload = {
       senderId: sender.id,

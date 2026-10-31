@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citadel — Console Admin & Télémétrie Temps Réel</title>
+  <style>
+    :root {
+      --bg-dark: #0a0c10;
+      --bg-panel: #131722;
+      --bg-card: #1a2030;
+      --bg-card-hover: #22293d;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(212, 175, 55, 0.3);
+      --gold: #d4af37;
+      --gold-light: #f6d860;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --green: #10b981;
+      --red: #ef4444;
+      --cyan: #06b6d4;
+      --purple: #a855f7;
+      --blue: #3b82f6;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* En-tête supérieur */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--gold-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--border-accent);
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .header-stats {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .status-dot.red {
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-main);
+      padding: 6px 14px;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-muted);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #d4af37, #b8860b);
+      color: #000;
+      font-weight: 600;
+      border: none;
+    }
+
+    button.primary:hover {
+      filter: brightness(1.1);
+    }
+
+    button.danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    button.danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Barre de navigation par onglets */
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-panel);
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-tab {
+      padding: 12px 18px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-main);
+    }
+
+    .nav-tab.active {
+      color: var(--gold-light);
+      border-bottom-color: var(--gold);
+    }
+
+    /* Conteneur principal */
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Grille de cartes KPI */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background: var(--gold);
+    }
+
+    .kpi-card.cyan::before { background: var(--cyan); }
+    .kpi-card.green::before { background: var(--green); }
+    .kpi-card.purple::before { background: var(--purple); }
+
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      font-family: var(--font-mono);
+      line-height: 1.1;
+    }
+
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Panneaux et tables */
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-body {
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge.lobby { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .badge.queue { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge.raid { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge.rank { background: rgba(212, 175, 55, 0.15); color: var(--gold); border: 1px solid var(--border-accent); }
+
+    /* Barres de vie */
+    .hp-bar-container {
+      width: 110px;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    .hp-bar-fill {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.3s ease;
+    }
+
+    .hp-bar-fill.warning { background: #f59e0b; }
+    .hp-bar-fill.danger { background: var(--red); }
+
+    /* Funnel visualizer */
+    .funnel-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .funnel-step {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .funnel-label {
+      width: 180px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .funnel-bar-wrapper {
+      flex: 1;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .funnel-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #06b6d4);
+      border-radius: 6px;
+      transition: width 0.5s ease;
+    }
+
+    .funnel-bar.step-extract { background: linear-gradient(90deg, #10b981, #34d399); }
+    .funnel-bar.step-death { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+    .funnel-bar-text {
+      position: absolute;
+      left: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Grille de statistiques secondaires */
+    .stats-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .stats-2col { grid-template-columns: 1fr; }
+    }
+
+    /* Event ticker & logs */
+    .event-ticker {
+      display: flex;
+      flex-direction: column;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .event-row {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .event-row:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .event-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .badge-session { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+    .badge-queue { background: rgba(245, 158, 11, 0.2); color: #fde047; }
+    .badge-raid { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+    .badge-extract { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .badge-death { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .badge-chest { background: rgba(212, 175, 55, 0.2); color: var(--gold-light); }
+    .badge-boss { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+
+    /* Modals & login overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-accent);
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+    }
+
+    .modal-desc {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+      margin-bottom: 18px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea,
+    select {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #fff;
+      padding: 10px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border 0.15s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--gold);
+    }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .alert.danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .alert.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+
+    /* JSON inspect dialog */
+    pre.code-box {
+      background: #080a0f;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #7dd3fc;
+      overflow-x: auto;
+      max-height: 350px;
+      text-align: left;
+    }
+
+    /* Histogramme d'activité */
+    .hourly-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 120px;
+      padding: 16px 20px 8px;
+    }
+
+    .hourly-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .hourly-bar {
+      width: 100%;
+      background: #3b82f6;
+      border-radius: 2px 2px 0 0;
+      min-height: 2px;
+      transition: height 0.3s ease;
+    }
+
+    .hourly-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Modal Authentification Admin -->
+  <div id="login-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div style="font-size: 36px; margin-bottom: 8px;">🔐</div>
+      <div class="modal-title">Accès Console Admin</div>
+      <div class="modal-desc">Veuillez entrer le mot de passe d'administration Citadel pour surveiller et gérer le serveur.</div>
+      
+      <div id="login-alert" class="alert danger"></div>
+
+      <form id="login-form">
+        <div class="input-group">
+          <label for="admin-pass">Mot de passe Administrateur</label>
+          <input type="password" id="admin-pass" placeholder="Mot de passe secret" required autofocus />
+        </div>
+        <button type="submit" class="primary" style="width: 100%; justify-content: center; padding: 10px;">
+          Se Connecter à la Console
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">🏰</div>
+      <div>
+        <div class="brand-title">
+          CITADEL
+          <span class="brand-badge">Admin & Télémétrie</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-pill" title="Statut du serveur">
+        <span class="status-dot" id="server-dot"></span>
+        <span id="server-uptime">En ligne</span>
+      </div>
+      <div class="stat-pill" title="Base de données PostgreSQL">
+        <span class="status-dot" id="db-dot"></span>
+        <span id="db-status">PostgreSQL</span>
+      </div>
+      <div class="stat-pill" title="Mémoire RAM (RSS / Heap)">
+        <span>⚡</span>
+        <span id="mem-stat" style="font-family: var(--font-mono);">-- MB</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="btn-refresh" title="Actualiser les données">🔄 Actualiser</button>
+      <button id="btn-auto-refresh" class="primary" title="Basculer le rafraîchissement automatique">⚡ Auto: 3s</button>
+      <button id="btn-logout" class="danger">Déconnexion</button>
+    </div>
+  </header>
+
+  <!-- Navigation par onglets -->
+  <nav class="nav-tabs">
+    <div class="nav-tab active" data-tab="tab-realtime">⚡ Temps Réel</div>
+    <div class="nav-tab" data-tab="tab-analytics">📊 Analytics & Funnel</div>
+    <div class="nav-tab" data-tab="tab-logs">📜 Journal des Événements</div>
+    <div class="nav-tab" data-tab="tab-moderation">🛠️ Modération & Outils</div>
+  </nav>
+
+  <!-- Contenu Principal -->
+  <main>
+
+    <!-- ONGLET 1 : TEMPS RÉEL -->
+    <div id="tab-realtime" class="tab-content active">
+      <!-- Cartes KPI -->
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-label">Joueurs Connectés (CCU)</div>
+          <div class="kpi-value" id="kpi-ccu">0</div>
+          <div class="kpi-sub" id="kpi-ccu-breakdown">0 en ville • 0 en file • 0 en raid</div>
+        </div>
+        <div class="kpi-card cyan">
+          <div class="kpi-label">Donjons Actifs</div>
+          <div class="kpi-value" id="kpi-instances">0</div>
+          <div class="kpi-sub" id="kpi-raiding-players">0 aventuriers en exploration</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Prochain Convoi</div>
+          <div class="kpi-value" id="kpi-convoi-timer">--s</div>
+          <div class="kpi-sub" id="kpi-queued-players">0 joueurs en attente</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Taux d'Extraction Récent</div>
+          <div class="kpi-value" id="kpi-survival-rate">--%</div>
+          <div class="kpi-sub" id="kpi-extractions-sub">Sur les dernières 24h</div>
+        </div>
+      </div>
+
+      <!-- Joueurs en Direct -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">👥 Joueurs en Ligne (<span id="count-players">0</span>)</div>
+          <div style="font-size: 12px; color: var(--text-muted);">Synchronisation temps réel</div>
+        </div>
+        <div class="panel-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Joueur</th>
+                <th>Statut</th>
+                <th>Santé (HP)</th>
+                <th>Gear Score & Rang</th>
+                <th>Adresse IP</th>
+                <th>Session</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="table-players-body">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                  Aucun joueur connecté actuellement
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="stats-2col">
+        <!-- Donjons Actifs -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🏰 Instances de Donjon en Cours</div>
+          </div>
+          <div class="panel-body" id="instances-list" style="padding: 16px;">
+            <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+              Aucune instance de raid active en ce moment
+            </div>
+          </div>
+        </div>
+
+        <!-- Derniers Événements (Ticker en Direct) -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">⚡ Flux d'Activité en Direct</div>
+          </div>
+          <div class="panel-body event-ticker" id="recent-ticker-body">
+            <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+              En attente d'événements de jeu...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ONGLET 2 : ANALYTICS & FUNNEL -->
+    <div id="tab-analytics" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 18px; font-weight: 700;">Statistiques de Jeu & Comportement Joueurs</h2>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <label style="margin: 0;">Période :</label>
+          <select id="analytics-timeframe" style="width: auto; padding: 6px 12px;">
+            <option value="1h">Dernière heure</option>
+            <option value="24h" selected>Dernières 24 heures</option>
+            <option value="7d">7 derniers jours</option>
+            <option value="30d">30 derniers jours</option>
+            <option value="all">Tout l'historique</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Funnel de Conversion -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🏆 Funnel de Conversion Gameplay (Parcours Joueur)</div>
+        </div>
+        <div class="funnel-container" id="funnel-container">
+          <!-- Injecté en JS -->
+        </div>
+      </div>
+
+      <!-- KPIs Économie et Combat -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Pièces d'Or Extraites</div>
+          <div class="kpi-value" id="stat-gold">0</div>
+          <div class="kpi-sub">Total or sécurisé dans le coffre</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Coffres Déverrouillés</div>
+          <div class="kpi-value" id="stat-chests">0</div>
+          <div class="kpi-sub" id="stat-mimics-sub">dont 0 mimics</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Boss Terrassés</div>
+          <div class="kpi-value" id="stat-bosses">0</div>
+          <div class="kpi-sub">Victoires contre les gardiens</div>
+        </div>
+        <div class="kpi-card cyan">
+          <div class="kpi-label">Gear Score Moyen Actuel</div>
+          <div class="kpi-value" id="stat-avg-gs">0</div>
+          <div class="kpi-sub">Joueurs en ligne</div>
+        </div>
+      </div>
+
+      <!-- Graphique d'Activité Horaire -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📈 Activité par Heure (Dernières 24h)</div>
+        </div>
+        <div class="hourly-chart" id="hourly-chart-container">
+          <!-- Barres horaires injectées en JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ONGLET 3 : JOURNAL DES ÉVÉNEMENTS -->
+    <div id="tab-logs" class="tab-content">
+      <div class="panel">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
+          <div class="panel-title">📜 Journal d'Événements de Jeu</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <select id="log-filter-type" style="width: auto; padding: 6px 10px;">
+              <option value="">Tous les types d'événements</option>
+              <option value="session_start">Connexion (session_start)</option>
+              <option value="session_end">Déconnexion (session_end)</option>
+              <option value="queue_join">File convoi (queue_join)</option>
+              <option value="raid_start">Départ donjon (raid_start)</option>
+              <option value="raid_extract">Extraction (raid_extract)</option>
+              <option value="raid_death">Mort (raid_death)</option>
+              <option value="chest_open">Coffre ouvert (chest_open)</option>
+              <option value="boss_kill">Boss vaincu (boss_kill)</option>
+              <option value="chat_message">Chat (chat_message)</option>
+              <option value="account_login">Connexion compte (account_login)</option>
+              <option value="account_register">Création compte (account_register)</option>
+            </select>
+            <input type="text" id="log-search" placeholder="Rechercher joueur / instance..." style="width: 220px; padding: 6px 12px;" />
+            <button id="btn-filter-logs" class="primary">Filtrer</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 140px;">Heure</th>
+                <th style="width: 140px;">Événement</th>
+                <th>Joueur</th>
+                <th>Instance</th>
+                <th>Données & Détails</th>
+              </tr>
+            </thead>
+            <tbody id="table-logs-body">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                  Chargement des événements...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ONGLET 4 : MODÉRATION & OUTILS -->
+    <div id="tab-moderation" class="tab-content">
+      <div class="stats-2col">
+        <!-- Diffusion Générale -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📢 Diffusion Globale en Jeu (Broadcast)</div>
+          </div>
+          <div class="panel-body" style="padding: 20px;">
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+              Diffuse instantanément un message administrateur dans le chat et en notification visuelle pour tous les joueurs en ligne.
+            </p>
+            <div id="broadcast-alert" class="alert"></div>
+            <form id="broadcast-form">
+              <div class="input-group">
+                <label for="broadcast-msg">Message Système</label>
+                <textarea id="broadcast-msg" rows="3" placeholder="Ex: Maintenance du serveur dans 15 minutes. Veuillez rejoindre un portail d'extraction !" required></textarea>
+              </div>
+              <button type="submit" class="primary">
+                Envoyer le message à tous les joueurs
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Informations Serveur & Diagnostics -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">⚙️ Informations Système & Diagnostic</div>
+          </div>
+          <div class="panel-body" style="padding: 20px;">
+            <table style="font-size: 13px;">
+              <tr>
+                <td style="color: var(--text-muted); width: 140px;">Version Node.js</td>
+                <td id="diag-node" style="font-family: var(--font-mono);">--</td>
+              </tr>
+              <tr>
+                <td style="color: var(--text-muted);">Uptime Serveur</td>
+                <td id="diag-uptime" style="font-family: var(--font-mono);">--</td>
+              </tr>
+              <tr>
+                <td style="color: var(--text-muted);">Mémoire RSS</td>
+                <td id="diag-rss" style="font-family: var(--font-mono);">--</td>
+              </tr>
+              <tr>
+                <td style="color: var(--text-muted);">Mémoire Heap</td>
+                <td id="diag-heap" style="font-family: var(--font-mono);">--</td>
+              </tr>
+              <tr>
+                <td style="color: var(--text-muted);">Stockage Télémétrie</td>
+                <td id="diag-events" style="font-family: var(--font-mono);">--</td>
+              </tr>
+              <tr>
+                <td style="color: var(--text-muted);">Statut PostgreSQL</td>
+                <td id="diag-db" style="font-family: var(--font-mono);">--</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal Détail JSON -->
+  <div id="json-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 600px; text-align: left;">
+      <div class="modal-title" id="json-modal-title">Détail de l'Événement</div>
+      <pre class="code-box" id="json-modal-content"></pre>
+      <div style="margin-top: 18px; text-align: right;">
+        <button id="btn-close-json" class="primary">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration de base & chemin API
+    const isToc = window.location.pathname.startsWith('/toc');
+    const API_BASE = isToc ? '/toc/api/admin' : '/api/admin';
+    let adminToken = sessionStorage.getItem('citadel_admin_token') || '';
+    let autoRefreshInterval = null;
+    let autoRefreshSec = 3;
+
+    // Helpers DOM
+    const $ = (id) => document.getElementById(id);
+
+    // Initialisation
+    window.addEventListener('DOMContentLoaded', () => {
+      setupTabs();
+      setupAuth();
+      setupEvents();
+
+      if (adminToken) {
+        startDashboard();
+      } else {
+        $('login-modal').style.display = 'flex';
+      }
+    });
+
+    // Navigation par onglets
+    function setupTabs() {
+      document.querySelectorAll('.nav-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+
+          tab.classList.add('active');
+          const targetId = tab.getAttribute('data-tab');
+          if (targetId && $(targetId)) {
+            $(targetId).classList.add('active');
+          }
+
+          if (targetId === 'tab-analytics') loadAnalytics();
+          if (targetId === 'tab-logs') loadLogs();
+        });
+      });
+    }
+
+    // Gestion de l'authentification
+    function setupAuth() {
+      $('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const password = $('admin-pass').value.trim();
+        const alertBox = $('login-alert');
+        alertBox.style.display = 'none';
+
+        try {
+          const res = await fetch(`${API_BASE}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+          });
+          const data = await res.json();
+          if (data.success && data.token) {
+            adminToken = data.token;
+            sessionStorage.setItem('citadel_admin_token', adminToken);
+            $('login-modal').style.display = 'none';
+            startDashboard();
+          } else {
+            alertBox.textContent = data.error || 'Mot de passe administrateur erroné';
+            alertBox.style.display = 'block';
+          }
+        } catch (err) {
+          alertBox.textContent = 'Erreur de connexion au serveur';
+          alertBox.style.display = 'block';
+        }
+      });
+
+      $('btn-logout').addEventListener('click', async () => {
+        try {
+          await fetch(`${API_BASE}/logout`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${adminToken}` },
+          });
+        } catch (e) {}
+        sessionStorage.removeItem('citadel_admin_token');
+        adminToken = '';
+        if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+        $('login-modal').style.display = 'flex';
+      });
+    }
+
+    // Configuration des événements interactifs
+    function setupEvents() {
+      $('btn-refresh').addEventListener('click', () => {
+        loadRealtime();
+        const activeTab = document.querySelector('.tab-content.active');
+        if (activeTab && activeTab.id === 'tab-analytics') loadAnalytics();
+        if (activeTab && activeTab.id === 'tab-logs') loadLogs();
+      });
+
+      $('btn-auto-refresh').addEventListener('click', () => {
+        if (autoRefreshInterval) {
+          clearInterval(autoRefreshInterval);
+          autoRefreshInterval = null;
+          $('btn-auto-refresh').textContent = '⚡ Auto: OFF';
+          $('btn-auto-refresh').classList.remove('primary');
+        } else {
+          autoRefreshInterval = setInterval(loadRealtime, autoRefreshSec * 1000);
+          $('btn-auto-refresh').textContent = `⚡ Auto: ${autoRefreshSec}s`;
+          $('btn-auto-refresh').classList.add('primary');
+        }
+      });
+
+      $('analytics-timeframe').addEventListener('change', () => {
+        loadAnalytics();
+      });
+
+      $('btn-filter-logs').addEventListener('click', () => {
+        loadLogs();
+      });
+
+      $('broadcast-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = $('broadcast-msg').value.trim();
+        if (!msg) return;
+
+        const alertBox = $('broadcast-alert');
+        alertBox.style.display = 'none';
+
+        try {
+          const res = await fetch(`${API_BASE}/broadcast`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${adminToken}`,
+            },
+            body: JSON.stringify({ message: msg }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            alertBox.className = 'alert success';
+            alertBox.textContent = 'Message broadcasté avec succès à tous les joueurs en ligne !';
+            alertBox.style.display = 'block';
+            $('broadcast-msg').value = '';
+            setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+          } else {
+            alertBox.className = 'alert danger';
+            alertBox.textContent = data.error || 'Erreur lors de la diffusion';
+            alertBox.style.display = 'block';
+          }
+        } catch (err) {
+          alertBox.className = 'alert danger';
+          alertBox.textContent = 'Erreur réseau';
+          alertBox.style.display = 'block';
+        }
+      });
+
+      $('btn-close-json').addEventListener('click', () => {
+        $('json-modal').style.display = 'none';
+      });
+    }
+
+    function startDashboard() {
+      loadRealtime();
+      loadAnalytics();
+      loadLogs();
+      if (!autoRefreshInterval) {
+        autoRefreshInterval = setInterval(loadRealtime, autoRefreshSec * 1000);
+      }
+    }
+
+    // Récupération des données temps réel
+    async function loadRealtime() {
+      if (!adminToken) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/realtime`, {
+          headers: { 'Authorization': `Bearer ${adminToken}` },
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem('citadel_admin_token');
+          adminToken = '';
+          if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+          $('login-modal').style.display = 'flex';
+          return;
+        }
+
+        const data = await res.json();
+        if (!data.success) return;
+
+        renderRealtime(data);
+      } catch (err) {
+        console.error('Erreur chargement temps réel:', err);
+      }
+    }
+
+    // Rendu des données temps réel
+    function renderRealtime(data) {
+      const server = data.server || {};
+      const matchmaker = data.matchmaker || {};
+      const players = data.players || [];
+      const instances = data.instances || [];
+      const recentEvents = data.recentEvents || [];
+
+      // Statut supérieur
+      $('server-uptime').textContent = formatDuration(server.uptimeSeconds || 0);
+      $('mem-stat').textContent = `${server.memoryRssMb || 0} MB`;
+
+      const dbConnected = server.databaseConnected;
+      const dbDot = $('db-dot');
+      if (dbConnected) {
+        dbDot.className = 'status-dot';
+        $('db-status').textContent = 'PostgreSQL';
+      } else {
+        dbDot.className = 'status-dot red';
+        $('db-status').textContent = 'PostgreSQL (Mémoire)';
+      }
+
+      // Diagnostic
+      $('diag-uptime').textContent = formatDuration(server.uptimeSeconds || 0);
+      $('diag-rss').textContent = `${server.memoryRssMb || 0} MB`;
+      $('diag-heap').textContent = `${server.memoryHeapMb || 0} MB`;
+      $('diag-node').textContent = server.nodeVersion || '--';
+      $('diag-events').textContent = `${data.storedEventsCount || 0} événements`;
+      $('diag-db').textContent = dbConnected ? 'Connecté' : 'Hors-ligne (Fallback mémoire actif)';
+
+      // KPIs
+      $('kpi-ccu').textContent = matchmaker.connectedClients || 0;
+      $('count-players').textContent = matchmaker.connectedClients || 0;
+      $('kpi-ccu-breakdown').textContent = 
+        `${matchmaker.lobbyPlayers || 0} en ville • ${matchmaker.queuedPlayers || 0} en file • ${matchmaker.raidingPlayers || 0} en raid`;
+
+      $('kpi-instances').textContent = matchmaker.activeInstances || 0;
+      $('kpi-raiding-players').textContent = `${matchmaker.raidingPlayers || 0} aventuriers en exploration`;
+
+      $('kpi-convoi-timer').textContent = `${matchmaker.convoiCountdownSeconds || 0}s`;
+      $('kpi-queued-players').textContent = `${matchmaker.queuedPlayers || 0} joueurs en attente de départ`;
+
+      // Tableau Joueurs
+      renderPlayersTable(players);
+
+      // Donjons en cours
+      renderInstancesList(instances);
+
+      // Ticker d'événements récents
+      renderRecentTicker(recentEvents);
+    }
+
+    function renderPlayersTable(players) {
+      const tbody = $('table-players-body');
+      if (!players || players.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px;">
+              Aucun joueur connecté actuellement
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = players.map((p) => {
+        let statusBadge = '<span class="badge lobby">En ville</span>';
+        if (p.status === 'in_queue') statusBadge = '<span class="badge queue">File convoi</span>';
+        if (p.status === 'in_raid') statusBadge = `<span class="badge raid">Raid #${p.instanceId ? p.instanceId.slice(0, 6) : ''}</span>`;
+
+        const rank = getRankName(p.gearScore || 0);
+        const hpPercent = Math.min(100, Math.max(0, Math.round(((p.hp || 100) / (p.maxHp || 100)) * 100)));
+        let hpColorClass = '';
+        if (hpPercent < 30) hpColorClass = 'danger';
+        else if (hpPercent < 60) hpColorClass = 'warning';
+
+        return `
+          <tr>
+            <td>
+              <strong style="color: #fff;">${escapeHtml(p.name || 'Inconnu')}</strong>
+              <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">${p.id}</div>
+            </td>
+            <td>${statusBadge}</td>
+            <td>
+              <div class="hp-bar-container">
+                <div class="hp-bar-fill ${hpColorClass}" style="width: ${hpPercent}%;"></div>
+              </div>
+              <span style="font-family: var(--font-mono); font-size: 11px;">${p.hp ?? 100}/${p.maxHp ?? 100}</span>
+            </td>
+            <td>
+              <span style="font-family: var(--font-mono); font-weight: 700;">${p.gearScore || 0}</span>
+              <span class="badge rank" style="margin-left: 6px;">${rank}</span>
+            </td>
+            <td style="font-family: var(--font-mono); color: var(--text-muted);">${escapeHtml(p.ip || '127.0.0.1')}</td>
+            <td style="color: var(--text-muted); font-size: 12px;">${formatDuration(p.sessionDurationSeconds || 0)}</td>
+            <td>
+              <button class="danger" onclick="kickPlayer('${p.id}', '${escapeHtml(p.name)}')">
+                Expulser
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderInstancesList(instances) {
+      const container = $('instances-list');
+      if (!instances || instances.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+            Aucune instance de raid active en ce moment
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = instances.map((inst) => {
+        return `
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-weight: 700; color: var(--gold-light);">Donjon #${inst.id.slice(0, 8)}</span>
+              <span style="font-size: 12px; color: var(--text-muted);">Durée: ${formatDuration(inst.durationSeconds || 0)}</span>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+              Map Seed: <span style="font-family: var(--font-mono); color: #fff;">${inst.mapSeed}</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              ${(inst.players || []).map((p) => `
+                <span class="stat-pill" style="font-size: 11px;">
+                  👤 ${escapeHtml(p.name)} (${p.hp} HP)
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderRecentTicker(events) {
+      const container = $('recent-ticker-body');
+      if (!events || events.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+            En attente d'événements de jeu...
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = events.slice(0, 15).map((e) => {
+        const badge = getEventBadge(e.eventType);
+        const playerLabel = e.playerName ? `<strong>${escapeHtml(e.playerName)}</strong>` : 'Système';
+        const dateStr = formatRelativeTime(e.createdAt);
+
+        return `
+          <div class="event-row" onclick="showJsonDetails(${JSON.stringify(e).replace(/"/g, '&quot;')})">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${badge}
+              <span>${playerLabel}</span>
+            </div>
+            <span style="color: var(--text-muted); font-size: 11px;">${dateStr}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Récupération des Analytics & Funnel
+    async function loadAnalytics() {
+      if (!adminToken) return;
+      const timeframe = $('analytics-timeframe').value || '24h';
+
+      try {
+        const res = await fetch(`${API_BASE}/analytics?timeframe=${timeframe}`, {
+          headers: { 'Authorization': `Bearer ${adminToken}` },
+        });
+        const data = await res.json();
+        if (!data.success) return;
+
+        renderAnalytics(data.stats);
+      } catch (err) {
+        console.error('Erreur chargement analytics:', err);
+      }
+    }
+
+    function renderAnalytics(stats) {
+      if (!stats) return;
+
+      $('stat-gold').textContent = Number(stats.goldExtracted || 0).toLocaleString();
+      $('stat-chests').textContent = Number(stats.chestsOpened || 0).toLocaleString();
+      $('stat-mimics-sub').textContent = `dont ${stats.mimicsFound || 0} mimics`;
+      $('stat-bosses').textContent = Number(stats.bossesDefeated || 0).toLocaleString();
+      $('stat-avg-gs').textContent = stats.avgGearScore || 0;
+
+      // Survival Rate KPI
+      const survivalRate = stats.survivalRate ?? 0;
+      $('kpi-survival-rate').textContent = `${survivalRate}%`;
+      $('kpi-extractions-sub').textContent = `${stats.extractions || 0} survies • ${stats.deaths || 0} morts`;
+
+      // Funnel
+      const funnel = stats.funnel || { sessions: 0, queueJoins: 0, raidsStarted: 0, extractions: 0, deaths: 0 };
+      const base = Math.max(funnel.sessions, funnel.queueJoins, funnel.raidsStarted, 1);
+
+      const pctSession = 100;
+      const pctQueue = Math.round((funnel.queueJoins / base) * 100);
+      const pctRaid = Math.round((funnel.raidsStarted / base) * 100);
+      const pctExtract = Math.round((funnel.extractions / base) * 100);
+      const pctDeath = Math.round((funnel.deaths / base) * 100);
+
+      $('funnel-container').innerHTML = `
+        <div class="funnel-step">
+          <div class="funnel-label">1. Sessions Lancées</div>
+          <div class="funnel-bar-wrapper">
+            <div class="funnel-bar" style="width: ${pctSession}%;"></div>
+            <div class="funnel-bar-text">${funnel.sessions} sessions (100%)</div>
+          </div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">2. File Convoi Rejointe</div>
+          <div class="funnel-bar-wrapper">
+            <div class="funnel-bar" style="width: ${pctQueue}%;"></div>
+            <div class="funnel-bar-text">${funnel.queueJoins} (${pctQueue}%)</div>
+          </div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">3. Raids Donjon Démarrés</div>
+          <div class="funnel-bar-wrapper">
+            <div class="funnel-bar" style="width: ${pctRaid}%;"></div>
+            <div class="funnel-bar-text">${funnel.raidsStarted} raids (${pctRaid}%)</div>
+          </div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">4a. Extractions Réussies</div>
+          <div class="funnel-bar-wrapper">
+            <div class="funnel-bar step-extract" style="width: ${pctExtract}%;"></div>
+            <div class="funnel-bar-text">${funnel.extractions} évadés avec butin (${survivalRate}% de survie)</div>
+          </div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">4b. Morts dans le Donjon</div>
+          <div class="funnel-bar-wrapper">
+            <div class="funnel-bar step-death" style="width: ${pctDeath}%;"></div>
+            <div class="funnel-bar-text">${funnel.deaths} aventuriers tombés</div>
+          </div>
+        </div>
+      `;
+
+      // Distribution horaire
+      const hourly = stats.hourlyActivity || [];
+      const maxCount = Math.max(...hourly.map((h) => h.count), 1);
+      $('hourly-chart-container').innerHTML = hourly.map((h) => {
+        const heightPct = Math.max(4, Math.round((h.count / maxCount) * 100));
+        return `
+          <div class="hourly-col" title="${h.hour}h : ${h.count} événements">
+            <div class="hourly-bar" style="height: ${heightPct}%;"></div>
+            <div class="hourly-label">${h.hour}h</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Récupération des logs
+    async function loadLogs() {
+      if (!adminToken) return;
+      const type = $('log-filter-type').value;
+      const search = $('log-search').value.trim();
+
+      let url = `${API_BASE}/events?limit=100`;
+      if (type) url += `&type=${encodeURIComponent(type)}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+
+      try {
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${adminToken}` },
+        });
+        const data = await res.json();
+        if (!data.success) return;
+
+        renderLogs(data.events || []);
+      } catch (err) {
+        console.error('Erreur chargement logs:', err);
+      }
+    }
+
+    function renderLogs(events) {
+      const tbody = $('table-logs-body');
+      if (!events || events.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 32px;">
+              Aucun événement trouvé avec ces filtres
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = events.map((e) => {
+        const badge = getEventBadge(e.eventType);
+        const date = new Date(e.createdAt);
+        const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
+
+        return `
+          <tr>
+            <td style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+              ${dateStr} ${timeStr}
+            </td>
+            <td>${badge}</td>
+            <td>
+              <strong>${escapeHtml(e.playerName || 'Anonyme')}</strong>
+              ${e.playerId ? `<div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">${e.playerId.slice(0, 8)}</div>` : ''}
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+              ${e.instanceId ? `#${e.instanceId.slice(0, 8)}` : '--'}
+            </td>
+            <td>
+              <button onclick="showJsonDetails(${JSON.stringify(e).replace(/"/g, '&quot;')})" style="padding: 3px 8px; font-size: 11px;">
+                Voir JSON
+              </button>
+              <span style="color: var(--text-muted); font-size: 11px; margin-left: 8px;">
+                ${summarizeEventData(e.data)}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Modal JSON details
+    window.showJsonDetails = function(eventObj) {
+      $('json-modal-title').textContent = `Événement: ${eventObj.eventType}`;
+      $('json-modal-content').textContent = JSON.stringify(eventObj, null, 2);
+      $('json-modal').style.display = 'flex';
+    };
+
+    // Action d'expulsion de joueur
+    window.kickPlayer = async function(clientId, playerName) {
+      if (!confirm(`Voulez-vous vraiment expulser ${playerName} (${clientId}) ?`)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/kick`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify({ clientId, reason: 'Expulsé par l administrateur' }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Le joueur ${playerName} a été expulsé.`);
+          loadRealtime();
+        } else {
+          alert(data.error || 'Impossible d expulser ce joueur.');
+        }
+      } catch (err) {
+        alert('Erreur réseau lors de l expulsion.');
+      }
+    };
+
+    // Helpers d'affichage
+    function getRankName(gs) {
+      if (gs >= 550) return 'Champion';
+      if (gs >= 400) return 'Maître';
+      if (gs >= 250) return 'Vétéran';
+      if (gs >= 100) return 'Aventurier';
+      return 'Novice';
+    }
+
+    function getEventBadge(type) {
+      switch (type) {
+        case 'session_start':
+        case 'session_end':
+          return `<span class="event-badge badge-session">${type}</span>`;
+        case 'queue_join':
+        case 'queue_leave':
+          return `<span class="event-badge badge-queue">${type}</span>`;
+        case 'raid_start':
+          return `<span class="event-badge badge-raid">${type}</span>`;
+        case 'raid_extract':
+          return `<span class="event-badge badge-extract">🏆 extract</span>`;
+        case 'raid_death':
+          return `<span class="event-badge badge-death">💀 mort</span>`;
+        case 'chest_open':
+          return `<span class="event-badge badge-chest">📦 coffre</span>`;
+        case 'boss_kill':
+          return `<span class="event-badge badge-boss">⚔️ boss</span>`;
+        default:
+          return `<span class="event-badge">${escapeHtml(type)}</span>`;
+      }
+    }
+
+    function summarizeEventData(data) {
+      if (!data) return '';
+      if (typeof data !== 'object') return String(data);
+      if (data.coins !== undefined) return `💰 ${data.coins} or`;
+      if (data.isMimic) return `⚠️ Mimic !`;
+      if (data.bossName) return `Boss: ${data.bossName}`;
+      if (data.textPreview) return `"${data.textPreview}"`;
+      if (data.durationSeconds) return `${data.durationSeconds}s`;
+      return '';
+    }
+
+    function formatDuration(sec) {
+      const s = Math.floor(sec % 60);
+      const m = Math.floor((sec / 60) % 60);
+      const h = Math.floor(sec / 3600);
+      if (h > 0) return `${h}h ${m}m ${s}s`;
+      if (m > 0) return `${m}m ${s}s`;
+      return `${s}s`;
+    }
+
+    function formatRelativeTime(dateInput) {
+      const date = new Date(dateInput);
+      const now = new Date();
+      const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+      if (diffSec < 5) return 'À l instant';
+      if (diffSec < 60) return `Il y a ${diffSec}s`;
+      if (diffSec < 3600) return `Il y a ${Math.floor(diffSec / 60)}m`;
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
